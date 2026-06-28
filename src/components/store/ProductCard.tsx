@@ -6,8 +6,6 @@ import Image from "next/image";
 import { ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { QuickAddModal } from "./QuickAddModal";
-import type { Product, Category } from "@/types";
-
 interface Variant {
   id: string;
   size: string;
@@ -17,8 +15,20 @@ interface Variant {
   image: string | null;
 }
 
+interface CardProduct {
+  id: string;
+  name: string;
+  slug: string;
+  images: string[];
+  price: number | { toNumber(): number };
+  comparePrice: number | { toNumber(): number } | null;
+  isFeatured: boolean;
+  category?: unknown;
+  variants?: Variant[];
+}
+
 interface ProductCardProps {
-  product: Product & { category?: Category | null; variants?: Variant[] };
+  product: CardProduct;
   priority?: boolean;
 }
 

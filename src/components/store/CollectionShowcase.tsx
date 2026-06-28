@@ -76,13 +76,19 @@ export function CollectionShowcase({
 
         {/* Product grid — card style depends on displayMode */}
         <div className={gridClass}>
-          {products.map((product, i) =>
-            displayMode === "carrossel" ? (
-              <ShowcaseProductCard key={product.id} product={product} priority={i < desktopColumns} />
+          {products.map((product, i) => {
+            const p = {
+              ...product,
+              price: Number(product.price),
+              comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+              variants: product.variants.map((v) => ({ ...v, price: v.price ? Number(v.price) : null })),
+            };
+            return displayMode === "carrossel" ? (
+              <ShowcaseProductCard key={product.id} product={p} priority={i < desktopColumns} />
             ) : (
-              <ProductCard key={product.id} product={product} priority={i < desktopColumns} />
-            )
-          )}
+              <ProductCard key={product.id} product={p} priority={i < desktopColumns} />
+            );
+          })}
         </div>
       </div>
     </section>

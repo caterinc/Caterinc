@@ -27,7 +27,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
     : sortBy === "newest" ? { createdAt: "desc" as const }
     : { order: "asc" as const };
 
-  const [products, total, categories] = await Promise.all([
+  const [rawProducts, total, categories] = await Promise.all([
     prisma.product.findMany({
       where,
       include: { category: true, variants: true },
@@ -36,6 +36,13 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
     prisma.product.count({ where }),
     prisma.category.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
   ]);
+
+  const products = rawProducts.map((p) => ({
+    ...p,
+    price: Number(p.price),
+    comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
+    variants: p.variants.map((v) => ({ ...v, price: v.price ? Number(v.price) : null })),
+  }));
 
   const sorts = [
     { value: "order", label: "Relevância" },

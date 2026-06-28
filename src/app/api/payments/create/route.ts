@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
         await tx.order.update({ where: { id: order.id }, data: { mpPaymentId } });
       });
 
-      const poi = (result as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
+      const poi = (result as unknown as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
       const td  = poi?.transaction_data as Record<string, unknown> | undefined;
 
       return NextResponse.json({
@@ -188,9 +188,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Token do cartao ausente" }, { status: 400 });
       }
       const result = await createCardPayment(mpClient, total, cardFormData, "Pedido #" + orderNumber, order.id);
+      const res2         = result as unknown as Record<string, unknown>;
       const mpPaymentId  = String(result.id);
-      const status       = String((result as Record<string, unknown>).status || "pending");
-      const statusDetail = String((result as Record<string, unknown>).status_detail || "");
+      const status       = String(res2.status || "pending");
+      const statusDetail = String(res2.status_detail || "");
 
       if (status === "approved") {
         await prisma.$transaction(async (tx) => {

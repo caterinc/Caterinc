@@ -268,8 +268,8 @@ export default function FretePage() {
                   <span className="font-bold text-base text-gray-900">
                     {Number(m.price) === 0 ? "Grátis" : formatPrice(Number(m.price))}
                   </span>
-                  {daysLabel(m.minDays as number | null, m.maxDays as number | null) && (
-                    <span className="text-gray-400">· {daysLabel(m.minDays as number | null, m.maxDays as number | null)}</span>
+                  {daysLabel(m.minDays ? Number(m.minDays) : null, m.maxDays ? Number(m.maxDays) : null) && (
+                    <span className="text-gray-400">· {daysLabel(m.minDays ? Number(m.minDays) : null, m.maxDays ? Number(m.maxDays) : null)}</span>
                   )}
                   {m.freeAbove && (
                     <span className="text-green-600">· Grátis acima de {formatPrice(Number(m.freeAbove))}</span>

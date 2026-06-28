@@ -88,8 +88,9 @@ export async function POST(req: NextRequest) {
     const payment = new Payment(client);
     const mpData  = await payment.get({ id: Number(paymentId) });
 
-    const mpStatus     = String((mpData as Record<string, unknown>).status || "pending");
-    const externalRef  = String((mpData as Record<string, unknown>).external_reference || "");
+    const mpRaw        = mpData as unknown as Record<string, unknown>;
+    const mpStatus     = String(mpRaw.status || "pending");
+    const externalRef  = String(mpRaw.external_reference || "");
 
     const mapped = STATUS_MAP[mpStatus];
     if (!mapped || !externalRef) {

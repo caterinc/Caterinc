@@ -6,15 +6,29 @@ import Image from "next/image";
 import { ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { QuickAddModal } from "./QuickAddModal";
-import type { Product, Category, ProductVariant } from "@prisma/client";
+interface ShowcaseVariant {
+  id: string;
+  size: string;
+  color: string | null;
+  stock: number;
+  price: number | { toNumber(): number } | null;
+  image: string | null;
+}
 
-type ProductWithRelations = Product & {
-  category: Category | null;
-  variants: ProductVariant[];
-};
+interface ShowcaseProduct {
+  id: string;
+  name: string;
+  slug: string;
+  images: string[];
+  price: number | { toNumber(): number };
+  comparePrice: number | { toNumber(): number } | null;
+  isFeatured: boolean;
+  category?: unknown;
+  variants?: ShowcaseVariant[];
+}
 
 interface ShowcaseProductCardProps {
-  product: ProductWithRelations;
+  product: ShowcaseProduct;
   priority?: boolean;
 }
 
@@ -110,7 +124,7 @@ export function ShowcaseProductCard({ product, priority = false }: ShowcaseProdu
             comparePrice,
             images: product.images,
           }}
-          variants={product.variants.map((v) => ({
+          variants={(product.variants ?? []).map((v) => ({
             id: v.id,
             size: v.size,
             color: v.color,
