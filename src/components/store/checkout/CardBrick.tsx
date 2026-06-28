@@ -1,0 +1,63 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { initMercadoPago, CardPayment } from "@mercadopago/sdk-react";
+
+interface CardBrickProps {
+  amount: number;
+  onSubmit: (formData: unknown) => Promise<void>;
+  onError?: () => void;
+}
+
+export function CardBrick({ amount, onSubmit, onError }: CardBrickProps) {
+  const [ready, setReady] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/payments/config")
+      .then((r) => r.json())
+      .then(({ publicKey }: { publicKey: string }) => {
+        if (!publicKey) { setNotConfigured(true); return; }
+        initMercadoPago(publicKey, { locale: "pt-BR" });
+        setReady(true);
+      })
+      .catch(() => setNotConfigured(true));
+  }, []);
+
+  if (notConfigured) {
+    return (
+      <div className="py-6 text-center text-sm text-gray-500">
+        Pagamento por cartão em configuração. Use PIX ou Boleto por enquanto.
+      </div>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <div className="py-8 flex justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <CardPayment
+      initialization={{ amount }}
+      onSubmit={onSubmit}
+      onError={onError}
+      customization={{
+        paymentMethods: { minInstallments: 1, maxInstallments: 12 },
+        visual: {
+          style: {
+            customVariables: {
+              baseColor: "#000000",
+              baseColorFirstVariant: "#FFCD11",
+              borderRadiusFull: "12px",
+            },
+          },
+        },
+      }}
+    />
+  );
+}
