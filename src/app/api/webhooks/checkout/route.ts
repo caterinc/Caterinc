@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizePositiveNumber, sanitizeInt } from "@/lib/sanitize";
 
+export const dynamic = "force-dynamic";
+
 // Luna Checkout event → internal status (source: docs.lunacheckout.com)
 const LUNA_EVENT_MAP: Record<string, { status: string; paymentStatus: string } | null> = {
   // Approved / paid

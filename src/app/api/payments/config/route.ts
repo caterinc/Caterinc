@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // Exposes the MP PUBLIC KEY to the client (safe — it's meant to be public)
 // NEVER expose MP_ACCESS_TOKEN here
 export async function GET() {

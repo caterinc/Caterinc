@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 
+export const dynamic = "force-dynamic";
+
 interface CartItemInput {
   productId: string; variantId: string | null; name: string;
   price: number; quantity: number; size: string | null; color: string | null; image: string | null;

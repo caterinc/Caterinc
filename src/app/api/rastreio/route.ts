@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const numero = req.nextUrl.searchParams.get("numero")?.trim().toUpperCase();
   if (!numero) return NextResponse.json({ error: "Informe o número do pedido" }, { status: 400 });

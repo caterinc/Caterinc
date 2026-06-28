@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const productId = req.nextUrl.searchParams.get("productId");
   if (!productId) return NextResponse.json({ error: "productId required" }, { status: 400 });

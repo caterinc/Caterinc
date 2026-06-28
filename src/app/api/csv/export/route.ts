@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateProductsCsv } from "@/lib/csv";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role: string }).role !== "ADMIN") {

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { generateSlug } from "@/lib/utils";
 import Papa from "papaparse";
 
+export const dynamic = "force-dynamic";
+
 function isShopifyFormat(headers: string[]): boolean {
   return headers.includes("Handle") && headers.includes("Title") && headers.includes("Variant Price");
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createHmac } from "crypto";
 
+export const dynamic = "force-dynamic";
+
 // ─── MP event → order status ──────────────────────────────────────────────────
 const STATUS_MAP: Record<string, { status: string; paymentStatus: string }> = {
   approved:        { status: "CONFIRMED",  paymentStatus: "PAID" },

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateSlug } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const categories = await prisma.category.findMany({
     where: { isActive: true },

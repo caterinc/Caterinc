@@ -2,6 +2,8 @@ import { Header } from "@/components/store/Header";
 import { Footer } from "@/components/store/Footer";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function bool(v: unknown, def = true): boolean {
   if (v === undefined || v === null) return def;
   return v === true || v === "true";

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // Polls whether a PIX payment has been confirmed
 export async function GET(req: NextRequest) {
   const orderId = req.nextUrl.searchParams.get("orderId");

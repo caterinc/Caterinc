@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function CheckoutLayout({ children }: { children: React.ReactNode }) {
   const settings = await prisma.siteSetting.findMany();
   const sm = Object.fromEntries(settings.map((s) => {

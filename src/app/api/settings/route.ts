@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // Keys that contain secrets and must never be sent to unauthenticated clients
 const SECRET_KEYS = new Set(["mp_access_token", "mp_webhook_secret"]);
 
