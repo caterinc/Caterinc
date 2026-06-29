@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/utils";
 import type { Metadata } from "next";
 import { ProductPageClient } from "./ProductPageClient";
 import { ProductReviews, ReviewsSummaryBadge } from "./ProductReviews";
+import { MetaViewContent } from "@/components/store/MetaPixelEvents";
 
 export const revalidate = 60;
 
@@ -97,6 +98,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div data-ve-section="product-page" data-ve-label="Página do Produto" suppressHydrationWarning data-ve-page="produto" style={pageStyle} className="min-h-screen">
+    <MetaViewContent productId={product.id} name={product.name} price={price} />
     <div className="max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 mb-5 flex flex-wrap gap-1 items-center">

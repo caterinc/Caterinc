@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createHmac } from "crypto";
 import { sendUtmifyEvent } from "@/lib/utmify";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
@@ -131,22 +132,37 @@ export async function POST(req: NextRequest) {
     if (fullOrder) {
       const addr = fullOrder.shippingAddress as Record<string, string> | null;
       const customerName = addr?.name || "Cliente";
+      const nameParts = customerName.split(" ");
       const utms = (fullOrder as unknown as { utmData: Record<string, string> | null }).utmData;
+
+      // UTMify
       sendUtmifyEvent(
         fullOrder.orderNumber,
         utmStatus,
         { name: customerName, email: fullOrder.email },
-        fullOrder.items.map((i) => ({
-          id: i.productId || "item",
-          name: i.name,
-          quantity: i.quantity,
-          priceInCents: Math.round(Number(i.price) * 100),
-        })),
+        fullOrder.items.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
         Math.round(Number(fullOrder.total) * 100),
         fullOrder.createdAt,
         utms,
         fullOrder.paymentMethod || "pix"
       ).catch((e) => console.error("[UTMify] MP event error:", e));
+
+      // Meta CAPI — Purchase on payment confirmed, Refund on chargeback
+      if (mapped.paymentStatus === "PAID" || mapped.paymentStatus === "REFUNDED") {
+        sendMetaEvent({
+          eventName: mapped.paymentStatus === "PAID" ? "Purchase" : "Refund",
+          eventId: `${fullOrder.orderNumber}-${mapped.paymentStatus}`,
+          sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + fullOrder.orderNumber,
+          email: fullOrder.email,
+          phone: addr?.phone || null,
+          firstName: nameParts[0] || null,
+          lastName: nameParts.slice(1).join(" ") || null,
+          value: Number(fullOrder.total),
+          currency: "BRL",
+          contents: fullOrder.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+          orderId: fullOrder.orderNumber,
+        }).catch((e) => console.error("[Meta CAPI] webhook error:", e));
+      }
     }
 
     return NextResponse.json({ received: true });

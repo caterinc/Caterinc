@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 import { sendUtmifyEvent } from "@/lib/utmify";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +142,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Notify UTMify with UTM attribution data
+  // Notify UTMify
   await sendUtmifyEvent(
     orderNumber,
     "waiting_payment",
@@ -152,6 +153,22 @@ export async function POST(req: NextRequest) {
     utmData || null,
     method
   ).catch((e) => console.error("[UTMify] create event error:", e));
+
+  // Meta CAPI — InitiateCheckout on order creation
+  const nameParts = name.split(" ");
+  sendMetaEvent({
+    eventName: "InitiateCheckout",
+    eventId: `${orderNumber}-initiate`,
+    sourceUrl: "https://loja-caterpillar.com/checkout",
+    email,
+    phone,
+    firstName: nameParts[0] || null,
+    lastName: nameParts.slice(1).join(" ") || null,
+    value: total,
+    currency: "BRL",
+    contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+    orderId: orderNumber,
+  }).catch((e) => console.error("[Meta CAPI] create error:", e));
 
   const parts = name.split(" ");
   const firstName = parts[0];
@@ -220,6 +237,20 @@ export async function POST(req: NextRequest) {
             },
           });
         });
+        // Meta CAPI — Purchase for approved card payment
+        sendMetaEvent({
+          eventName: "Purchase",
+          eventId: `${orderNumber}-purchase`,
+          sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + orderNumber,
+          email,
+          phone,
+          firstName: nameParts[0] || null,
+          lastName: nameParts.slice(1).join(" ") || null,
+          value: total,
+          currency: "BRL",
+          contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+          orderId: orderNumber,
+        }).catch((e) => console.error("[Meta CAPI] card purchase error:", e));
       } else {
         await prisma.order.update({ where: { id: order.id }, data: { mpPaymentId } });
       }
