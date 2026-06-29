@@ -14,7 +14,7 @@ interface Variant {
   color: string | null;
   stock: number;
   price: number | null;
-  image: string | null;
+  images: string[];
 }
 
 interface ProductPurchaseProps {
@@ -28,8 +28,8 @@ interface ProductPurchaseProps {
   };
   variants: Variant[];
   sizes: string[];
-  // External color control (from ProductPageClient)
   selectedColorProp?: string;
+  colorSwatchMap?: Record<string, string | null>;
   onColorSelect?: (color: string) => void;
 }
 
@@ -45,7 +45,7 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export function ProductPurchase({ product, variants, sizes, selectedColorProp, onColorSelect }: ProductPurchaseProps) {
+export function ProductPurchase({ product, variants, sizes, selectedColorProp, colorSwatchMap, onColorSelect }: ProductPurchaseProps) {
   const router = useRouter();
   const { dispatch } = useCart();
   const [selectedSize, setSelectedSize] = useState("");
@@ -53,14 +53,15 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, o
   const [quantity, setQuantity] = useState(1);
   const [showPayments, setShowPayments] = useState(false);
 
-  // Color data: unique colors with their image
+  // Color data: unique colors (swatch from colorSwatchMap or first variant image)
   const colorData = (() => {
     const seen = new Set<string>();
-    const result: { color: string; image: string | null }[] = [];
+    const result: { color: string; swatch: string | null }[] = [];
     for (const v of variants) {
       if (v.color && !seen.has(v.color)) {
         seen.add(v.color);
-        result.push({ color: v.color, image: v.image || null });
+        const swatch = colorSwatchMap?.[v.color] ?? v.images[0] ?? null;
+        result.push({ color: v.color, swatch });
       }
     }
     return result;
@@ -157,26 +158,26 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, o
             Cor: <span className="font-normal text-gray-600">{selectedColor}</span>
           </p>
           <div className="flex flex-wrap gap-3">
-            {colorData.map(({ color, image }) => (
+            {colorData.map(({ color, swatch }) => (
               <div key={color} className="flex flex-col items-center gap-1">
                 <button
                   onClick={() => handleColorChange(color)}
                   className={cn(
                     "transition-all rounded-xl overflow-hidden border-2",
-                    image ? "w-16 h-16" : "px-3 py-1.5 text-sm font-medium",
+                    swatch ? "w-16 h-16" : "px-3 py-1.5 text-sm font-medium",
                     selectedColor === color
                       ? "border-cat-black ring-2 ring-cat-black ring-offset-1"
                       : "border-gray-200 hover:border-gray-400"
                   )}
                   title={color}
                 >
-                  {image ? (
-                    <img src={image} alt={color} className="w-full h-full object-cover bg-white" />
+                  {swatch ? (
+                    <img src={swatch} alt={color} className="w-full h-full object-cover bg-white" />
                   ) : (
                     <span className={selectedColor === color ? "text-cat-black" : "text-gray-700"}>{color}</span>
                   )}
                 </button>
-                {image && (
+                {swatch && (
                   <span className="text-xs text-gray-600 font-medium max-w-[4rem] text-center truncate leading-tight">{color}</span>
                 )}
               </div>

@@ -12,7 +12,7 @@ interface Variant {
   color: string | null;
   stock: number;
   price: number | null;
-  image: string | null;
+  images: string[];
 }
 
 interface CardProduct {

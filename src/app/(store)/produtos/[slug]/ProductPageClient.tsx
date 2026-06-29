@@ -10,7 +10,7 @@ interface Variant {
   color: string | null;
   stock: number;
   price: number | null;
-  image: string | null;
+  images: string[];
 }
 
 interface ProductData {
@@ -27,63 +27,60 @@ interface Props {
   variants: Variant[];
   sizes: string[];
   discountPct: number;
-  infoBefore?: ReactNode; // category link, product name, reviews badge
-  infoAfter?: ReactNode;  // description, tags
+  infoBefore?: ReactNode;
+  infoAfter?: ReactNode;
 }
 
 export function ProductPageClient({
   product, variants, sizes, discountPct, infoBefore, infoAfter,
 }: Props) {
-  // Build merged image list: variant images (one per color) first, then product images (deduped)
-  const { allImages, colorToIndex, indexToColor } = useMemo(() => {
-    const seen = new Set<string>();
-    const colorImages: { color: string; image: string }[] = [];
+  // Map color → images array (first variant per color wins)
+  const colorImagesMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
     for (const v of variants) {
-      if (v.color && v.image && !seen.has(v.color)) {
-        seen.add(v.color);
-        colorImages.push({ color: v.color, image: v.image });
+      if (v.color && !map[v.color] && v.images.length > 0) {
+        map[v.color] = v.images;
       }
     }
+    return map;
+  }, [variants]);
 
-    const variantImgUrls = colorImages.map((x) => x.image);
-    const merged = [
-      ...variantImgUrls,
-      ...product.images.filter((img) => !variantImgUrls.includes(img)),
-    ];
-    const all = merged.length > 0 ? merged : ["/placeholder-product.jpg"];
+  // First swatch image per color (for color button thumbnails)
+  const colorSwatchMap = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    for (const v of variants) {
+      if (v.color && !map[v.color]) {
+        map[v.color] = v.images[0] ?? null;
+      }
+    }
+    return map;
+  }, [variants]);
 
-    const c2i: Record<string, number> = {};
-    const i2c: Record<number, string> = {};
-    colorImages.forEach(({ color, image }) => {
-      const idx = all.indexOf(image);
-      if (idx >= 0) { c2i[color] = idx; i2c[idx] = color; }
-    });
-
-    return { allImages: all, colorToIndex: c2i, indexToColor: i2c };
-  }, [product.images, variants]);
-
-  // Initialize to first color so sizes are usable immediately
   const firstColor = variants.find((v) => v.color)?.color || "";
-  const firstIndex = firstColor && colorToIndex[firstColor] !== undefined ? colorToIndex[firstColor] : 0;
-
-  const [activeIndex, setActiveIndex] = useState(firstIndex);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string>(firstColor);
+
+  // Images shown in gallery: color-specific if available, else product.images
+  const displayImages = useMemo(() => {
+    const imgs = selectedColor ? (colorImagesMap[selectedColor] ?? []) : [];
+    if (imgs.length > 0) return imgs;
+    return product.images.length > 0 ? product.images : ["/placeholder-product.jpg"];
+  }, [selectedColor, colorImagesMap, product.images]);
 
   const handleColorSelect = (color: string) => {
     setSelectedColor(color);
-    if (colorToIndex[color] !== undefined) setActiveIndex(colorToIndex[color]);
+    setActiveIndex(0); // reset gallery to first image when switching color
   };
 
   const handleIndexChange = (i: number) => {
     setActiveIndex(i);
-    if (indexToColor[i]) setSelectedColor(indexToColor[i]);
   };
 
   return (
     <>
       {/* Column 1: Gallery */}
       <ProductGallery
-        images={allImages}
+        images={displayImages}
         productName={product.name}
         discountPct={discountPct}
         activeIndex={activeIndex}
@@ -98,6 +95,7 @@ export function ProductPageClient({
           variants={variants}
           sizes={sizes}
           selectedColorProp={selectedColor}
+          colorSwatchMap={colorSwatchMap}
           onColorSelect={handleColorSelect}
         />
         {infoAfter}

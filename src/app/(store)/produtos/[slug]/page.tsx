@@ -122,7 +122,7 @@ export default async function ProductPage({ params }: Props) {
             color: v.color,
             stock: v.stock,
             price: v.price != null ? parseFloat(v.price.toString()) : null,
-            image: (v as { image?: string | null }).image || null,
+            images: (v as { images?: string[] }).images ?? [],
           }))}
           sizes={sizes}
           discountPct={discountPct}

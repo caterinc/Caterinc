@@ -45,14 +45,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await prisma.productVariant.deleteMany({ where: { productId: params.id } });
     if (variants.length > 0) {
       await prisma.productVariant.createMany({
-        data: variants.map((v: { size: string; color?: string; sku?: string; stock?: number; price?: string; image?: string }) => ({
+        data: variants.map((v: { size: string; color?: string; sku?: string; stock?: number; price?: string; images?: string[] }) => ({
           productId: params.id,
           size: v.size,
           color: v.color || null,
           sku: v.sku || null,
           stock: v.stock ?? 0,
           price: v.price ? parseFloat(v.price) : null,
-          image: v.image || null,
+          images: v.images ?? [],
         })),
       });
     }

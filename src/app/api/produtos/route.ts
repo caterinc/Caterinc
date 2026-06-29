@@ -78,13 +78,13 @@ export async function POST(req: NextRequest) {
       comparePrice: productData.comparePrice ? parseFloat(productData.comparePrice) : null,
       variants: variants
         ? {
-            create: variants.map((v: { size: string; color?: string; sku?: string; stock?: number; price?: string; image?: string }) => ({
+            create: variants.map((v: { size: string; color?: string; sku?: string; stock?: number; price?: string; images?: string[] }) => ({
               size: v.size,
               color: v.color || null,
               sku: v.sku || null,
               stock: v.stock ?? 0,
               price: v.price ? parseFloat(v.price) : null,
-              image: v.image || null,
+              images: v.images ?? [],
             })),
           }
         : undefined,

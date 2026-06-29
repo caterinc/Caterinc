@@ -21,7 +21,7 @@ interface SizeVariant {
 
 interface ColorGroup {
   color: string;
-  image: string;
+  images: string[];
   expanded: boolean;
   sizes: SizeVariant[];
 }
@@ -65,11 +65,12 @@ function groupVariants(variants: NonNullable<Props["initialData"]>["variants"] =
   const map = new Map<string, ColorGroup>();
   for (const v of variants) {
     const color = v.color || "";
+    const vImgs = (v as { images?: string[] }).images ?? [];
     if (!map.has(color)) {
-      map.set(color, { color, image: v.image || "", expanded: true, sizes: [] });
+      map.set(color, { color, images: vImgs, expanded: true, sizes: [] });
     }
     const g = map.get(color)!;
-    if (!g.image && v.image) g.image = v.image;
+    if (g.images.length === 0 && vImgs.length > 0) g.images = vImgs;
     g.sizes.push({ id: v.id, size: v.size, sku: v.sku, stock: v.stock, price: v.price });
   }
   // Sort sizes numerically within each group
@@ -80,7 +81,7 @@ function groupVariants(variants: NonNullable<Props["initialData"]>["variants"] =
     });
   }
   if (map.size === 0) {
-    map.set("", { color: "", image: "", expanded: true, sizes: [{ size: "", sku: "", stock: 0, price: "" }] });
+    map.set("", { color: "", images: [], expanded: true, sizes: [{ size: "", sku: "", stock: 0, price: "" }] });
   }
   return Array.from(map.values());
 }
@@ -159,7 +160,7 @@ export function ProductForm({ categories, initialData }: Props) {
   const addColorGroup = () => {
     setForm((f) => ({
       ...f,
-      colorGroups: [...f.colorGroups, { color: "", image: "", expanded: true, sizes: [{ size: "", sku: "", stock: 0, price: "" }] }],
+      colorGroups: [...f.colorGroups, { color: "", images: [], expanded: true, sizes: [{ size: "", sku: "", stock: 0, price: "" }] }],
     }));
   };
 
@@ -167,10 +168,10 @@ export function ProductForm({ categories, initialData }: Props) {
     setForm((f) => ({ ...f, colorGroups: f.colorGroups.filter((_, i) => i !== gi) }));
   };
 
-  const uploadVariantImage = async (gi: number, file: File) => {
+  const uploadVariantImages = async (gi: number, files: FileList) => {
     try {
-      const url = await compressImage(file);
-      updateGroup(gi, (g) => ({ ...g, image: url }));
+      const urls = await Promise.all(Array.from(files).map(compressImage));
+      updateGroup(gi, (g) => ({ ...g, images: [...g.images, ...urls] }));
     } catch {
       toast({ title: "Erro ao processar imagem da cor", variant: "destructive" });
     }
@@ -204,7 +205,7 @@ export function ProductForm({ categories, initialData }: Props) {
           id: s.id,
           size: s.size,
           color: cg.color || null,
-          image: cg.image || null,
+          images: cg.images,
           sku: s.sku || null,
           stock: s.stock,
           price: s.price || null,
@@ -350,30 +351,6 @@ export function ProductForm({ categories, initialData }: Props) {
             <div key={gi} className="border rounded-xl overflow-hidden">
               {/* Color group header */}
               <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
-                {/* Color image thumbnail */}
-                <div className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border bg-white">
-                  {group.image ? (
-                    <img src={group.image} alt={group.color} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                  )}
-                  <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 bg-black/40 flex items-center justify-center transition-opacity" title="Upload imagem da cor">
-                    <Upload className="w-4 h-4 text-white" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) uploadVariantImage(gi, file);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                </div>
-
                 {/* Color name */}
                 <input
                   type="text"
@@ -487,6 +464,41 @@ export function ProductForm({ categories, initialData }: Props) {
                   >
                     <Plus className="w-3 h-3" /> Adicionar tamanho
                   </button>
+
+                  {/* Color images gallery */}
+                  <div className="pt-3 border-t mt-2">
+                    <p className="text-xs font-medium text-gray-600 mb-2">
+                      Fotos desta cor <span className="font-normal text-gray-400">(a 1ª vira o ícone da cor)</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.images.map((img, ii) => (
+                        <div key={ii} className="relative w-16 h-16 rounded-lg overflow-hidden border group/img bg-white flex-shrink-0">
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => updateGroup(gi, (g) => ({ ...g, images: g.images.filter((_, idx) => idx !== ii) }))}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="w-16 h-16 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-cat-yellow transition-colors flex-shrink-0">
+                        <Upload className="w-4 h-4 text-gray-400" />
+                        <span className="text-[10px] text-gray-400 mt-0.5">Fotos</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.length) uploadVariantImages(gi, e.target.files);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 

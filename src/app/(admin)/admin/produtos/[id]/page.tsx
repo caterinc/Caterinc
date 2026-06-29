@@ -34,7 +34,7 @@ export default async function EditProdutoPage({ params }: { params: { id: string
       sku: v.sku || "",
       stock: v.stock,
       price: v.price?.toString() || "",
-      image: v.image || "",
+      images: (v as { images?: string[] }).images ?? [],
     })),
   };
 

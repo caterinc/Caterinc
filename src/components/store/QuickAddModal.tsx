@@ -14,7 +14,7 @@ interface Variant {
   color: string | null;
   stock: number;
   price: number | null;
-  image: string | null;
+  images: string[];
 }
 
 interface QuickAddModalProps {
@@ -33,20 +33,29 @@ interface QuickAddModalProps {
 export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps) {
   const { dispatch } = useCart();
 
-  // Build unique colors with images
+  // Build unique colors with swatch (first image of each color)
   const colorData = (() => {
     const seen = new Set<string>();
-    const result: { color: string; image: string | null }[] = [];
+    const result: { color: string; swatch: string | null }[] = [];
     for (const v of variants) {
       if (v.color && !seen.has(v.color)) {
         seen.add(v.color);
-        result.push({ color: v.color, image: v.image || null });
+        result.push({ color: v.color, swatch: v.images[0] ?? null });
       }
     }
     return result;
   })();
   const hasColors = colorData.length > 0;
   const firstColor = colorData[0]?.color || "";
+
+  // Map color → images array
+  const colorImagesMap = (() => {
+    const map: Record<string, string[]> = {};
+    for (const v of variants) {
+      if (v.color && !map[v.color] && v.images.length > 0) map[v.color] = v.images;
+    }
+    return map;
+  })();
 
   const sizes = Array.from(new Set(variants.map((v) => v.size))).sort(
     (a, b) => parseFloat(a) - parseFloat(b)
@@ -56,26 +65,15 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
   const [selectedSize, setSelectedSize] = useState("");
   const [imgIdx, setImgIdx] = useState(0);
 
-  // Build image list: variant images first, then product images
-  const images = (() => {
-    const colorImgUrls: string[] = [];
-    const seen = new Set<string>();
-    for (const { color, image } of colorData) {
-      if (image && !seen.has(color)) { seen.add(color); colorImgUrls.push(image); }
-    }
-    const extras = product.images.filter((img) => !colorImgUrls.includes(img));
-    return [...colorImgUrls, ...extras].filter(Boolean);
+  // Images shown: color-specific if available, else product.images
+  const displayImages = (() => {
+    const imgs = selectedColor ? (colorImagesMap[selectedColor] ?? []) : [];
+    if (imgs.length > 0) return imgs;
+    return product.images.length > 0 ? product.images : ["/placeholder-product.jpg"];
   })();
-  const displayImages = images.length > 0 ? images : ["/placeholder-product.jpg"];
 
-  // Sync image to selected color
-  useEffect(() => {
-    const colorVariant = variants.find((v) => v.color === selectedColor && v.image);
-    if (colorVariant?.image) {
-      const idx = displayImages.indexOf(colorVariant.image);
-      if (idx >= 0) setImgIdx(idx);
-    }
-  }, [selectedColor]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Reset to first image when color changes
+  useEffect(() => { setImgIdx(0); }, [selectedColor]);
 
   const isOutOfStock = (size: string) => {
     const v = variants.find((v) => v.size === size && (!hasColors || v.color === selectedColor));
@@ -187,21 +185,21 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
                 Cor: <span className="font-semibold text-cat-black">{selectedColor}</span>
               </p>
               <div className="flex flex-wrap gap-2">
-                {colorData.map(({ color, image }) => (
+                {colorData.map(({ color, swatch }) => (
                   <button
                     key={color}
                     onClick={() => { setSelectedColor(color); setSelectedSize(""); }}
                     className={cn(
                       "transition-all rounded-xl overflow-hidden border-2",
-                      image ? "w-14 h-14" : "px-3 py-1.5 text-sm font-medium",
+                      swatch ? "w-14 h-14" : "px-3 py-1.5 text-sm font-medium",
                       selectedColor === color
                         ? "border-cat-black ring-2 ring-cat-black ring-offset-1"
                         : "border-gray-200 hover:border-gray-400"
                     )}
                     title={color}
                   >
-                    {image ? (
-                      <img src={image} alt={color} className="w-full h-full object-cover bg-white" />
+                    {swatch ? (
+                      <img src={swatch} alt={color} className="w-full h-full object-cover bg-white" />
                     ) : (
                       <span className={selectedColor === color ? "text-cat-black font-bold" : "text-gray-700"}>{color}</span>
                     )}

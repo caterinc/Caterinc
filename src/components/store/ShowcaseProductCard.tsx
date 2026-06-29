@@ -12,7 +12,7 @@ interface ShowcaseVariant {
   color: string | null;
   stock: number;
   price: number | { toNumber(): number } | null;
-  image: string | null;
+  images: string[];
 }
 
 interface ShowcaseProduct {
@@ -130,7 +130,7 @@ export function ShowcaseProductCard({ product, priority = false }: ShowcaseProdu
             color: v.color,
             stock: v.stock,
             price: v.price ? Number(v.price) : null,
-            image: v.image || null,
+            images: (v as { images?: string[] }).images ?? [],
           }))}
           onClose={() => setShowModal(false)}
         />
