@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
+import { sendUtmifyEvent } from "@/lib/utmify";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +138,16 @@ export async function POST(req: NextRequest) {
       statusHistory: { create: [{ status: "PENDING", note: "Pedido iniciado via " + method }] },
     },
   });
+
+  // Notify UTMify immediately — fire-and-forget (doesn't block payment flow)
+  sendUtmifyEvent(
+    orderNumber,
+    "waiting_payment",
+    { name, email },
+    orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+    Math.round(total * 100),
+    new Date()
+  ).catch((e) => console.error("[UTMify] create event error:", e));
 
   const parts = name.split(" ");
   const firstName = parts[0];

@@ -8,6 +8,8 @@ import type { Metadata } from "next";
 import { ProductPageClient } from "./ProductPageClient";
 import { ProductReviews, ReviewsSummaryBadge } from "./ProductReviews";
 
+export const revalidate = 60;
+
 interface Props {
   params: { slug: string };
 }

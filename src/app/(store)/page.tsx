@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { HeroBanner } from "@/components/store/HeroBanner";
+
+export const revalidate = 60;
 import { CollectionShowcase } from "@/components/store/CollectionShowcase";
 import { Shield, Truck, RotateCcw, Star } from "lucide-react";
 import Link from "next/link";
