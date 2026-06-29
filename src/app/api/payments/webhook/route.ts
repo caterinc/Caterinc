@@ -144,7 +144,8 @@ export async function POST(req: NextRequest) {
         })),
         Math.round(Number(fullOrder.total) * 100),
         fullOrder.createdAt,
-        utms
+        utms,
+        fullOrder.paymentMethod || "pix"
       ).catch((e) => console.error("[UTMify] MP event error:", e));
     }
 

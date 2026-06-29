@@ -149,7 +149,8 @@ export async function POST(req: NextRequest) {
     orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
     Math.round(total * 100),
     new Date(),
-    utmData || null
+    utmData || null,
+    method
   ).catch((e) => console.error("[UTMify] create event error:", e));
 
   const parts = name.split(" ");

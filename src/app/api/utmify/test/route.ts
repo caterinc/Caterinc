@@ -55,7 +55,7 @@ export async function POST() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
+        "x-api-token": apiKey,
       },
       body: JSON.stringify(testPayload),
     });

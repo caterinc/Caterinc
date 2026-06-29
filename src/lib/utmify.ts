@@ -1,9 +1,10 @@
-
 type UtmifyStatus = "waiting_payment" | "paid" | "refunded" | "cancelled";
 
 interface UtmifyPayload {
   orderId: string;
   status: UtmifyStatus;
+  platform: string;
+  paymentMethod: string;
   createdAt: string;
   approvedDate: string | null;
   refundedAt: null;
@@ -22,12 +23,13 @@ interface UtmifyPayload {
     priceInCents: number;
   }>;
   trackingParameters: {
-    src: null; sck: null;
-    utm_source: null; utm_campaign: null;
-    utm_medium: null; utm_content: null; utm_term: null;
+    src: string | null; sck: string | null;
+    utm_source: string | null; utm_campaign: string | null;
+    utm_medium: string | null; utm_content: string | null; utm_term: string | null;
   };
   commission: {
     totalInCents: number;
+    totalPriceInCents: number;
     gatewayFeeInCents: number;
     userCommissionInCents: number;
   };
@@ -58,14 +60,19 @@ export async function sendUtmifyEvent(
   items: Array<{ id: string; name: string; quantity: number; priceInCents: number }>,
   totalInCents: number,
   createdAt?: Date,
-  utmData?: UtmData | null
+  utmData?: UtmData | null,
+  paymentMethod?: string | null
 ): Promise<void> {
   const apiKey = getApiKey();
   if (!apiKey) return;
 
+  const method = paymentMethod === "card" ? "credit_card" : "pix";
+
   const payload: UtmifyPayload = {
     orderId,
     status,
+    platform: "other",
+    paymentMethod: method,
     createdAt: formatDate(createdAt || new Date()),
     approvedDate: status === "paid" ? formatDate(new Date()) : null,
     refundedAt: null,
@@ -94,6 +101,7 @@ export async function sendUtmifyEvent(
     },
     commission: {
       totalInCents,
+      totalPriceInCents: totalInCents,
       gatewayFeeInCents: 0,
       userCommissionInCents: totalInCents,
     },
@@ -102,7 +110,7 @@ export async function sendUtmifyEvent(
   try {
     const res = await fetch("https://api.utmify.com.br/api-credentials/orders", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      headers: { "Content-Type": "application/json", "x-api-token": apiKey },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
