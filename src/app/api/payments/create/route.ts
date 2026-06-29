@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Notify UTMify immediately — fire-and-forget (doesn't block payment flow)
-  sendUtmifyEvent(
+  // Notify UTMify (awaited so Vercel doesn't cut it off before the fetch completes)
+  await sendUtmifyEvent(
     orderNumber,
     "waiting_payment",
     { name, email },
