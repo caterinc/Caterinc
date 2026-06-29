@@ -68,11 +68,9 @@ export async function POST(req: NextRequest) {
     if (row.product_name) allNames.add(row.product_name.trim());
   }
 
-  // Batch lookup products by slug and by name
-  const [bySlugList, byNameList] = await Promise.all([
-    allSlugs.size > 0
-      ? prisma.product.findMany({ where: { slug: { in: Array.from(allSlugs) } }, select: { id: true, slug: true, name: true } })
-      : Promise.resolve([]),
+  // Load ALL products for fuzzy slug matching
+  const [allProducts, byNameList] = await Promise.all([
+    prisma.product.findMany({ select: { id: true, slug: true, name: true } }),
     allNames.size > 0
       ? prisma.product.findMany({
           where: { OR: Array.from(allNames).map((n) => ({ name: { contains: n, mode: "insensitive" as const } })) },
@@ -81,18 +79,40 @@ export async function POST(req: NextRequest) {
       : Promise.resolve([]),
   ]);
 
-  const slugToId = Object.fromEntries(bySlugList.map((p) => [p.slug, p.id]));
+  const slugToId = Object.fromEntries(allProducts.map((p) => [p.slug, p.id]));
+
+  // Fuzzy slug lookup: exact → strip trailing -1/-2/etc → substring overlap
+  function findBySlug(csvSlug: string): string | null {
+    const s = csvSlug.toLowerCase().trim();
+    // Exact
+    if (slugToId[s]) return slugToId[s];
+    // Strip trailing -digit(s) variant suffixes (e.g. -1, -2)
+    const stripped = s.replace(/-\d+$/, "");
+    if (stripped !== s && slugToId[stripped]) return slugToId[stripped];
+    // Check if any DB slug starts with csvSlug or csvSlug starts with DB slug
+    for (const dbSlug of Object.keys(slugToId)) {
+      if (dbSlug.startsWith(s) || s.startsWith(dbSlug)) return slugToId[dbSlug];
+    }
+    // Keyword overlap: count matching words (min 2 keywords in common)
+    const csvWords = s.split("-").filter((w) => w.length > 2);
+    let bestId: string | null = null;
+    let bestCount = 1;
+    for (const dbSlug of Object.keys(slugToId)) {
+      const dbWords = dbSlug.split("-").filter((w) => w.length > 2);
+      const common = csvWords.filter((w) => dbWords.includes(w)).length;
+      if (common > bestCount) { bestCount = common; bestId = slugToId[dbSlug]; }
+    }
+    return bestId;
+  }
+
   // For name lookup: map lowercase trimmed name → productId
   const nameToId: Record<string, string> = {};
-  for (const p of byNameList) {
+  for (const p of [...allProducts, ...byNameList]) {
     nameToId[p.name.toLowerCase().trim()] = p.id;
   }
-  // Also partial match: for each queried name, find best match
   function findByName(query: string): string | null {
     const q = query.toLowerCase().trim();
-    // Exact match
     if (nameToId[q]) return nameToId[q];
-    // Partial match
     for (const [name, id] of Object.entries(nameToId)) {
       if (name.includes(q) || q.includes(name)) return id;
     }
@@ -117,14 +137,14 @@ export async function POST(req: NextRequest) {
 
     if (!productId) {
       if (row.product_slug?.trim()) {
-        productId = slugToId[row.product_slug.trim()] || null;
+        productId = findBySlug(row.product_slug.trim());
       }
       if (!productId && row.product_name?.trim()) {
         productId = findByName(row.product_name.trim());
       }
       if (!productId && row.product_link?.trim()) {
         const slug = extractSlugFromLink(row.product_link.trim());
-        if (slug) productId = slugToId[slug] || null;
+        if (slug) productId = findBySlug(slug);
       }
     }
 
