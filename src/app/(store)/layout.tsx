@@ -3,7 +3,7 @@ import { Footer } from "@/components/store/Footer";
 import { prisma } from "@/lib/prisma";
 import Script from "next/script";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 function bool(v: unknown, def = true): boolean {
   if (v === undefined || v === null) return def;
