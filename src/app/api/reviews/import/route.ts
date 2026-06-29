@@ -27,6 +27,19 @@ function extractSlugFromLink(link: string): string {
   }
 }
 
+function parseReviewDate(raw: string): Date {
+  if (!raw?.trim()) return new Date();
+  // DD/MM/YYYY or DD/MM/YY
+  const br = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (br) {
+    const year = br[3].length === 2 ? 2000 + parseInt(br[3]) : parseInt(br[3]);
+    const d = new Date(year, parseInt(br[2]) - 1, parseInt(br[1]));
+    if (!isNaN(d.getTime())) return d;
+  }
+  const d = new Date(raw.trim());
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
 export async function POST(req: NextRequest) {
   try {
   const session = await getServerSession(authOptions);
@@ -137,7 +150,7 @@ export async function POST(req: NextRequest) {
       rating,
       comment: row.comment ? String(row.comment) : null,
       verifiedPurchase: String(row.verified_purchase).toLowerCase() === "true",
-      createdAt: row.date ? new Date(row.date) : new Date(),
+      createdAt: parseReviewDate(String(row.date || "")),
     });
   });
 
