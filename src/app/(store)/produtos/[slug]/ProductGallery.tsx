@@ -19,9 +19,11 @@ export function ProductGallery({
   const thumbsRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<number | null>(null);
   const touchEnd = useRef<number | null>(null);
+  const slideDir = useRef<"left" | "right">("left");
 
-  const prev = () => onIndexChange((activeIndex - 1 + total) % total);
-  const next = () => onIndexChange((activeIndex + 1) % total);
+  const prev = () => { slideDir.current = "right"; onIndexChange((activeIndex - 1 + total) % total); };
+  const next = () => { slideDir.current = "left";  onIndexChange((activeIndex + 1) % total); };
+  const goTo = (i: number) => { slideDir.current = i >= activeIndex ? "left" : "right"; onIndexChange(i); };
 
   // Scroll active thumbnail into view
   useEffect(() => {
@@ -62,7 +64,7 @@ export function ProductGallery({
           src={src}
           alt={`${productName} - foto ${activeIndex + 1}`}
           fill
-          className="object-contain transition-opacity duration-200"
+          className={`object-contain ${slideDir.current === "left" ? "slide-from-right" : "slide-from-left"}`}
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
         />
@@ -91,7 +93,7 @@ export function ProductGallery({
           {allImages.map((img, i) => (
             <button
               key={i}
-              onClick={() => onIndexChange(i)}
+              onClick={() => goTo(i)}
               className={`relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all bg-white ${
                 i === activeIndex
                   ? "border-cat-black ring-1 ring-cat-black"

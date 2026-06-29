@@ -679,33 +679,50 @@ export default function CheckoutPage() {
             </button>
           )}
           {stage === "endereco" && (
-            <button
-              onClick={() => {
-                if (!vZip || !vStreet || !vNum || !vDist || !vCity || !vState) {
-                  toast({ title: "Preencha o endereço completo", variant: "destructive" }); return;
-                }
-                if (shippingMethods.length > 0 && !selectedShipping) {
-                  toast({ title: "Selecione um método de entrega", variant: "destructive" }); return;
-                }
-                setStage("pagamento");
-              }}
-              className="w-full h-14 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md"
-              style={{ backgroundColor: "var(--vep-checkout-continue-bg,#16c789)", color: "var(--vep-checkout-continue-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
-            >
-              Ir para o pagamento &nbsp;→
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  if (!vZip || !vStreet || !vNum || !vDist || !vCity || !vState) {
+                    toast({ title: "Preencha o endereço completo", variant: "destructive" }); return;
+                  }
+                  if (shippingMethods.length > 0 && !selectedShipping) {
+                    toast({ title: "Selecione um método de entrega", variant: "destructive" }); return;
+                  }
+                  setStage("pagamento");
+                }}
+                className="w-full h-14 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md"
+                style={{ backgroundColor: "var(--vep-checkout-continue-bg,#16c789)", color: "var(--vep-checkout-continue-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
+              >
+                Ir para o pagamento &nbsp;→
+              </button>
+              <button
+                onClick={() => setStage("dados")}
+                className="w-full h-10 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                ← Voltar para identificação
+              </button>
+            </>
           )}
           {stage === "pagamento" && (
-            <button
-              onClick={() => submit()}
-              disabled={loading || !consent}
-              className="w-full h-14 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98] shadow-md"
-              style={{ backgroundColor: "var(--vep-checkout-cta-bg,#16c789)", color: "var(--vep-checkout-cta-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
-            >
-              {loading
-                ? <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
-                : <>Finalizar pedido &nbsp;→</>}
-            </button>
+            <>
+              <button
+                onClick={() => submit()}
+                disabled={loading || !consent}
+                className="w-full h-14 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98] shadow-md"
+                style={{ backgroundColor: "var(--vep-checkout-cta-bg,#16c789)", color: "var(--vep-checkout-cta-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
+              >
+                {loading
+                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
+                  : <>Finalizar pedido &nbsp;→</>}
+              </button>
+              <button
+                onClick={() => setStage("endereco")}
+                disabled={loading}
+                className="w-full h-10 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 disabled:opacity-40 transition-colors"
+              >
+                ← Voltar para entrega
+              </button>
+            </>
           )}
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: STEP_COLOR }} />

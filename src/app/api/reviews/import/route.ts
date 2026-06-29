@@ -28,13 +28,19 @@ function extractSlugFromLink(link: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role: string }).role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json() as { rows: ReviewRow[]; selectedProductId?: string };
+  let body: { rows: ReviewRow[]; selectedProductId?: string };
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Payload inválido" }, { status: 400 }); }
   const { rows, selectedProductId } = body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return NextResponse.json({ created: 0, errors: ["Nenhuma linha encontrada no arquivo."] });
+  }
 
   // Collect all slugs/names/links to batch resolve
   const allSlugs = new Set<string>();
@@ -136,7 +142,29 @@ export async function POST(req: NextRequest) {
     });
   });
 
-  const created = await prisma.review.createMany({ data: valid });
+  if (valid.length === 0) {
+    return NextResponse.json({ created: 0, errors });
+  }
 
-  return NextResponse.json({ created: created.count, errors });
+  // Batch in chunks to avoid DB timeouts on large imports
+  let totalCreated = 0;
+  try {
+    const CHUNK = 50;
+    for (let i = 0; i < valid.length; i += CHUNK) {
+      const result = await prisma.review.createMany({ data: valid.slice(i, i + CHUNK), skipDuplicates: true });
+      totalCreated += result.count;
+    }
+  } catch (dbErr) {
+    console.error("[Reviews/Import] DB error:", dbErr);
+    return NextResponse.json(
+      { created: totalCreated, errors: [...errors, "Erro ao salvar: " + String(dbErr)] },
+      { status: 207 }
+    );
+  }
+
+  return NextResponse.json({ created: totalCreated, errors });
+  } catch (e) {
+    console.error("[Reviews/Import] Unexpected error:", e);
+    return NextResponse.json({ error: "Erro interno: " + String(e) }, { status: 500 });
+  }
 }

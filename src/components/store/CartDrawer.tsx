@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Minus, ShoppingBag } from "lucide-react";
+import { X, Plus, Minus, ShoppingBag, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
@@ -12,11 +12,25 @@ export function CartDrawer() {
   const { state, dispatch, total } = useCart();
   const { items, isOpen } = state;
   const router = useRouter();
+  const [showAdded, setShowAdded] = useState(false);
+  const prevItemCount = useRef(items.reduce((s, i) => s + i.quantity, 0));
 
   const handleFinalizar = useCallback(() => {
     dispatch({ type: "CLOSE_DRAWER" });
     router.push("/checkout");
   }, [dispatch, router]);
+
+  // Show brief "added" banner when item count increases
+  const currentItemCount = items.reduce((s, i) => s + i.quantity, 0);
+  useEffect(() => {
+    if (currentItemCount > prevItemCount.current) {
+      setShowAdded(true);
+      const t = setTimeout(() => setShowAdded(false), 2200);
+      prevItemCount.current = currentItemCount;
+      return () => clearTimeout(t);
+    }
+    prevItemCount.current = currentItemCount;
+  }, [currentItemCount]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -78,6 +92,12 @@ export function CartDrawer() {
 
         {/* Items */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
+          {showAdded && (
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 mb-3 transition-all">
+              <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              Produto adicionado
+            </div>
+          )}
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center px-4">
               <ShoppingBag className="w-14 h-14 mb-3 text-gray-200" />

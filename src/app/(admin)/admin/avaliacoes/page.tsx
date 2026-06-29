@@ -61,7 +61,7 @@ export default function AvaliacoesPage() {
 
   // CSV import state
   const [previewRows, setPreviewRows] = useState<ReviewRow[]>([]);
-  const [fileName, setFileName] = useState("");
+  const [fileNames, setFileNames] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null);
 
@@ -161,17 +161,32 @@ export default function AvaliacoesPage() {
     return rows;
   };
 
-  const handleFile = (file: File) => {
-    setFileName(file.name);
+  const handleFiles = (files: File[]) => {
+    if (files.length === 0) return;
     setImportResult(null);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const rows = parseCSV(text);
-      setPreviewRows(rows);
-    };
-    reader.readAsText(file, "UTF-8");
+    setFileNames(files.map((f) => f.name));
+    const allRows: ReviewRow[] = [];
+    let loaded = 0;
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        // If file has no product column, inject product_name from filename (strip .csv)
+        const rows = parseCSV(text);
+        const hasProduct = rows.some((r) => r.product_slug || r.product_name || r.product_link);
+        if (!hasProduct && !selectedProduct) {
+          const nameFromFile = file.name.replace(/\.csv$/i, "").replace(/[-_]/g, " ").trim();
+          rows.forEach((r) => { if (!r.product_name) r.product_name = nameFromFile; });
+        }
+        allRows.push(...rows);
+        loaded++;
+        if (loaded === files.length) setPreviewRows([...allRows]);
+      };
+      reader.readAsText(file, "UTF-8");
+    });
   };
+
+  const handleFile = (file: File) => handleFiles([file]);
 
   const handleImport = async () => {
     if (!previewRows.length) return;
@@ -194,7 +209,7 @@ export default function AvaliacoesPage() {
         } else {
           toast({ title: `${data.created} avaliação(ões) importada(s) com sucesso!` });
           setPreviewRows([]);
-          setFileName("");
+          setFileNames([]);
           loadReviews();
           startTransition(() => router.refresh());
         }
@@ -365,22 +380,38 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
           className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-cat-yellow transition-colors cursor-pointer"
           onClick={() => fileRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const files = Array.from(e.dataTransfer.files).filter((f) => f.name.endsWith(".csv"));
+            if (files.length) handleFiles(files);
+          }}
         >
           <input
             ref={fileRef}
             type="file"
             accept=".csv,text/csv"
+            multiple
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              if (files.length) handleFiles(files);
+              e.target.value = "";
+            }}
           />
           <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          {fileName ? (
-            <p className="text-sm font-semibold text-cat-black">{fileName}</p>
+          {fileNames.length > 0 ? (
+            <div className="space-y-0.5">
+              {fileNames.map((n, i) => (
+                <p key={i} className="text-sm font-semibold text-cat-black truncate max-w-xs mx-auto">{n}</p>
+              ))}
+              {fileNames.length > 1 && (
+                <p className="text-xs text-gray-400 mt-1">{fileNames.length} arquivos selecionados</p>
+              )}
+            </div>
           ) : (
             <>
-              <p className="text-sm font-semibold text-gray-600">Clique ou arraste o arquivo CSV aqui</p>
-              <p className="text-xs text-gray-400 mt-1">Suporta produto por slug, nome ou link</p>
+              <p className="text-sm font-semibold text-gray-600">Clique ou arraste um ou mais arquivos CSV</p>
+              <p className="text-xs text-gray-400 mt-1">Múltiplos arquivos: o nome do arquivo vira o produto se não houver coluna de produto</p>
             </>
           )}
         </div>
@@ -391,6 +422,7 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-cat-black">
                 {previewRows.length} linha(s) encontrada(s)
+                {fileNames.length > 1 && <span className="text-gray-400 ml-1">em {fileNames.length} arquivos</span>}
                 {selectedProduct && <span className="text-blue-600 ml-2">→ {selectedProduct.name}</span>}
               </p>
               <button

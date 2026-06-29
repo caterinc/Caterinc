@@ -109,7 +109,6 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, c
     if (!selectedSize) { toast({ title: "Selecione um tamanho", variant: "destructive" }); return; }
     if (!selectedVariant || selectedVariant.stock === 0) { toast({ title: "Produto sem estoque", variant: "destructive" }); return; }
     dispatch({ type: "ADD_ITEM", payload: buildPayload() });
-    toast({ title: "Adicionado ao carrinho!", variant: "success" });
   };
 
   const handleBuyNow = () => {
