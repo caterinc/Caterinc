@@ -277,9 +277,9 @@ export default function FretePage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button onClick={() => toggle(m)} title={m.isActive ? "Desativar" : "Ativar"}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
-                  {m.isActive ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4" />}
+                <button onClick={() => toggle(m)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${m.isActive ? "bg-green-50 text-green-700 hover:bg-green-100" : "bg-gray-100 text-gray-500 hover:bg-cat-yellow hover:text-cat-black"}`}>
+                  {m.isActive ? <><CheckCircle className="w-3.5 h-3.5" />Ativo</> : <><XCircle className="w-3.5 h-3.5" />Ativar</>}
                 </button>
                 <button onClick={() => openEdit(m)}
                   className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">

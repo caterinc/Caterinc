@@ -14,6 +14,17 @@ import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
+function PixIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M11.896 6.617a5.87 5.87 0 0 1 4.158 1.722l3.11 3.11a.81.81 0 0 0 1.143 0l3.063-3.063a5.87 5.87 0 0 1 4.158-1.722h.657L22.02 1.549A5.328 5.328 0 0 0 18.25 0h-4.5a5.328 5.328 0 0 0-3.77 1.549L3.867 6.617h8.03Z" fill="currentColor"/>
+      <path d="M28.184 9.98h-.656a3.93 3.93 0 0 0-2.786 1.154l-3.063 3.063a2.745 2.745 0 0 1-3.886 0l-3.11-3.11A3.93 3.93 0 0 0 11.896 9.98H9.978L5.12 14.838a5.328 5.328 0 0 0 0 7.54l1.518 1.518h.657a3.93 3.93 0 0 0 2.786-1.154l3.063-3.063a2.745 2.745 0 0 1 3.886 0l3.11 3.11a3.93 3.93 0 0 0 2.787 1.154h.657l1.518-1.518a5.328 5.328 0 0 0 0-7.54L28.184 9.98Z" fill="currentColor"/>
+      <path d="M7.294 25.623h-.657a5.87 5.87 0 0 1-4.158-1.722L1.031 22.45A5.328 5.328 0 0 0 0 25.748v.504a5.328 5.328 0 0 0 1.549 3.77L3.98 32.45a5.328 5.328 0 0 0 3.77 1.549h4.5a5.328 5.328 0 0 0 3.77-1.549l2.43-2.43a5.87 5.87 0 0 1-4.158-1.722l-3.11-3.11a.81.81 0 0 0-1.143 0l-.745.435Z" fill="currentColor"/>
+      <path d="M24.706 25.623h.657a5.87 5.87 0 0 0 4.158-1.722l1.448-1.451A5.328 5.328 0 0 1 32 25.748v.504a5.328 5.328 0 0 1-1.549 3.77L28.02 32.45a5.328 5.328 0 0 1-3.77 1.549h-4.5a5.328 5.328 0 0 1-3.77-1.549l-2.43-2.43a5.87 5.87 0 0 0 4.158-1.722l3.11-3.11a.81.81 0 0 1 1.143 0l.745.435Z" fill="currentColor"/>
+    </svg>
+  );
+}
+
 const CardBrick = dynamic(
   () => import("@/components/store/checkout/CardBrick").then((m) => ({ default: m.CardBrick })),
   { ssr: false }
@@ -595,9 +606,9 @@ export default function CheckoutPage() {
               <SectionHeader num={3} title="Pagamento" />
               <div className="space-y-2">
                 {([
-                  { id: "pix",    label: "PIX",               desc: "Aprovação instantânea · Sem taxas", icon: Smartphone, badge: "Recomendado" },
-                  { id: "card",   label: "Cartão de crédito", desc: "Parcelamento em até 12x", icon: CreditCard, badge: null },
-                ] as { id: PayMethod; label: string; desc: string; icon: typeof Smartphone; badge: string | null }[]).map((m) => (
+                  { id: "pix",  label: "PIX",               desc: "Aprovação instantânea · Sem taxas", badge: "Recomendado" },
+                  { id: "card", label: "Cartão de crédito", desc: "Parcelamento em até 12x",           badge: null },
+                ] as { id: PayMethod; label: string; desc: string; badge: string | null }[]).map((m) => (
                   <button key={m.id} onClick={() => setPayMethod(m.id)}
                     className="w-full flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-all"
                     style={{ borderColor: payMethod === m.id ? "#111" : "#E5E7EB", backgroundColor: payMethod === m.id ? "#F9FAFB" : "#fff" }}>
@@ -606,8 +617,8 @@ export default function CheckoutPage() {
                       {payMethod === m.id && <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
                     </div>
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                      style={{ backgroundColor: payMethod === m.id ? "#111" : "#F3F4F6", color: payMethod === m.id ? "#fff" : "#6B7280" }}>
-                      <m.icon className="w-5 h-5" />
+                      style={{ backgroundColor: m.id === "pix" ? (payMethod === "pix" ? "#32BCAD" : "#E8F8F6") : (payMethod === "card" ? "#111" : "#F3F4F6"), color: m.id === "pix" ? (payMethod === "pix" ? "#fff" : "#32BCAD") : (payMethod === "card" ? "#fff" : "#6B7280") }}>
+                      {m.id === "pix" ? <PixIcon size={20} /> : <CreditCard className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
