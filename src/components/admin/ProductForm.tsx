@@ -7,9 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Upload, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Shirt, Zap } from "lucide-react";
 import Image from "next/image";
 import type { Category } from "@/types";
+
+const JERSEY_SIZES = ["PP", "P", "M", "G", "GG", "XGG"];
+
+const JERSEY_PLAYERS = [
+  { name: "Vini Jr", number: 7 },
+  { name: "Neymar", number: 10 },
+  { name: "Rodrygo", number: 11 },
+  { name: "Richarlison", number: 9 },
+  { name: "Militão", number: 3 },
+  { name: "Paquetá", number: 10 },
+  { name: "Endrick", number: 18 },
+  { name: "Raphinha", number: 17 },
+  { name: "Pedro", number: 9 },
+  { name: "Marquinhos", number: 5 },
+  { name: "Casemiro", number: 5 },
+  { name: "Alisson", number: 1 },
+];
+
+function isJerseyProduct(variants: { size: string }[]): boolean {
+  return variants.some((v) => JERSEY_SIZES.includes(v.size.toUpperCase()));
+}
 
 interface SizeVariant {
   id?: string;
@@ -40,6 +61,7 @@ interface ProductFormData {
   tags: string;
   images: string[];
   colorGroups: ColorGroup[];
+  productType: "shoes" | "jersey";
 }
 
 interface Props {
@@ -107,6 +129,7 @@ export function ProductForm({ categories, initialData }: Props) {
     tags: initialData?.tags || "",
     images: initialData?.images || [],
     colorGroups: groupVariants(initialData?.variants),
+    productType: isJerseyProduct(initialData?.variants ?? []) ? "jersey" : "shoes",
   });
 
   // ── Image compression helper ─────────────────────────────────────────────────
@@ -190,6 +213,58 @@ export function ProductForm({ categories, initialData }: Props) {
       ...g,
       sizes: g.sizes.map((s, i) => i === si ? { ...s, [field]: value } : s),
     }));
+  };
+
+  // ── Jersey helpers ───────────────────────────────────────────────────────────
+
+  const fillJerseySizesInGroup = (gi: number) => {
+    updateGroup(gi, (g) => {
+      const existing = new Set(g.sizes.map((s) => s.size.toUpperCase()));
+      const toAdd = JERSEY_SIZES.filter((s) => !existing.has(s));
+      return { ...g, sizes: [...g.sizes.filter((s) => s.size), ...toAdd.map((s) => ({ size: s, sku: "", stock: 0, price: "" }))] };
+    });
+  };
+
+  const fillAllJerseySizes = () => {
+    setForm((f) => ({
+      ...f,
+      colorGroups: f.colorGroups.map((g) => {
+        const existing = new Set(g.sizes.map((s) => s.size.toUpperCase()));
+        const toAdd = JERSEY_SIZES.filter((s) => !existing.has(s));
+        return { ...g, sizes: [...g.sizes.filter((s) => s.size), ...toAdd.map((s) => ({ size: s, sku: "", stock: 0, price: "" }))] };
+      }),
+    }));
+    toast({ title: "Tamanhos PP, P, M, G, GG, XGG adicionados!", variant: "success" });
+  };
+
+  const addPlayerGroup = (player: { name: string; number: number }) => {
+    const label = `${player.name} #${player.number}`;
+    const already = form.colorGroups.some((g) => g.color === label);
+    if (already) { toast({ title: `${label} já foi adicionado`}); return; }
+    setForm((f) => ({
+      ...f,
+      colorGroups: [...f.colorGroups, {
+        color: label,
+        images: [],
+        expanded: true,
+        sizes: JERSEY_SIZES.map((s) => ({ size: s, sku: "", stock: 0, price: "" })),
+      }],
+    }));
+  };
+
+  const addAllPlayers = () => {
+    const existing = new Set(form.colorGroups.map((g) => g.color));
+    const newGroups = JERSEY_PLAYERS
+      .filter((p) => !existing.has(`${p.name} #${p.number}`))
+      .map((p) => ({
+        color: `${p.name} #${p.number}`,
+        images: [],
+        expanded: false,
+        sizes: JERSEY_SIZES.map((s) => ({ size: s, sku: "", stock: 0, price: "" })),
+      }));
+    if (newGroups.length === 0) { toast({ title: "Todos os jogadores já foram adicionados" }); return; }
+    setForm((f) => ({ ...f, colorGroups: [...f.colorGroups, ...newGroups] }));
+    toast({ title: `${newGroups.length} jogadores adicionados!`, variant: "success" });
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────────
@@ -290,6 +365,18 @@ export function ProductForm({ categories, initialData }: Props) {
             </select>
           </div>
           <div>
+            <Label htmlFor="productType">Tipo de produto</Label>
+            <select
+              id="productType"
+              value={form.productType}
+              onChange={(e) => setForm({ ...form, productType: e.target.value as "shoes" | "jersey" })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="shoes">Calçado / Padrão</option>
+              <option value="jersey">Camisa de time ⚽</option>
+            </select>
+          </div>
+          <div>
             <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
             <Input id="tags" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="bota, couro, impermeável" />
           </div>
@@ -334,15 +421,74 @@ export function ProductForm({ categories, initialData }: Props) {
         </div>
       </div>
 
+      {/* Jersey quick-setup panel */}
+      {form.productType === "jersey" && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Shirt className="w-5 h-5 text-green-700" />
+            <h2 className="font-bold text-green-800">Configuração rápida — Camisa de time</h2>
+          </div>
+
+          {/* Size auto-fill */}
+          <div>
+            <p className="text-xs font-semibold text-green-700 mb-2">Tamanhos de camisa</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {JERSEY_SIZES.map((s) => (
+                <span key={s} className="px-3 py-1 bg-white border border-green-300 rounded-full text-sm font-bold text-green-800">{s}</span>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={fillAllJerseySizes}
+              className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white text-sm font-bold rounded-lg hover:bg-green-800 transition-colors"
+            >
+              <Zap className="w-4 h-4" /> Preencher todos os grupos com PP→XGG
+            </button>
+          </div>
+
+          {/* Players */}
+          <div>
+            <p className="text-xs font-semibold text-green-700 mb-2">Jogadores — clique para adicionar como variante</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {JERSEY_PLAYERS.map((p) => {
+                const label = `${p.name} #${p.number}`;
+                const added = form.colorGroups.some((g) => g.color === label);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => addPlayerGroup(p)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${added ? "bg-green-700 text-white border-green-700 cursor-default" : "bg-white border-green-300 text-green-800 hover:bg-green-100"}`}
+                  >
+                    {added ? "✓ " : ""}{label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={addAllPlayers}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-green-400 text-green-700 text-sm font-bold rounded-lg hover:bg-green-100 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Adicionar todos os jogadores
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Variants — grouped by color */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-bold text-lg">Variantes</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Agrupe por cor. Cada cor pode ter uma imagem e múltiplos tamanhos.</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {form.productType === "jersey"
+                ? "Cada jogador é uma variante de cor. Os tamanhos (PP, P, M, G, GG, XGG) ficam dentro de cada jogador."
+                : "Agrupe por cor. Cada cor pode ter uma imagem e múltiplos tamanhos."}
+            </p>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addColorGroup}>
-            <Plus className="w-4 h-4 mr-1" /> Adicionar Cor
+            <Plus className="w-4 h-4 mr-1" /> {form.productType === "jersey" ? "Adicionar Jogador" : "Adicionar Cor"}
           </Button>
         </div>
 
@@ -356,7 +502,7 @@ export function ProductForm({ categories, initialData }: Props) {
                   type="text"
                   value={group.color}
                   onChange={(e) => updateGroup(gi, (g) => ({ ...g, color: e.target.value }))}
-                  placeholder="Nome da cor (ex: Preto)"
+                  placeholder={form.productType === "jersey" ? "Jogador (ex: Vini Jr #7)" : "Nome da cor (ex: Preto)"}
                   className="flex-1 min-w-0 px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
                 />
 
@@ -395,7 +541,7 @@ export function ProductForm({ categories, initialData }: Props) {
                     <table className="w-full text-sm">
                       <thead className="text-xs text-gray-400 uppercase border-b">
                         <tr>
-                          <th className="text-left pb-2 pr-3">Tamanho *</th>
+                          <th className="text-left pb-2 pr-3">{form.productType === "jersey" ? "Tamanho camisa *" : "Tamanho *"}</th>
                           <th className="text-left pb-2 pr-3">SKU</th>
                           <th className="text-left pb-2 pr-3">Estoque</th>
                           <th className="text-left pb-2 pr-3">Preço especial</th>
@@ -409,7 +555,7 @@ export function ProductForm({ categories, initialData }: Props) {
                               <Input
                                 value={sv.size}
                                 onChange={(e) => updateSize(gi, si, "size", e.target.value)}
-                                placeholder="38"
+                                placeholder={form.productType === "jersey" ? "M" : "38"}
                                 className="h-8 w-16"
                               />
                             </td>
