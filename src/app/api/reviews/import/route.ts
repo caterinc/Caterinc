@@ -99,29 +99,28 @@ export async function POST(req: NextRequest) {
   rows.forEach((row, idx) => {
     const lineNum = idx + 2;
 
-    // Resolve productId using priority: slug → name → link → selectedProductId
-    let productId: string | null = null;
+    // selectedProductId overrides everything when explicitly chosen by the user
+    let productId: string | null = selectedProductId || null;
 
-    if (row.product_slug?.trim()) {
-      productId = slugToId[row.product_slug.trim()] || null;
-    }
-    if (!productId && row.product_name?.trim()) {
-      productId = findByName(row.product_name.trim());
-    }
-    if (!productId && row.product_link?.trim()) {
-      const slug = extractSlugFromLink(row.product_link.trim());
-      if (slug) productId = slugToId[slug] || null;
-    }
-    if (!productId && selectedProductId) {
-      productId = selectedProductId;
+    if (!productId) {
+      if (row.product_slug?.trim()) {
+        productId = slugToId[row.product_slug.trim()] || null;
+      }
+      if (!productId && row.product_name?.trim()) {
+        productId = findByName(row.product_name.trim());
+      }
+      if (!productId && row.product_link?.trim()) {
+        const slug = extractSlugFromLink(row.product_link.trim());
+        if (slug) productId = slugToId[slug] || null;
+      }
     }
 
     if (!productId) {
       const identifier = row.product_slug || row.product_name || row.product_link || "";
       if (identifier) {
-        errors.push(`Linha ${lineNum}: produto "${identifier}" não encontrado. Dica: selecione um produto na dropdown ou verifique o slug.`);
+        errors.push(`Linha ${lineNum}: produto "${identifier}" não encontrado. Selecione um produto na dropdown para forçar a importação.`);
       } else {
-        errors.push(`Linha ${lineNum}: sem produto identificado. Selecione um produto na dropdown ou adicione a coluna "product_slug" no CSV.`);
+        errors.push(`Linha ${lineNum}: sem produto identificado. Selecione um produto na dropdown.`);
       }
       return;
     }

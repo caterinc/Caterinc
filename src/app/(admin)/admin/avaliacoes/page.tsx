@@ -99,16 +99,16 @@ export default function AvaliacoesPage() {
       product_slug: "product_slug", slug: "product_slug", produto: "product_slug",
       produto_slug: "product_slug", item_slug: "product_slug",
       handle: "product_slug", produto_handle: "product_slug",
-      // product_name (new)
+      // product_name
       product_name: "product_name", nome_produto: "product_name",
       product_title: "product_name", title: "product_name",
-      produto_nome: "product_name", nome: "product_name",
-      // product_link (new)
+      produto_nome: "product_name",
+      // product_link
       product_link: "product_link", link: "product_link",
       url: "product_link", product_url: "product_link",
       produto_link: "product_link", produto_url: "product_link",
-      // reviewer_name
-      reviewer_name: "reviewer_name", name: "reviewer_name",
+      // reviewer_name — "nome" sem prefixo "produto" = nome da pessoa
+      reviewer_name: "reviewer_name", name: "reviewer_name", nome: "reviewer_name",
       reviewer: "reviewer_name", avaliador: "reviewer_name", cliente: "reviewer_name",
       author: "reviewer_name", author_name: "reviewer_name",
       // rating
@@ -305,7 +305,7 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">
             Produto de destino{" "}
-            <span className="text-gray-400 font-normal">(opcional — deixe vazio se o CSV já tem o produto)</span>
+            <span className="text-gray-400 font-normal">(quando selecionado, <strong>substitui</strong> qualquer produto no CSV)</span>
           </label>
           <div className="relative" ref={productDropdownRef}>
             <div
@@ -363,7 +363,7 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
 
           {selectedProduct && (
             <p className="text-xs text-blue-600 mt-1.5 ml-1">
-              Avaliações sem produto identificado no CSV serão atribuídas a: <strong>{selectedProduct.name}</strong>
+              Todas as avaliações serão importadas para: <strong>{selectedProduct.name}</strong> (substitui o produto do CSV)
             </p>
           )}
         </div>
