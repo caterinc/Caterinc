@@ -65,11 +65,12 @@ export async function POST(req: NextRequest) {
     personal?: PersonalInput; address?: AddressInput; paymentMethod?: string;
     cartItems?: CartItemInput[]; cardFormData?: Record<string, unknown>;
     consent?: boolean; shippingMethodId?: string | null;
+    utmData?: Record<string, string> | null;
   };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Payload invalido" }, { status: 400 }); }
 
-  const { personal, address, paymentMethod, cartItems, cardFormData, consent, shippingMethodId } = body;
+  const { personal, address, paymentMethod, cartItems, cardFormData, consent, shippingMethodId, utmData } = body;
 
   if (!consent) return NextResponse.json({ error: "Consentimento LGPD obrigatorio" }, { status: 400 });
   if (!personal || !address || !cartItems || cartItems.length === 0)
@@ -134,19 +135,21 @@ export async function POST(req: NextRequest) {
     data: {
       orderNumber, email, status: "PENDING", paymentStatus: "PENDING", paymentMethod: method,
       subtotal, shipping: shippingCost, total, shippingAddress,
+      utmData: utmData || undefined,
       items: { create: orderItems },
       statusHistory: { create: [{ status: "PENDING", note: "Pedido iniciado via " + method }] },
     },
   });
 
-  // Notify UTMify (awaited so Vercel doesn't cut it off before the fetch completes)
+  // Notify UTMify with UTM attribution data
   await sendUtmifyEvent(
     orderNumber,
     "waiting_payment",
-    { name, email },
+    { name, email, phone },
     orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
     Math.round(total * 100),
-    new Date()
+    new Date(),
+    utmData || null
   ).catch((e) => console.error("[UTMify] create event error:", e));
 
   const parts = name.split(" ");

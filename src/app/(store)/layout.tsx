@@ -51,6 +51,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     <div className="flex flex-col min-h-screen">
       {/* suppressHydrationWarning: CSS vars from DB can differ between SSR and client, that's expected */}
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `:root{${globalCss}}` }} />
+      {/* UTMify: capture UTM parameters from URL and persist in localStorage */}
+      <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];var found=false;keys.forEach(function(k){if(p.get(k)){localStorage.setItem('_utm_'+k,p.get(k));found=true;}});if(found)localStorage.setItem('_utm_ts',Date.now().toString());}catch(e){}})();` }} />
       <Header
         menuItems={headerMenu?.items || []}
         storeName={sm.storeName as string}

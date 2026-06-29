@@ -154,6 +154,7 @@ model Order {
   trackingCode    String?
   paymentMethod   String?   // pix | card | boleto
   mpPaymentId     String?   // Mercado Pago payment ID
+  utmData         Json?     // UTM parameters captured at checkout
   notes           String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

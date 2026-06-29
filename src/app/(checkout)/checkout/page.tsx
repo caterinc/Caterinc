@@ -248,12 +248,18 @@ export default function CheckoutPage() {
     if (!consent) { toast({ title: "Aceite os termos para continuar", variant: "destructive" }); return; }
     setLoading(true);
     try {
+      // Read UTMs captured by the layout script
+      const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];
+      const utmData: Record<string, string> = {};
+      try { utmKeys.forEach((k) => { const v = localStorage.getItem('_utm_' + k); if (v) utmData[k] = v; }); } catch {}
+
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           personal, address, paymentMethod: payMethod, cardFormData: cardFormData || null,
           consent: true, shippingMethodId: selectedShipping?.id || null,
+          utmData: Object.keys(utmData).length > 0 ? utmData : null,
           cartItems: items.map((i) => ({
             productId: i.productId, variantId: i.variantId || null, name: i.name,
             price: i.price, quantity: i.quantity, size: i.size || null, color: i.color || null, image: i.image || null,

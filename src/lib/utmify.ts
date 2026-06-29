@@ -41,13 +41,24 @@ function getApiKey(): string | null {
   return process.env.UTMIFY_API_KEY?.trim() || null;
 }
 
+export interface UtmData {
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_content?: string | null;
+  utm_term?: string | null;
+  src?: string | null;
+  sck?: string | null;
+}
+
 export async function sendUtmifyEvent(
   orderId: string,
   status: UtmifyStatus,
   customer: { name: string; email: string; phone?: string | null },
   items: Array<{ id: string; name: string; quantity: number; priceInCents: number }>,
   totalInCents: number,
-  createdAt?: Date
+  createdAt?: Date,
+  utmData?: UtmData | null
 ): Promise<void> {
   const apiKey = getApiKey();
   if (!apiKey) return;
@@ -73,9 +84,13 @@ export async function sendUtmifyEvent(
       priceInCents: i.priceInCents,
     })),
     trackingParameters: {
-      src: null, sck: null,
-      utm_source: null, utm_campaign: null,
-      utm_medium: null, utm_content: null, utm_term: null,
+      src: utmData?.src || null,
+      sck: utmData?.sck || null,
+      utm_source: utmData?.utm_source || null,
+      utm_campaign: utmData?.utm_campaign || null,
+      utm_medium: utmData?.utm_medium || null,
+      utm_content: utmData?.utm_content || null,
+      utm_term: utmData?.utm_term || null,
     },
     commission: {
       totalInCents,

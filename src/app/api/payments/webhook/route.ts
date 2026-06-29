@@ -129,10 +129,13 @@ export async function POST(req: NextRequest) {
       include: { items: true },
     });
     if (fullOrder) {
+      const addr = fullOrder.shippingAddress as Record<string, string> | null;
+      const customerName = addr?.name || "Cliente";
+      const utms = (fullOrder as unknown as { utmData: Record<string, string> | null }).utmData;
       sendUtmifyEvent(
         fullOrder.orderNumber,
         utmStatus,
-        { name: fullOrder.shippingAddress && typeof fullOrder.shippingAddress === "object" ? ((fullOrder.shippingAddress as Record<string, string>).name || "Cliente") : "Cliente", email: fullOrder.email },
+        { name: customerName, email: fullOrder.email },
         fullOrder.items.map((i) => ({
           id: i.productId || "item",
           name: i.name,
@@ -140,7 +143,8 @@ export async function POST(req: NextRequest) {
           priceInCents: Math.round(Number(i.price) * 100),
         })),
         Math.round(Number(fullOrder.total) * 100),
-        fullOrder.createdAt
+        fullOrder.createdAt,
+        utms
       ).catch((e) => console.error("[UTMify] MP event error:", e));
     }
 
