@@ -89,7 +89,7 @@ export function ShowcaseProductCard({ product, priority = false }: ShowcaseProdu
             onClick={handleCartClick}
             aria-label="Adicionar ao carrinho"
             className="absolute top-3 right-3 w-9 h-9 rounded-full shadow-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 hover:shadow-lg hover:scale-110 active:scale-95"
-            style={{ backgroundColor: "var(--vep-quickadd-bg,#16c789)", color: "var(--vep-quickadd-text,#fff)" }}
+            style={{ backgroundColor: "var(--vep-quickadd-bg,#16c789)", color: "var(--vep-quickadd-text,#fff)", outline: "2px solid var(--vep-quickadd-ring, transparent)", outlineOffset: "2px" }}
           >
             <ShoppingCart className="w-4 h-4" strokeWidth={2} />
           </button>

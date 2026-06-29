@@ -21,11 +21,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const slug = body.slug || generateSlug(body.name);
-
-  const category = await prisma.category.create({
-    data: { ...body, slug },
-  });
-  return NextResponse.json(category, { status: 201 });
+  try {
+    const body = await req.json() as Record<string, unknown>;
+    const slug = (body.slug as string) || generateSlug(body.name as string);
+    const category = await prisma.category.create({
+      data: {
+        name: body.name as string,
+        slug,
+        image: (body.image as string) || null,
+        description: (body.description as string) || null,
+        order: (body.order as number) || 0,
+      },
+    });
+    return NextResponse.json(category, { status: 201 });
+  } catch (e) {
+    const err = e as { code?: string };
+    const msg = err.code === "P2002" ? "Este slug já está em uso" : "Erro ao criar coleção";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

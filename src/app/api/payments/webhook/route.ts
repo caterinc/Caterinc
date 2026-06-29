@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createHmac } from "crypto";
+import { sendUtmifyEvent } from "@/lib/utmify";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +127,32 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(`[Webhook/MP] Order ${order.orderNumber} → ${mapped.status}`);
+
+    // UTMify tracking — fire-and-forget
+    const utmStatus = mapped.paymentStatus === "PAID" ? "paid" as const
+      : mapped.paymentStatus === "REFUNDED" ? "refunded" as const
+      : mapped.status === "CANCELLED" ? "cancelled" as const
+      : "waiting_payment" as const;
+    const fullOrder = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: { items: true },
+    });
+    if (fullOrder) {
+      sendUtmifyEvent(
+        fullOrder.orderNumber,
+        utmStatus,
+        { name: fullOrder.shippingAddress && typeof fullOrder.shippingAddress === "object" ? ((fullOrder.shippingAddress as Record<string, string>).name || "Cliente") : "Cliente", email: fullOrder.email },
+        fullOrder.items.map((i) => ({
+          id: i.productId || "item",
+          name: i.name,
+          quantity: i.quantity,
+          priceInCents: Math.round(Number(i.price) * 100),
+        })),
+        Math.round(Number(fullOrder.total) * 100),
+        fullOrder.createdAt
+      ).catch((e) => console.error("[UTMify] MP event error:", e));
+    }
+
     return NextResponse.json({ received: true });
 
   } catch (err) {

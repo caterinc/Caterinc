@@ -1,13 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ShieldCheck, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Webhook } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ShieldCheck, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Webhook, Globe, Zap, Upload, HelpCircle, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 interface MpSettings {
   mp_access_token: string;
   mp_public_key: string;
   mp_webhook_secret: string;
+}
+
+interface GeneralSettings {
+  siteTitle: string;
+  siteDescription: string;
+  favicon: string;
+}
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = document.createElement("img");
+      img.onload = () => {
+        const SIZE = 64;
+        const canvas = document.createElement("canvas");
+        canvas.width = SIZE; canvas.height = SIZE;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, SIZE, SIZE);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = ev.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function IntegracaoPage() {
@@ -16,6 +43,12 @@ export default function IntegracaoPage() {
     mp_public_key: "",
     mp_webhook_secret: "",
   });
+  const [general, setGeneral] = useState<GeneralSettings>({ siteTitle: "", siteDescription: "", favicon: "" });
+  const [utmifyKey, setUtmifyKey] = useState("");
+  const [savingGeneral, setSavingGeneral] = useState(false);
+  const [savingUtm, setSavingUtm] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const faviconRef = useRef<HTMLInputElement>(null);
   const [showToken, setShowToken] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,9 +65,50 @@ export default function IntegracaoPage() {
           mp_public_key:     data.mp_public_key     || "",
           mp_webhook_secret: data.mp_webhook_secret || "",
         });
+        setGeneral({
+          siteTitle: data.siteTitle || "",
+          siteDescription: data.siteDescription || "",
+          favicon: data.favicon || "",
+        });
+        setUtmifyKey(data.utmify_api_key || "");
       })
       .catch(() => {});
   }, []);
+
+  const handleFaviconUpload = async (file: File) => {
+    setUploadingFavicon(true);
+    try {
+      const url = await compressImage(file);
+      setGeneral((g) => ({ ...g, favicon: url }));
+    } catch {
+      toast({ title: "Erro ao processar favicon", variant: "destructive" });
+    }
+    setUploadingFavicon(false);
+  };
+
+  const saveGeneral = async () => {
+    setSavingGeneral(true);
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(general),
+    });
+    setSavingGeneral(false);
+    if (res.ok) toast({ title: "Informações salvas!", variant: "success" as never });
+    else toast({ title: "Erro ao salvar", variant: "destructive" });
+  };
+
+  const saveUtmify = async () => {
+    setSavingUtm(true);
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ utmify_api_key: utmifyKey }),
+    });
+    setSavingUtm(false);
+    if (res.ok) toast({ title: "Chave UTMify salva!", variant: "success" as never });
+    else toast({ title: "Erro ao salvar", variant: "destructive" });
+  };
 
   const save = async () => {
     setSaving(true);
@@ -83,13 +157,118 @@ export default function IntegracaoPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black text-gray-900">Integração — Mercado Pago</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure o gateway de pagamento da loja</p>
+    <div className="max-w-2xl mx-auto space-y-10">
+      <div>
+        <h1 className="text-2xl font-black text-gray-900">Configurações &amp; Integrações</h1>
+        <p className="text-sm text-gray-500 mt-1">Informações gerais, favicon, UTMify e Mercado Pago</p>
       </div>
 
-      {/* Security notice */}
+      {/* ─── Informações Gerais ─── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Globe className="w-5 h-5 text-cat-black" />
+          <h2 className="text-lg font-black text-cat-black">Informações Gerais</h2>
+        </div>
+        <div className="bg-white rounded-2xl border p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Título do site (aba do navegador)</label>
+            <input
+              value={general.siteTitle}
+              onChange={(e) => setGeneral((g) => ({ ...g, siteTitle: e.target.value }))}
+              placeholder="Ex: Minha Loja — Calçados Caterpillar"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cat-yellow"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Descrição (SEO / compartilhamento)</label>
+            <textarea
+              value={general.siteDescription}
+              onChange={(e) => setGeneral((g) => ({ ...g, siteDescription: e.target.value }))}
+              placeholder="Descrição curta da loja para mecanismos de busca..."
+              rows={2}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cat-yellow resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-2">Favicon (ícone da aba do navegador)</label>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg border bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {general.favicon
+                  ? <Image src={general.favicon} alt="favicon" width={32} height={32} className="object-contain" />
+                  : <span className="text-[10px] text-gray-300 text-center leading-tight">sem favicon</span>
+                }
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <input ref={faviconRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFaviconUpload(f); }} />
+                <button onClick={() => faviconRef.current?.click()} disabled={uploadingFavicon}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:border-cat-yellow hover:text-cat-black transition-colors disabled:opacity-50">
+                  <Upload className="w-3.5 h-3.5" />
+                  {uploadingFavicon ? "Processando..." : general.favicon ? "Trocar" : "Enviar favicon"}
+                </button>
+                {general.favicon && (
+                  <button onClick={() => setGeneral((g) => ({ ...g, favicon: "" }))} className="text-xs text-red-500 hover:underline text-left">
+                    Remover
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 leading-tight">PNG quadrado<br />mínimo 32×32 px</p>
+            </div>
+          </div>
+          <button onClick={saveGeneral} disabled={savingGeneral}
+            className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
+            <Save className="w-4 h-4" />
+            {savingGeneral ? "Salvando..." : "Salvar Informações"}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── UTMify ─── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="w-5 h-5 text-cat-black" />
+          <h2 className="text-lg font-black text-cat-black">UTMify</h2>
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">Ativo</span>
+        </div>
+        <div className="bg-white rounded-2xl border p-5 space-y-4">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Quando configurado, envia automaticamente os eventos de pedido criado, pagamento pendente e pedido pago
+            para o UTMify — permitindo rastrear conversões por canal.
+          </p>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Chave de API
+              <a href="https://app.utmify.com.br/credentials" target="_blank" rel="noopener noreferrer"
+                className="ml-2 text-blue-600 underline inline-flex items-center gap-0.5">
+                Encontrar no painel UTMify <HelpCircle className="w-3 h-3" />
+              </a>
+            </label>
+            <input
+              type="password"
+              value={utmifyKey}
+              onChange={(e) => setUtmifyKey(e.target.value)}
+              placeholder="Cole sua chave de API aqui..."
+              className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cat-yellow"
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-400 mt-1">Armazenada com segurança — nunca exposta ao navegador.</p>
+          </div>
+          <button onClick={saveUtmify} disabled={savingUtm}
+            className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
+            <Save className="w-4 h-4" />
+            {savingUtm ? "Salvando..." : "Salvar Chave UTMify"}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Mercado Pago ─── */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-lg font-black text-gray-900">Mercado Pago</h2>
+          <p className="text-sm text-gray-500">Configure o gateway de pagamento da loja</p>
+        </div>
+
+        {/* Security notice */}
       <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 flex gap-3">
         <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
         <div>
@@ -232,6 +411,7 @@ export default function IntegracaoPage() {
           </ul>
         </div>
       </div>
+    </div>
     </div>
   );
 }

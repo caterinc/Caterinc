@@ -116,6 +116,7 @@ function buildPreviewCSS(
   if (c(ct.drawerBg))        cartVars.push(`--vep-drawer-bg:${ct.drawerBg}`);
   if (c(ct.quickaddBg))      cartVars.push(`--vep-quickadd-bg:${ct.quickaddBg}`);
   if (c(ct.quickaddText))    cartVars.push(`--vep-quickadd-text:${ct.quickaddText}`);
+  if (c(ct.quickaddRing))    cartVars.push(`--vep-quickadd-ring:${ct.quickaddRing}`);
   if (c(ct.cartPageBtnBg))   cartVars.push(`--vep-cart-page-btn-bg:${ct.cartPageBtnBg}`);
   if (c(ct.cartPageBtnText)) cartVars.push(`--vep-cart-page-btn-text:${ct.cartPageBtnText}`);
   if (cartVars.length)  css.push(`:root{${cartVars.join(";")}}`)
@@ -155,7 +156,12 @@ function buildPreviewCSS(
       if (c(s.textColor)) css.push(`[data-ve-section="${id}"] h2,[data-ve-section="${id}"] p{color:${s.textColor}!important}`);
     }
     if (sec.type === "collection") {
+      const collVars: string[] = [];
       if (c(s.bgColor)) css.push(`[data-ve-section="${id}"]{background-color:${s.bgColor}!important}`);
+      if (c(s.quickaddBg))    collVars.push(`--vep-quickadd-bg:${s.quickaddBg}`);
+      if (c(s.quickaddText))  collVars.push(`--vep-quickadd-text:${s.quickaddText}`);
+      if (c(s.quickaddRing))  collVars.push(`--vep-quickadd-ring:${s.quickaddRing}`);
+      if (collVars.length) css.push(`[data-ve-section="${id}"]{${collVars.join(";")}}`)
     }
   }
 
@@ -573,6 +579,21 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
       <Field label="URL 'Ver mais'">
         <TextInput value={(settings.viewMoreUrl as string) || "/produtos"} onChange={(v) => onChange("viewMoreUrl", v)} placeholder="/produtos?categoria=tenis" />
       </Field>
+
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Adicionar Rápido</p>
+      <p className="text-xs text-gray-400">Botão circular nos cards desta vitrine (sobrescreve global)</p>
+      <div className="space-y-3">
+        <Field label="Cor de Fundo">
+          <ColorInput value={(settings.quickaddBg as string) || "#16c789"} onChange={(v) => onChange("quickaddBg", v)} />
+        </Field>
+        <Field label="Cor do Ícone">
+          <ColorInput value={(settings.quickaddText as string) || "#ffffff"} onChange={(v) => onChange("quickaddText", v)} />
+        </Field>
+        <Field label="Cor da Borda/Anel">
+          <ColorInput value={(settings.quickaddRing as string) || "transparent"} onChange={(v) => onChange("quickaddRing", v)} />
+        </Field>
+      </div>
+
       <SaveBtn saving={saving} onClick={onSave} label="Salvar Vitrine" />
       {categories.length === 0 && (
         <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
@@ -824,14 +845,17 @@ function CartEditor({ settings, onChange, onSave, saving }: {
         </Field>
       </div>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Adicionar Rápido</p>
-      <p className="text-xs text-gray-400">Botão circular nos cards de produto (hover)</p>
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Adicionar Rápido (Global)</p>
+      <p className="text-xs text-gray-400">Padrão para todos os cards. A seção Vitrine pode sobrescrever.</p>
       <div className="space-y-3">
         <Field label="Fundo do Botão">
           <ColorInput value={settings.quickaddBg || "#16c789"} onChange={(v) => onChange("quickaddBg", v)} />
         </Field>
         <Field label="Cor do Ícone">
           <ColorInput value={settings.quickaddText || "#ffffff"} onChange={(v) => onChange("quickaddText", v)} />
+        </Field>
+        <Field label="Cor da Borda/Anel">
+          <ColorInput value={settings.quickaddRing || "transparent"} onChange={(v) => onChange("quickaddRing", v)} />
         </Field>
       </div>
 

@@ -42,6 +42,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     `--vep-drawer-bg:${vc.drawerBg || "#ffffff"}`,
     `--vep-quickadd-bg:${vc.quickaddBg || "#16c789"}`,
     `--vep-quickadd-text:${vc.quickaddText || "#ffffff"}`,
+    `--vep-quickadd-ring:${vc.quickaddRing || "transparent"}`,
     `--vep-cart-page-btn-bg:${vc.cartPageBtnBg || "#FFCD11"}`,
     `--vep-cart-page-btn-text:${vc.cartPageBtnText || "#000000"}`,
   ].join(";");

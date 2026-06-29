@@ -139,6 +139,9 @@ export default async function HomePage() {
               mobileColumns={Number(s.mobileColumns) || 2}
               viewMoreUrl={(s.viewMoreUrl as string) || (slug ? `/produtos?categoria=${slug}` : "/produtos")}
               viewMoreText={(s.viewMoreText as string) || "Ver Mais"}
+              quickaddBg={(s.quickaddBg as string) || undefined}
+              quickaddText={(s.quickaddText as string) || undefined}
+              quickaddRing={(s.quickaddRing as string) || undefined}
             />
           );
         }

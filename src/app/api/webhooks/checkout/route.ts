@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizePositiveNumber, sanitizeInt } from "@/lib/sanitize";
+import { sendUtmifyEvent } from "@/lib/utmify";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +154,29 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(`[Webhook/Luna] Order created: ${order.orderNumber} (${rawEvent})`);
+
+    // UTMify tracking — fire-and-forget
+    const utmStatus = paymentStatus === "PAID" ? "paid" as const
+      : paymentStatus === "REFUNDED" ? "refunded" as const
+      : orderStatus === "CANCELLED" ? "cancelled" as const
+      : "waiting_payment" as const;
+    sendUtmifyEvent(
+      order.orderNumber,
+      utmStatus,
+      { name: customerName, email: customerEmail },
+      rawItems.map((item) => {
+        const i = item as Record<string, unknown>;
+        return {
+          id: sanitizeString(String(i.id || i.sku || ""), 100) || "item",
+          name: sanitizeString(String(i.name || "Produto"), 300),
+          quantity: sanitizeInt(i.quantity || 1, 1),
+          priceInCents: Math.round(sanitizePositiveNumber(i.price || 0) * 100),
+        };
+      }),
+      Math.round(total * 100),
+      new Date()
+    ).catch((e) => console.error("[UTMify] Luna event error:", e));
+
     return NextResponse.json({ received: true, orderId: order.id, orderNumber: order.orderNumber });
 
   } catch (err) {

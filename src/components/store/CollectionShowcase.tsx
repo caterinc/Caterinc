@@ -20,6 +20,9 @@ interface CollectionShowcaseProps {
   mobileColumns?: number;
   viewMoreUrl?: string;
   viewMoreText?: string;
+  quickaddBg?: string;
+  quickaddText?: string;
+  quickaddRing?: string;
 }
 
 const MOBILE_COLS: Record<number, string> = {
@@ -44,12 +47,21 @@ export function CollectionShowcase({
   mobileColumns = 2,
   viewMoreUrl,
   viewMoreText = "Ver Mais",
+  quickaddBg,
+  quickaddText,
+  quickaddRing,
 }: CollectionShowcaseProps) {
   if (products.length === 0) return null;
 
   const mobileCls = MOBILE_COLS[mobileColumns] ?? "grid-cols-2";
   const desktopCls = DESKTOP_COLS[desktopColumns] ?? "md:grid-cols-4";
   const gridClass = `grid gap-4 md:gap-5 ${mobileCls} ${desktopCls}`;
+
+  const quickaddCss = [
+    quickaddBg   ? `--vep-quickadd-bg:${quickaddBg}`   : "",
+    quickaddText ? `--vep-quickadd-text:${quickaddText}` : "",
+    quickaddRing ? `--vep-quickadd-ring:${quickaddRing}` : "",
+  ].filter(Boolean).join(";");
 
   return (
     <section
@@ -58,6 +70,10 @@ export function CollectionShowcase({
       suppressHydrationWarning
       className="py-10"
     >
+      {quickaddCss && (
+        // eslint-disable-next-line react/no-danger
+        <style dangerouslySetInnerHTML={{ __html: `[data-ve-section="${sectionId}"]{${quickaddCss}}` }} />
+      )}
       <div className="max-w-7xl mx-auto px-4">
         {/* Header row */}
         <div className="flex items-center justify-between mb-5">
