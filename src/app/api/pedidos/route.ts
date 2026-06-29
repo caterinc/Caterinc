@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateOrderNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +75,8 @@ export async function POST(req: NextRequest) {
   );
   const shipping = subtotal >= 299 ? 0 : 29.9;
   const total = subtotal + shipping;
-  const orderNumber = generateOrderNumber();
+  const orderCount = await prisma.order.count();
+  const orderNumber = `CAT-${1001 + orderCount}`;
 
   const order = await prisma.$transaction(async (tx) => {
     for (const item of items) {

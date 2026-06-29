@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Save, AlertTriangle, Package } from "lucide-react";
+import { Save, AlertTriangle, Package, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -22,6 +22,8 @@ export default function EstoquePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [bulkAmount, setBulkAmount] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   const load = async (low = false) => {
     setLoading(true);
@@ -54,6 +56,25 @@ export default function EstoquePage() {
     }
   };
 
+  const handleBulkAdd = async () => {
+    const amount = parseInt(bulkAmount);
+    if (!amount || amount <= 0) return;
+    setBulkSaving(true);
+    const res = await fetch("/api/estoque", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ addToAll: amount }),
+    });
+    setBulkSaving(false);
+    if (res.ok) {
+      toast({ title: `+${amount} unidades adicionadas a todas as variantes!`, variant: "success" });
+      setBulkAmount("");
+      load(lowStockOnly);
+    } else {
+      toast({ title: "Erro ao atualizar estoque", variant: "destructive" });
+    }
+  };
+
   const lowCount = variants.filter((v) => v.stock < 5).length;
 
   return (
@@ -83,6 +104,30 @@ export default function EstoquePage() {
               {saving ? "Salvando..." : `Salvar (${Object.keys(edits).length})`}
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Bulk add panel */}
+      <div className="bg-white rounded-xl border p-4 mb-5 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex items-center gap-2 text-cat-black">
+          <PlusCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm font-black">Adicionar estoque em massa</span>
+        </div>
+        <p className="text-xs text-gray-500 sm:flex-1">Soma X unidades a <strong>todas as variantes</strong> de todos os produtos de uma vez.</p>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Input
+            type="number"
+            min="1"
+            placeholder="Ex: 50"
+            value={bulkAmount}
+            onChange={(e) => setBulkAmount(e.target.value)}
+            className="h-9 w-24 text-center"
+            onKeyDown={(e) => e.key === "Enter" && handleBulkAdd()}
+          />
+          <Button onClick={handleBulkAdd} disabled={bulkSaving || !bulkAmount} size="sm" className="whitespace-nowrap">
+            <PlusCircle className="w-4 h-4 mr-1.5" />
+            {bulkSaving ? "Salvando..." : "Adicionar a todos"}
+          </Button>
         </div>
       </div>
 

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { X, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface Variant {
@@ -64,6 +63,7 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
   const [selectedColor, setSelectedColor] = useState(firstColor);
   const [selectedSize, setSelectedSize] = useState("");
   const [imgIdx, setImgIdx] = useState(0);
+  const [sizeError, setSizeError] = useState(false);
 
   // Images shown: color-specific if available, else product.images
   const displayImages = (() => {
@@ -88,8 +88,9 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
   const hasDiscount = comparePrice !== null && comparePrice !== undefined && comparePrice > price;
 
   const handleAdd = useCallback(() => {
-    if (!selectedSize) { toast({ title: "Selecione um tamanho", variant: "destructive" }); return; }
-    if (!selectedVariant || selectedVariant.stock === 0) { toast({ title: "Sem estoque", variant: "destructive" }); return; }
+    if (!selectedSize) { setSizeError(true); return; }
+    if (!selectedVariant || selectedVariant.stock === 0) return;
+    setSizeError(false);
     dispatch({
       type: "ADD_ITEM",
       payload: {
@@ -105,7 +106,6 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
         slug: product.slug,
       },
     });
-    toast({ title: "Adicionado ao carrinho!", variant: "success" });
     onClose();
   }, [selectedSize, selectedVariant, price, product, displayImages, dispatch, onClose]);
 
@@ -223,7 +223,7 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
                 return (
                   <button
                     key={size}
-                    onClick={() => !oos && setSelectedSize(size)}
+                    onClick={() => { if (!oos) { setSelectedSize(size); setSizeError(false); } }}
                     disabled={oos}
                     className={cn(
                       "min-w-[2.8rem] h-10 px-2 text-sm rounded-lg border-2 font-semibold transition-all relative",
@@ -240,6 +240,9 @@ export function QuickAddModal({ product, variants, onClose }: QuickAddModalProps
                 );
               })}
             </div>
+            {sizeError && (
+              <p className="mt-2 text-xs font-semibold text-red-500">Selecione um tamanho antes de continuar</p>
+            )}
             {selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5 && (
               <p className="mt-2 text-xs font-semibold text-orange-500">⚡ Últimas {selectedVariant.stock} unidades!</p>
             )}

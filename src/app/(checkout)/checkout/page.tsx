@@ -224,7 +224,7 @@ export default function CheckoutPage() {
       try {
         const r = await fetch(`/api/payments/status?orderId=${pixResult.orderId}`);
         const d = (await r.json()) as { paid: boolean };
-        if (d.paid) { setPixPaid(true); clearInterval(t); setTimeout(() => router.push(`/conta/pedidos/${pixResult.orderId}`), 1800); }
+        if (d.paid) { setPixPaid(true); clearInterval(t); setTimeout(() => router.push(`/pedido-confirmado/${pixResult.orderNumber}`), 1800); }
       } catch {}
     }, 5000);
     return () => clearInterval(t);
@@ -270,7 +270,7 @@ export default function CheckoutPage() {
         if (data.status === "rejected") {
           toast({ title: "Cartão recusado", description: data.statusDetail || "Verifique os dados.", variant: "destructive" });
         } else {
-          router.push(`/conta/pedidos/${data.orderId}`);
+          router.push(`/pedido-confirmado/${data.orderNumber}`);
         }
       }
     } catch (err: unknown) {

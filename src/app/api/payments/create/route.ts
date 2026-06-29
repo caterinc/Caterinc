@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateOrderNumber } from "@/lib/utils";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
@@ -128,7 +127,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const orderNumber = generateOrderNumber();
+  const orderCount = await prisma.order.count();
+  const orderNumber = `CAT-${1001 + orderCount}`;
   const order = await prisma.order.create({
     data: {
       orderNumber, email, status: "PENDING", paymentStatus: "PENDING", paymentMethod: method,

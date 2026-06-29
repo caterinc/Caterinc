@@ -32,14 +32,26 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const updates: Array<{ id: string; stock: number }> = body.updates;
 
-  await Promise.all(
-    updates.map((u) =>
-      prisma.productVariant.update({
-        where: { id: u.id },
-        data: { stock: u.stock },
-      })
-    )
-  );
+  if (Array.isArray(updates) && updates.length > 0) {
+    await Promise.all(
+      updates.map((u) =>
+        prisma.productVariant.update({
+          where: { id: u.id },
+          data: { stock: u.stock },
+        })
+      )
+    );
+    return NextResponse.json({ success: true });
+  }
 
-  return NextResponse.json({ success: true });
+  // Bulk add: add X units to every variant
+  const addAmount: number | undefined = body.addToAll;
+  if (typeof addAmount === "number" && addAmount > 0) {
+    await prisma.productVariant.updateMany({
+      data: { stock: { increment: addAmount } },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  return NextResponse.json({ error: "Nenhuma atualização" }, { status: 400 });
 }
