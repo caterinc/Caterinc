@@ -69,6 +69,8 @@ export default function AvaliacoesPage() {
   const [reviews, setReviews] = useState<StoredReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [filterProduct, setFilterProduct] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -249,6 +251,15 @@ export default function AvaliacoesPage() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
     p.slug.includes(productSearch.toLowerCase())
@@ -261,6 +272,44 @@ export default function AvaliacoesPage() {
         r.reviewerName.toLowerCase().includes(filterProduct.toLowerCase())
       )
     : reviews;
+
+  const allSelected = filteredReviews.length > 0 && filteredReviews.every((r) => selected.has(r.id));
+  const someSelected = filteredReviews.some((r) => selected.has(r.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        filteredReviews.forEach((r) => next.delete(r.id));
+        return next;
+      });
+    } else {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        filteredReviews.forEach((r) => next.add(r.id));
+        return next;
+      });
+    }
+  };
+
+  const deleteSelected = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirm(`Excluir ${ids.length} avaliação(ões) selecionada(s)? Esta ação não pode ser desfeita.`)) return;
+    setBulkDeleting(true);
+    const results = await Promise.all(
+      ids.map((id) => fetch(`/api/reviews/${id}`, { method: "DELETE" }).then((r) => r.ok))
+    );
+    setBulkDeleting(false);
+    const ok = results.filter(Boolean).length;
+    const failed = results.length - ok;
+    setReviews((prev) => prev.filter((r) => !selected.has(r.id)));
+    setSelected(new Set());
+    toast({
+      title: failed ? `${ok} excluída(s), ${failed} com erro` : `${ok} avaliação(ões) excluída(s)`,
+      variant: failed ? "destructive" : "success",
+    });
+  };
 
   const getRowProductLabel = (row: ReviewRow) =>
     row.product_slug || row.product_name || row.product_link || (selectedProduct ? `→ ${selectedProduct.name}` : "—");
@@ -502,10 +551,35 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
             />
           </div>
         </div>
+        {selected.size > 0 && (
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-cat-yellow border-b">
+            <span className="text-sm font-bold text-cat-black">
+              {selected.size} avaliação(ões) selecionada(s)
+            </span>
+            <button
+              onClick={deleteSelected}
+              disabled={bulkDeleting}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700 disabled:opacity-60 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
+            </button>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = !allSelected && someSelected; }}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 accent-cat-yellow cursor-pointer"
+                    title="Selecionar todas"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Produto</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Avaliador</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Nota</th>
@@ -516,15 +590,23 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
             </thead>
             <tbody className="divide-y">
               {loadingReviews ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Carregando...</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">Carregando...</td></tr>
               ) : filteredReviews.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">
                   <Star className="w-8 h-8 mx-auto mb-2 text-gray-200" />
                   Nenhuma avaliação encontrada
                 </td></tr>
               ) : (
                 filteredReviews.map((review) => (
                   <tr key={review.id} className={`hover:bg-gray-50 ${!review.isVisible ? "opacity-50" : ""}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(review.id)}
+                        onChange={() => toggleSelect(review.id)}
+                        className="w-4 h-4 accent-cat-yellow cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-xs text-gray-600">{review.product?.name || review.productId}</p>
                     </td>

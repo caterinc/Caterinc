@@ -184,7 +184,7 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       {/* Reviews */}
-      <ProductReviews reviews={reviewProps} productName={product.name} />
+      <ProductReviews reviews={reviewProps} productName={product.name} productId={product.id} />
 
       {/* Related products */}
       {related.length > 0 && (
