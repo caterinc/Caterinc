@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
           tags: product.tags,
           images: product.images,
           isActive: product.isActive,
-          variants: { create: product.variants },
+          variants: { create: product.variants.map((v) => ({ ...v, images: [] })) },
         },
       });
 
