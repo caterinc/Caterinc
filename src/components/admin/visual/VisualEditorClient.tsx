@@ -233,19 +233,26 @@ function SelectInput({ value, onChange, options }: {
   );
 }
 
-function ImageUpload({ value, onChange, onUpload }: {
-  value: string; onChange: (v: string) => void; onUpload: (f: File) => Promise<string>;
+function ImageUpload({ value, onChange }: {
+  value: string; onChange: (v: string) => void; onUpload?: (f: File) => Promise<string>;
 }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (f.size > 2 * 1024 * 1024) {
+      alert("Imagem muito grande. Use uma imagem menor que 2MB.");
+      return;
+    }
     setUploading(true);
-    const url = await onUpload(f);
-    onChange(url);
-    setUploading(false);
+    const reader = new FileReader();
+    reader.onload = () => {
+      onChange(reader.result as string);
+      setUploading(false);
+    };
+    reader.readAsDataURL(f);
     if (fileRef.current) fileRef.current.value = "";
   };
 

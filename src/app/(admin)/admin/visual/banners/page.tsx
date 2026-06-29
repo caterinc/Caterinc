@@ -35,16 +35,39 @@ export default function BannersPage() {
     setLoading(false);
   };
 
+  const compressImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          const MAX = 1400;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = ev.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingImg(true);
-    const fd = new FormData();
-    fd.append("files", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    if (res.ok) {
-      const { urls } = await res.json();
-      setForm((f) => ({ ...f, image: urls[0] }));
+    try {
+      const url = await compressImage(file);
+      setForm((f) => ({ ...f, image: url }));
+    } catch {
+      toast({ title: "Erro ao processar imagem", variant: "destructive" });
     }
     setUploadingImg(false);
     e.target.value = "";

@@ -43,8 +43,8 @@ export function generateProductsCsv(
   }>
 ): string {
   const rows = products.map((p) => {
-    const sizes = [...new Set(p.variants.map((v) => v.size))].join(";");
-    const colors = [...new Set(p.variants.map((v) => v.color).filter(Boolean))].join(";");
+    const sizes = Array.from(new Set(p.variants.map((v) => v.size))).join(";");
+    const colors = Array.from(new Set(p.variants.map((v) => v.color).filter(Boolean))).join(";");
     const stocks = p.variants.map((v) => v.stock).join(";");
 
     return {

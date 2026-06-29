@@ -108,20 +108,43 @@ export function ProductForm({ categories, initialData }: Props) {
     colorGroups: groupVariants(initialData?.variants),
   });
 
+  // ── Image compression helper ─────────────────────────────────────────────────
+
+  const compressImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          const MAX = 1200;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = reject;
+        img.src = ev.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   // ── Product images ────────────────────────────────────────────────────────────
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploadingImage(true);
-    const fd = new FormData();
-    Array.from(files).forEach((f) => fd.append("files", f));
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    if (res.ok) {
-      const { urls } = await res.json();
+    try {
+      const urls = await Promise.all(Array.from(files).map(compressImage));
       setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
-    } else {
-      toast({ title: "Erro ao fazer upload", variant: "destructive" });
+    } catch {
+      toast({ title: "Erro ao processar imagem", variant: "destructive" });
     }
     setUploadingImage(false);
     e.target.value = "";
@@ -145,14 +168,11 @@ export function ProductForm({ categories, initialData }: Props) {
   };
 
   const uploadVariantImage = async (gi: number, file: File) => {
-    const fd = new FormData();
-    fd.append("files", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    if (res.ok) {
-      const { urls } = await res.json();
-      updateGroup(gi, (g) => ({ ...g, image: urls[0] }));
-    } else {
-      toast({ title: "Erro no upload da imagem da cor", variant: "destructive" });
+    try {
+      const url = await compressImage(file);
+      updateGroup(gi, (g) => ({ ...g, image: url }));
+    } catch {
+      toast({ title: "Erro ao processar imagem da cor", variant: "destructive" });
     }
   };
 

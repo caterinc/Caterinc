@@ -74,19 +74,40 @@ export function CollectionEditor({ collection, inCollection: initialIn, notInCol
     setSelectedAdd(allOutSelected ? new Set() : new Set(filteredOut.map((p) => p.id)));
   };
 
+  const compressImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          const MAX = 1200;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = reject;
+        img.src = ev.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   // Image upload
   const handleUpload = async (file: File) => {
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    setUploading(false);
-    if (res.ok) {
-      const { url } = await res.json();
+    try {
+      const url = await compressImage(file);
       setImage(url);
-    } else {
-      toast({ title: "Erro ao enviar imagem", variant: "destructive" });
+    } catch {
+      toast({ title: "Erro ao processar imagem", variant: "destructive" });
     }
+    setUploading(false);
   };
 
   // Save info
