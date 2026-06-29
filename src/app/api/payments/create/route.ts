@@ -16,11 +16,7 @@ interface AddressInput {
 }
 
 async function getMpClient() {
-  let token = process.env.MP_ACCESS_TOKEN;
-  if (!token) {
-    const setting = await prisma.siteSetting.findUnique({ where: { key: "mp_access_token" } });
-    token = setting?.value || "";
-  }
+  const token = process.env.MP_ACCESS_TOKEN;
   if (!token) throw new Error("MP_NOT_CONFIGURED");
   const { default: MercadoPago } = await import("mercadopago");
   return new MercadoPago({ accessToken: token });

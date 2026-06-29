@@ -47,12 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  // Resolve webhook secret (env first, then DB)
-  let webhookSecret = process.env.MP_WEBHOOK_SECRET || "";
-  if (!webhookSecret) {
-    const setting = await prisma.siteSetting.findUnique({ where: { key: "mp_webhook_secret" } });
-    webhookSecret = setting?.value || "";
-  }
+  const webhookSecret = process.env.MP_WEBHOOK_SECRET || "";
 
   // Verify signature
   if (!verifyMpSignature(req, rawBody, webhookSecret)) {
@@ -79,11 +74,7 @@ export async function POST(req: NextRequest) {
 
   // Fetch full payment from MP API
   try {
-    let accessToken = process.env.MP_ACCESS_TOKEN;
-    if (!accessToken) {
-      const setting = await prisma.siteSetting.findUnique({ where: { key: "mp_access_token" } });
-      accessToken = setting?.value || "";
-    }
+    const accessToken = process.env.MP_ACCESS_TOKEN;
     if (!accessToken) throw new Error("MP not configured");
 
     const { default: MercadoPago, Payment } = await import("mercadopago");

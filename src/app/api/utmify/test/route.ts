@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +10,7 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const setting = await prisma.siteSetting.findUnique({ where: { key: "utmify_api_key" } });
-  const apiKey = setting?.value?.trim();
+  const apiKey = process.env.UTMIFY_API_KEY?.trim();
 
   if (!apiKey) {
     return NextResponse.json({ error: "Chave de API não configurada. Salve a chave antes de testar." }, { status: 400 });

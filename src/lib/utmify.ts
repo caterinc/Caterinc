@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 
 type UtmifyStatus = "waiting_payment" | "paid" | "refunded" | "cancelled";
 
@@ -38,9 +37,8 @@ function formatDate(d: Date): string {
   return d.toISOString().replace("T", " ").slice(0, 19);
 }
 
-async function getApiKey(): Promise<string | null> {
-  const setting = await prisma.siteSetting.findUnique({ where: { key: "utmify_api_key" } });
-  return setting?.value?.trim() || null;
+function getApiKey(): string | null {
+  return process.env.UTMIFY_API_KEY?.trim() || null;
 }
 
 export async function sendUtmifyEvent(
@@ -51,7 +49,7 @@ export async function sendUtmifyEvent(
   totalInCents: number,
   createdAt?: Date
 ): Promise<void> {
-  const apiKey = await getApiKey();
+  const apiKey = getApiKey();
   if (!apiKey) return;
 
   const payload: UtmifyPayload = {
