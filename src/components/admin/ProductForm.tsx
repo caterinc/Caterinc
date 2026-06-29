@@ -217,54 +217,20 @@ export function ProductForm({ categories, initialData }: Props) {
 
   // ── Jersey helpers ───────────────────────────────────────────────────────────
 
-  const fillJerseySizesInGroup = (gi: number) => {
-    updateGroup(gi, (g) => {
-      const existing = new Set(g.sizes.map((s) => s.size.toUpperCase()));
-      const toAdd = JERSEY_SIZES.filter((s) => !existing.has(s));
-      return { ...g, sizes: [...g.sizes.filter((s) => s.size), ...toAdd.map((s) => ({ size: s, sku: "", stock: 0, price: "" }))] };
-    });
-  };
-
-  const fillAllJerseySizes = () => {
+  const applyJerseySetup = (player: { name: string; number: number } | null) => {
+    const label = player ? `${player.name} #${player.number}` : "";
     setForm((f) => ({
       ...f,
-      colorGroups: f.colorGroups.map((g) => {
-        const existing = new Set(g.sizes.map((s) => s.size.toUpperCase()));
-        const toAdd = JERSEY_SIZES.filter((s) => !existing.has(s));
-        return { ...g, sizes: [...g.sizes.filter((s) => s.size), ...toAdd.map((s) => ({ size: s, sku: "", stock: 0, price: "" }))] };
-      }),
-    }));
-    toast({ title: "Tamanhos PP, P, M, G, GG, XGG adicionados!", variant: "success" });
-  };
-
-  const addPlayerGroup = (player: { name: string; number: number }) => {
-    const label = `${player.name} #${player.number}`;
-    const already = form.colorGroups.some((g) => g.color === label);
-    if (already) { toast({ title: `${label} já foi adicionado`}); return; }
-    setForm((f) => ({
-      ...f,
-      colorGroups: [...f.colorGroups, {
+      colorGroups: [{
         color: label,
-        images: [],
+        images: f.colorGroups[0]?.images ?? [],
         expanded: true,
-        sizes: JERSEY_SIZES.map((s) => ({ size: s, sku: "", stock: 0, price: "" })),
+        sizes: JERSEY_SIZES.map((s) => {
+          const existing = f.colorGroups[0]?.sizes.find((sv) => sv.size.toUpperCase() === s);
+          return existing ?? { size: s, sku: "", stock: 0, price: "" };
+        }),
       }],
     }));
-  };
-
-  const addAllPlayers = () => {
-    const existing = new Set(form.colorGroups.map((g) => g.color));
-    const newGroups = JERSEY_PLAYERS
-      .filter((p) => !existing.has(`${p.name} #${p.number}`))
-      .map((p) => ({
-        color: `${p.name} #${p.number}`,
-        images: [],
-        expanded: false,
-        sizes: JERSEY_SIZES.map((s) => ({ size: s, sku: "", stock: 0, price: "" })),
-      }));
-    if (newGroups.length === 0) { toast({ title: "Todos os jogadores já foram adicionados" }); return; }
-    setForm((f) => ({ ...f, colorGroups: [...f.colorGroups, ...newGroups] }));
-    toast({ title: `${newGroups.length} jogadores adicionados!`, variant: "success" });
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────────
@@ -429,49 +395,41 @@ export function ProductForm({ categories, initialData }: Props) {
             <h2 className="font-bold text-green-800">Configuração rápida — Camisa de time</h2>
           </div>
 
-          {/* Size auto-fill */}
           <div>
-            <p className="text-xs font-semibold text-green-700 mb-2">Tamanhos de camisa</p>
+            <p className="text-xs font-semibold text-green-700 mb-1">Tamanhos incluídos automaticamente</p>
             <div className="flex flex-wrap gap-2 mb-3">
               {JERSEY_SIZES.map((s) => (
                 <span key={s} className="px-3 py-1 bg-white border border-green-300 rounded-full text-sm font-bold text-green-800">{s}</span>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={fillAllJerseySizes}
-              className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white text-sm font-bold rounded-lg hover:bg-green-800 transition-colors"
-            >
-              <Zap className="w-4 h-4" /> Preencher todos os grupos com PP→XGG
-            </button>
           </div>
 
-          {/* Players */}
           <div>
-            <p className="text-xs font-semibold text-green-700 mb-2">Jogadores — clique para adicionar como variante</p>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <p className="text-xs font-semibold text-green-700 mb-2">Selecione o jogador (apenas 1)</p>
+            <div className="flex flex-wrap gap-2">
               {JERSEY_PLAYERS.map((p) => {
                 const label = `${p.name} #${p.number}`;
-                const added = form.colorGroups.some((g) => g.color === label);
+                const selected = form.colorGroups[0]?.color === label;
                 return (
                   <button
                     key={label}
                     type="button"
-                    onClick={() => addPlayerGroup(p)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${added ? "bg-green-700 text-white border-green-700 cursor-default" : "bg-white border-green-300 text-green-800 hover:bg-green-100"}`}
+                    onClick={() => applyJerseySetup(p)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${selected ? "bg-green-700 text-white border-green-700" : "bg-white border-green-300 text-green-800 hover:bg-green-100"}`}
                   >
-                    {added ? "✓ " : ""}{label}
+                    {selected ? "✓ " : ""}{label}
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => applyJerseySetup(null)}
+                className="px-3 py-1.5 rounded-full text-xs font-bold border bg-white border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Outro jogador
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={addAllPlayers}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-green-400 text-green-700 text-sm font-bold rounded-lg hover:bg-green-100 transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Adicionar todos os jogadores
-            </button>
+            <p className="text-xs text-green-600 mt-2">Ao selecionar um jogador, os tamanhos PP→XGG são preenchidos automaticamente. Só pode existir 1 jogador por produto.</p>
           </div>
         </div>
       )}
@@ -487,9 +445,11 @@ export function ProductForm({ categories, initialData }: Props) {
                 : "Agrupe por cor. Cada cor pode ter uma imagem e múltiplos tamanhos."}
             </p>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={addColorGroup}>
-            <Plus className="w-4 h-4 mr-1" /> {form.productType === "jersey" ? "Adicionar Jogador" : "Adicionar Cor"}
-          </Button>
+          {form.productType !== "jersey" && (
+            <Button type="button" variant="outline" size="sm" onClick={addColorGroup}>
+              <Plus className="w-4 h-4 mr-1" /> Adicionar Cor
+            </Button>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -522,7 +482,7 @@ export function ProductForm({ categories, initialData }: Props) {
                 >
                   {group.expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
-                {form.colorGroups.length > 1 && (
+                {form.colorGroups.length > 1 && form.productType !== "jersey" && (
                   <button
                     type="button"
                     onClick={() => removeColorGroup(gi)}
