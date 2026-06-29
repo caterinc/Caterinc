@@ -47,6 +47,7 @@ export default function IntegracaoPage() {
   const [utmifyKey, setUtmifyKey] = useState("");
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [savingUtm, setSavingUtm] = useState(false);
+  const [testingUtm, setTestingUtm] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const faviconRef = useRef<HTMLInputElement>(null);
   const [showToken, setShowToken] = useState(false);
@@ -108,6 +109,23 @@ export default function IntegracaoPage() {
     setSavingUtm(false);
     if (res.ok) toast({ title: "Chave UTMify salva!", variant: "success" as never });
     else toast({ title: "Erro ao salvar", variant: "destructive" });
+  };
+
+  const testUtmify = async () => {
+    setTestingUtm(true);
+    try {
+      const res = await fetch("/api/utmify/test", { method: "POST" });
+      const data = await res.json() as { success?: boolean; message?: string; error?: string };
+      if (res.ok && data.success) {
+        toast({ title: "Conexão OK!", description: data.message || "Evento de teste enviado com sucesso.", variant: "success" as never });
+      } else {
+        toast({ title: "Falha no teste", description: data.error || "Erro desconhecido", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro de rede", description: "Não foi possível conectar ao servidor.", variant: "destructive" });
+    } finally {
+      setTestingUtm(false);
+    }
   };
 
   const save = async () => {
@@ -238,9 +256,9 @@ export default function IntegracaoPage() {
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
               Chave de API
-              <a href="https://app.utmify.com.br/credentials" target="_blank" rel="noopener noreferrer"
+              <a href="https://app.utmify.com.br/integrations/webhooks" target="_blank" rel="noopener noreferrer"
                 className="ml-2 text-blue-600 underline inline-flex items-center gap-0.5">
-                Encontrar no painel UTMify <HelpCircle className="w-3 h-3" />
+                Integrações → Webhooks <HelpCircle className="w-3 h-3" />
               </a>
             </label>
             <input
@@ -253,11 +271,18 @@ export default function IntegracaoPage() {
             />
             <p className="text-xs text-gray-400 mt-1">Armazenada com segurança — nunca exposta ao navegador.</p>
           </div>
-          <button onClick={saveUtmify} disabled={savingUtm}
-            className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
-            <Save className="w-4 h-4" />
-            {savingUtm ? "Salvando..." : "Salvar Chave UTMify"}
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={saveUtmify} disabled={savingUtm}
+              className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
+              <Save className="w-4 h-4" />
+              {savingUtm ? "Salvando..." : "Salvar Chave"}
+            </button>
+            <button onClick={testUtmify} disabled={testingUtm || !utmifyKey}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-50 disabled:opacity-40 transition-colors">
+              {testingUtm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {testingUtm ? "Testando..." : "Testar Conexão"}
+            </button>
+          </div>
         </div>
       </div>
 
