@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/store/ProductCard";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import type { PageSection } from "@/components/admin/visual/VisualEditorClient";
 
 interface PageProps {
   searchParams: {
@@ -27,7 +28,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
     : sortBy === "newest" ? { createdAt: "desc" as const }
     : { order: "asc" as const };
 
-  const [rawProducts, total, categories] = await Promise.all([
+  const [rawProducts, total, categories, sectionsSetting, cartSetting] = await Promise.all([
     prisma.product.findMany({
       where,
       include: { category: true, variants: true },
@@ -35,7 +36,34 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
     }),
     prisma.product.count({ where }),
     prisma.category.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
+    prisma.siteSetting.findUnique({ where: { key: "ve_sections" } }),
+    prisma.siteSetting.findUnique({ where: { key: "ve_cart" } }),
   ]);
+
+  // Find vitrine colors for this category (or use global cart colors as fallback)
+  let quickaddBg = "#16c789";
+  let quickaddText = "#ffffff";
+  let quickaddRing = "transparent";
+
+  const cartSettings = cartSetting ? JSON.parse(cartSetting.value || "{}") : {};
+  if (cartSettings.quickaddBg)   quickaddBg   = cartSettings.quickaddBg;
+  if (cartSettings.quickaddText) quickaddText = cartSettings.quickaddText;
+  if (cartSettings.quickaddRing) quickaddRing = cartSettings.quickaddRing;
+
+  if (categoria && sectionsSetting) {
+    try {
+      const sections: PageSection[] = JSON.parse(sectionsSetting.value || "[]");
+      const match = sections.find(
+        (s) => s.type === "collection" && s.enabled && s.settings.categorySlug === categoria
+      );
+      if (match) {
+        const s = match.settings as Record<string, string>;
+        if (s.quickaddBg)   quickaddBg   = s.quickaddBg;
+        if (s.quickaddText) quickaddText = s.quickaddText;
+        if (s.quickaddRing) quickaddRing = s.quickaddRing;
+      }
+    } catch {}
+  }
 
   const products = rawProducts.map((p) => ({
     ...p,
@@ -53,7 +81,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8" style={{ "--vep-quickadd-bg": quickaddBg, "--vep-quickadd-text": quickaddText, "--vep-quickadd-ring": quickaddRing } as React.CSSProperties}>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-black text-cat-black uppercase">

@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Eye, EyeOff, Upload, Save, ExternalLink,
   Home, Package, Settings, Image as ImageIcon, GripVertical,
   AlignJustify, Zap, Star, FolderOpen, LayoutTemplate, Megaphone,
-  ShoppingBag, Link2, Shirt, CreditCard,
+  ShoppingBag, Link2, Shirt, CreditCard, Copy,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1148,6 +1148,23 @@ export function VisualEditorClient({
     setPageSections((prev) => prev.filter((s) => s.id !== sectionId));
   };
 
+  const duplicateSection = (sectionId: string) => {
+    const src = pageSections.find((s) => s.id === sectionId);
+    if (!src) return;
+    const copy: PageSection = {
+      ...src,
+      id: `${src.type}-${Date.now()}`,
+      label: `${src.label} (Cópia)`,
+      settings: { ...src.settings },
+    };
+    setPageSections((prev) => {
+      const idx = prev.findIndex((s) => s.id === sectionId);
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+  };
+
   const addSection = (type: PageSectionType) => {
     const id = `${type}-${Date.now()}`;
     const meta = SECTION_TYPE_META[type];
@@ -1438,6 +1455,14 @@ export function VisualEditorClient({
                         title={section.enabled ? "Ocultar" : "Mostrar"}
                       >
                         {section.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      </button>
+                      {/* Duplicate */}
+                      <button
+                        onClick={() => duplicateSection(section.id)}
+                        className="p-1 flex-shrink-0 text-gray-300 hover:text-blue-500"
+                        title="Duplicar seção"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
                       </button>
                       {/* Delete */}
                       <button
