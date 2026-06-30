@@ -6,6 +6,14 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
+function generateTrackingCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let p1 = "", p2 = "";
+  for (let i = 0; i < 4; i++) p1 += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 4; i++) p2 += chars[Math.floor(Math.random() * chars.length)];
+  return `CAT-${p1}-${p2}`;
+}
+
 interface CartItemInput {
   productId: string; variantId: string | null; name: string;
   price: number; quantity: number; size: string | null; color: string | null; image: string | null;
@@ -187,12 +195,13 @@ export async function POST(req: NextRequest) {
     const mpPaymentId = String(pixResult.id);
     const orderCount  = await prisma.order.count();
     const orderNumber = `CAT-${1001 + orderCount}`;
+    const trackingCode = generateTrackingCode();
 
     const order = await prisma.$transaction(async (tx) => {
       const o = await tx.order.create({
         data: {
           orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
-          paymentMethod: "pix", mpPaymentId,
+          paymentMethod: "pix", mpPaymentId, trackingCode,
           subtotal, shipping: shippingCost, total, shippingAddress,
           utmData: utmData || undefined,
           items: { create: orderItems },
@@ -258,6 +267,7 @@ export async function POST(req: NextRequest) {
 
     const orderCount  = await prisma.order.count();
     const orderNumber = `CAT-${1001 + orderCount}`;
+    const trackingCode = generateTrackingCode();
     const isApproved  = status === "approved";
 
     const order = await prisma.$transaction(async (tx) => {
@@ -266,7 +276,7 @@ export async function POST(req: NextRequest) {
           orderNumber, email,
           status: isApproved ? "CONFIRMED" : "PENDING",
           paymentStatus: isApproved ? "PAID" : "PENDING",
-          paymentMethod: "card", mpPaymentId,
+          paymentMethod: "card", mpPaymentId, trackingCode,
           subtotal, shipping: shippingCost, total, shippingAddress,
           utmData: utmData || undefined,
           items: { create: orderItems },

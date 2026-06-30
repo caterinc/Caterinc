@@ -2,16 +2,25 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, Package, Truck, MessageCircle, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle, Copy, Check, Truck, Package, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function PedidoConfirmadoPage() {
   const params = useParams();
   const orderNumber = String(params.orderNumber || "");
   const [copied, setCopied] = useState(false);
+  const [trackingCode, setTrackingCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orderNumber) return;
+    fetch(`/api/rastreio?numero=${encodeURIComponent(orderNumber)}`)
+      .then((r) => r.json())
+      .then((d: { trackingCode?: string }) => { if (d.trackingCode) setTrackingCode(d.trackingCode); })
+      .catch(() => {});
+  }, [orderNumber]);
 
   const copy = () => {
-    navigator.clipboard.writeText(orderNumber).catch(() => {});
+    navigator.clipboard.writeText(trackingCode || orderNumber).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
@@ -19,6 +28,7 @@ export default function PedidoConfirmadoPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
+
         {/* Success icon */}
         <div className="flex justify-center mb-6">
           <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
@@ -28,76 +38,100 @@ export default function PedidoConfirmadoPage() {
 
         <h1 className="text-2xl font-black text-center text-gray-900 mb-1">Pedido confirmado!</h1>
         <p className="text-sm text-center text-gray-500 mb-8">
-          Obrigado pela sua compra. Guarde o número do pedido abaixo.
+          Obrigado pela sua compra. Guarde o código abaixo para acompanhar seu pedido.
         </p>
 
-        {/* Order number card */}
+        {/* Tracking code — the main code the customer uses */}
         <div className="bg-white border-2 border-cat-yellow rounded-2xl p-5 mb-6 text-center shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Número do Pedido</p>
-          <p className="text-3xl font-black text-gray-900 tracking-wide mb-3">{orderNumber}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+            Seu Código de Rastreio
+          </p>
+          <p className="text-3xl font-black text-gray-900 tracking-widest mb-1">
+            {trackingCode || orderNumber}
+          </p>
+          <p className="text-xs text-gray-400 mb-4">use este código para acompanhar seu pedido</p>
           <button
             onClick={copy}
             className="flex items-center gap-2 mx-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition-colors"
           >
             {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-            {copied ? "Copiado!" : "Copiar número"}
+            {copied ? "Copiado!" : "Copiar código"}
           </button>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-white rounded-2xl border p-5 mb-4 space-y-4">
-          <h2 className="font-black text-gray-900 text-base">O que acontece agora?</h2>
+        {/* How to track — explaining the truck icon */}
+        <div className="bg-white rounded-2xl border p-5 mb-6 space-y-4">
+          <h2 className="font-black text-gray-900 text-base">Como acompanhar seu pedido</h2>
 
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-cat-yellow flex items-center justify-center flex-shrink-0">
-              <Package className="w-4 h-4 text-cat-black" />
+            <div className="w-8 h-8 rounded-full bg-cat-yellow flex items-center justify-center flex-shrink-0 text-cat-black font-black text-sm">
+              1
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Preparação do pedido</p>
+              <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                Clique no ícone <Truck className="w-4 h-4 inline text-cat-black" /> no topo da página
+              </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Assim que o pagamento for confirmado, separamos seu calçado e embalamos com cuidado.
+                O caminhão fica no canto superior direito em qualquer página da loja.
               </p>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-cat-yellow flex items-center justify-center flex-shrink-0">
-              <Truck className="w-4 h-4 text-cat-black" />
+            <div className="w-8 h-8 rounded-full bg-cat-yellow flex items-center justify-center flex-shrink-0 text-cat-black font-black text-sm">
+              2
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Envio e rastreamento</p>
+              <p className="text-sm font-bold text-gray-900">Digite o código de rastreio</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Após o envio, você receberá o código de rastreio por e-mail. Use-o para acompanhar a entrega nos Correios ou na transportadora.
+                Cole o código <span className="font-bold text-gray-700">{trackingCode || orderNumber}</span> no campo de busca e clique em Rastrear.
               </p>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-cat-yellow flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-4 h-4 text-cat-black" />
+            <div className="w-8 h-8 rounded-full bg-cat-yellow flex items-center justify-center flex-shrink-0 text-cat-black font-black text-sm">
+              3
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Dúvidas? Fale conosco</p>
+              <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <Package className="w-4 h-4 inline text-gray-600" /> Acompanhe cada etapa
+              </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Informe o número <span className="font-bold text-gray-700">{orderNumber}</span> ao entrar em contato pelo WhatsApp ou e-mail.
+                Veja em tempo real desde a preparação até a entrega na sua casa.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Support */}
+        <div className="bg-white rounded-2xl border p-4 mb-6 flex gap-3 items-start">
+          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <MessageCircle className="w-4 h-4 text-gray-500" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-900">Precisou de ajuda?</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Fale conosco pelo WhatsApp informando o código{" "}
+              <span className="font-bold text-gray-700">{trackingCode || orderNumber}</span>.
+            </p>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
           <Link
-            href="/produtos"
-            className="w-full flex items-center justify-center py-3.5 rounded-xl font-black text-base bg-cat-yellow text-cat-black hover:brightness-95 transition-all"
+            href="/rastreio"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-base bg-cat-yellow text-cat-black hover:brightness-95 transition-all"
           >
-            Continuar comprando
+            <Truck className="w-5 h-5" />
+            Rastrear meu pedido
           </Link>
           <Link
-            href="/conta/pedidos"
+            href="/produtos"
             className="w-full flex items-center justify-center py-3 rounded-xl font-semibold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all"
           >
-            Ver meus pedidos
+            Continuar comprando
           </Link>
         </div>
       </div>

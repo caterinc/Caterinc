@@ -179,7 +179,7 @@ export default function RastreioPage() {
                 ref={inputRef}
                 value={numero}
                 onChange={(e) => setNumero(e.target.value.toUpperCase())}
-                placeholder="Ex: PED-00001"
+                placeholder="Ex: CAT-A7B3-X2Q9"
                 className="w-full px-4 py-3.5 pr-10 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow focus:border-transparent text-sm font-mono tracking-wider"
               />
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -377,7 +377,7 @@ export default function RastreioPage() {
           </div>
           <p className="text-sm text-gray-400">
             Acompanhe cada etapa do seu pedido em tempo real.<br />
-            O número do pedido está no e-mail de confirmação.
+            O código de rastreio está na página de confirmação do seu pedido.
           </p>
         </div>
       )}
