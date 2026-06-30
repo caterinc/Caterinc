@@ -5,18 +5,13 @@ import { formatPrice } from "@/lib/utils";
 import { Minus, Plus, X, ShoppingBag, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 export default function CarrinhoPage() {
+  const router = useRouter();
   const { state, dispatch, total, itemCount, isHydrated } = useCart();
   const { items } = state;
   const shipping = total >= 299 ? 0 : 29.9;
-  const router = useRouter();
-
-  const handleFinalizar = useCallback(() => {
-    router.push("/checkout");
-  }, [router]);
 
   if (!isHydrated) {
     return (
@@ -127,13 +122,14 @@ export default function CarrinhoPage() {
       </div>
 
       {/* CTA */}
-      <button
-        onClick={handleFinalizar}
-        className="w-full h-14 font-black text-base rounded-2xl mb-3"
+      <Link
+        href="/checkout"
+        prefetch
+        className="block w-full h-14 font-black text-base rounded-2xl mb-3 flex items-center justify-center"
         style={{ backgroundColor: "var(--vep-cart-page-btn-bg,#FFCD11)", color: "var(--vep-cart-page-btn-text,#000)" }}
       >
         Finalizar pedido →
-      </button>
+      </Link>
       <Link href="/produtos" className="block w-full h-11 flex items-center justify-center border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-600 hover:border-gray-400 transition-colors">
         Continuar comprando
       </Link>

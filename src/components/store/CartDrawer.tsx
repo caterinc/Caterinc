@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { X, Plus, Minus, ShoppingBag, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,7 +10,6 @@ import { formatPrice } from "@/lib/utils";
 export function CartDrawer() {
   const { state, dispatch, total } = useCart();
   const { items, isOpen } = state;
-  const router = useRouter();
   const [showAdded, setShowAdded] = useState(false);
   const prevItemCount = useRef(items.reduce((s, i) => s + i.quantity, 0));
   const [freeShippingAbove, setFreeShippingAbove] = useState<number | null>(null);
@@ -25,11 +23,6 @@ export function CartDrawer() {
       })
       .catch(() => {});
   }, []);
-
-  const handleFinalizar = useCallback(() => {
-    dispatch({ type: "CLOSE_DRAWER" });
-    router.push("/checkout");
-  }, [dispatch, router]);
 
   // Show brief "added" banner when item count increases
   const currentItemCount = items.reduce((s, i) => s + i.quantity, 0);
@@ -216,22 +209,16 @@ export function CartDrawer() {
                 🎉 Você ganhou frete grátis!
               </div>
             )}
-            <button
-              onClick={handleFinalizar}
+            <Link
+              href="/carrinho"
+              onClick={() => dispatch({ type: "CLOSE_DRAWER" })}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-black text-sm transition-all active:scale-[0.98] shadow-sm"
               style={{
                 backgroundColor: "var(--vep-drawer-btn-bg, #FFCD11)",
                 color: "var(--vep-drawer-btn-text, #000000)",
               }}
             >
-              Finalizar Pedido
-            </button>
-            <Link
-              href="/carrinho"
-              onClick={() => dispatch({ type: "CLOSE_DRAWER" })}
-              className="w-full flex items-center justify-center py-2.5 px-6 rounded-xl font-semibold text-sm border-2 border-gray-200 text-gray-600 hover:border-gray-400 transition-colors"
-            >
-              Ver Carrinho
+              Ir ao Carrinho →
             </Link>
           </div>
         )}

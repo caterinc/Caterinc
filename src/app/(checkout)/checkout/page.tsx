@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,11 +23,6 @@ function PixIcon({ size = 20 }: { size?: number }) {
     </svg>
   );
 }
-
-const CardBrick = dynamic(
-  () => import("@/components/store/checkout/CardBrick").then((m) => ({ default: m.CardBrick })),
-  { ssr: false }
-);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -631,11 +625,9 @@ export default function CheckoutPage() {
               </div>
 
               {payMethod === "card" && (
-                <div className="border-2 border-gray-200 rounded-lg p-4">
-                  <CardBrick amount={orderTotal}
-                    onSubmit={async (formData) => { await submit(formData); }}
-                    onError={() => toast({ title: "Erro no cartão", description: "Verifique os dados.", variant: "destructive" })}
-                  />
+                <div className="border-2 border-gray-100 rounded-xl p-5 text-center space-y-2 bg-gray-50">
+                  <p className="text-sm font-semibold text-gray-700">Pagamento por cartão indisponível</p>
+                  <p className="text-sm text-gray-500">Use o <strong>PIX</strong> para finalizar seu pedido agora mesmo.</p>
                 </div>
               )}
 
@@ -712,11 +704,6 @@ export default function CheckoutPage() {
                   ? <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
                   : <>Finalizar pedido &nbsp;→</>}
               </button>
-              {payMethod === "card" && (
-                <p className="text-center text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
-                  Pagamento por cartão indisponível — use o <strong>PIX</strong> para finalizar seu pedido
-                </p>
-              )}
               <button
                 onClick={() => setStage("endereco")}
                 disabled={loading}
