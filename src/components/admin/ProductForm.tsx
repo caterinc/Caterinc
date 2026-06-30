@@ -293,6 +293,7 @@ export function ProductForm({ categories, initialData }: Props) {
     const body = {
       ...form,
       colorGroups: undefined,
+      productType: undefined,
       variants,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
     };
@@ -442,50 +443,64 @@ export function ProductForm({ categories, initialData }: Props) {
         </div>
       </div>
 
-      {/* Color cover photo assignment */}
-      {form.colorGroups.length > 0 && form.colorGroups.some((g) => g.color.trim()) && (
-        <div className="bg-white rounded-xl border p-6 space-y-3">
+      {/* Photos per color — one row per color group */}
+      {form.colorGroups.length > 0 && (
+        <div className="bg-white rounded-xl border p-6 space-y-4">
           <div>
-            <h2 className="font-bold text-lg">Foto de Capa por Cor</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Arraste uma imagem de cima e solte no bloco da cor desejada.</p>
+            <h2 className="font-bold text-lg">Fotos por Cor</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Arraste imagens de cima para cada cor ou use o botão Upload. A primeira foto vira o ícone da cor.</p>
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="space-y-4">
             {form.colorGroups.map((group, gi) => {
-              const cover = group.images[0] ?? null;
               const isOver = dragOverColorIdx === gi;
               return (
-                <div
-                  key={gi}
-                  onDragOver={(e) => onColorDragOver(e, gi)}
-                  onDrop={() => onColorDrop(gi)}
-                  onDragLeave={() => setDragOverColorIdx(null)}
-                  className={`flex flex-col items-center gap-1.5 transition-all ${isOver ? "scale-105" : ""}`}
-                >
+                <div key={gi}>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    {group.color.trim() || `Cor ${gi + 1}`}
+                  </p>
                   <div
-                    className={`relative w-20 h-20 rounded-xl border-2 overflow-hidden bg-gray-50 flex items-center justify-center transition-all ${
-                      isOver ? "border-cat-yellow ring-2 ring-cat-yellow/40" : "border-dashed border-gray-300"
+                    onDragOver={(e) => onColorDragOver(e, gi)}
+                    onDrop={() => onColorDrop(gi)}
+                    onDragLeave={() => setDragOverColorIdx(null)}
+                    className={`flex flex-wrap gap-2 p-2 rounded-xl border-2 transition-all ${
+                      isOver ? "border-cat-yellow bg-cat-yellow/5" : "border-dashed border-gray-200"
                     }`}
                   >
-                    {cover ? (
-                      <>
-                        <Image src={cover} alt="" fill className="object-contain pointer-events-none" />
+                    {group.images.map((img, ii) => (
+                      <div key={ii} className="relative w-16 h-16 rounded-lg overflow-hidden border group/ci bg-white flex-shrink-0">
+                        <Image src={img} alt="" fill className="object-contain pointer-events-none" />
+                        {ii === 0 && (
+                          <span className="absolute bottom-0 left-0 right-0 text-[8px] font-bold text-center bg-cat-yellow/90 text-cat-black py-0.5 pointer-events-none">
+                            Capa
+                          </span>
+                        )}
                         <button
                           type="button"
-                          onClick={() => setForm((f) => ({ ...f, colorGroups: f.colorGroups.map((g, i) => i === gi ? { ...g, images: g.images.slice(1) } : g) }))}
-                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity"
+                          onClick={() => updateGroup(gi, (g) => ({ ...g, images: g.images.filter((_, j) => j !== ii) }))}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 opacity-0 group-hover/ci:opacity-100 flex items-center justify-center transition-opacity"
                         >
                           <Trash2 className="w-2.5 h-2.5 text-white" />
                         </button>
-                      </>
-                    ) : (
-                      <span className="text-[10px] text-gray-400 text-center px-1 leading-tight">
-                        {isOver ? "Soltar aqui" : "Arraste a foto"}
-                      </span>
+                      </div>
+                    ))}
+                    <label className={`w-16 h-16 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-cat-yellow transition-colors flex-shrink-0 ${isOver ? "border-cat-yellow" : "border-gray-300"}`}>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-[10px] text-gray-400 mt-0.5">Upload</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => { if (e.target.files?.length) uploadVariantImages(gi, e.target.files); e.target.value = ""; }}
+                      />
+                    </label>
+                    {group.images.length === 0 && !isOver && (
+                      <span className="text-xs text-gray-400 self-center pl-1">Arraste fotos de cima ou clique em Upload</span>
+                    )}
+                    {isOver && (
+                      <span className="text-xs text-cat-yellow font-semibold self-center pl-1">Soltar aqui</span>
                     )}
                   </div>
-                  <span className="text-xs font-semibold text-gray-700 max-w-[80px] truncate text-center">
-                    {group.color.trim() || `Cor ${gi + 1}`}
-                  </span>
                 </div>
               );
             })}
