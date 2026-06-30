@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Shirt, Zap } from "lucide-react";
+import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Shirt, Zap, GripVertical } from "lucide-react";
 import Image from "next/image";
 import type { Category } from "@/types";
 
@@ -118,6 +118,8 @@ export function ProductForm({ categories, initialData }: Props) {
   const dragImgUrl  = useRef<string | null>(null);
   const [dragOverImgIdx, setDragOverImgIdx] = useState<number | null>(null);
   const [dragOverColorIdx, setDragOverColorIdx] = useState<number | null>(null);
+  const dragColorGrpIdx = useRef<number | null>(null);
+  const [dragOverColorGrpIdx, setDragOverColorGrpIdx] = useState<number | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
     id: initialData?.id,
@@ -194,6 +196,24 @@ export function ProductForm({ categories, initialData }: Props) {
     });
     setDragOverColorIdx(null);
   };
+
+  // ── Color group drag-to-reorder ──────────────────────────────────────────────
+
+  const onColorGrpDragStart = (gi: number) => { dragColorGrpIdx.current = gi; };
+  const onColorGrpDragOver  = (e: React.DragEvent, gi: number) => { e.preventDefault(); setDragOverColorGrpIdx(gi); };
+  const onColorGrpDrop      = (gi: number) => {
+    const from = dragColorGrpIdx.current;
+    if (from === null || from === gi) { setDragOverColorGrpIdx(null); return; }
+    setForm((f) => {
+      const groups = [...f.colorGroups];
+      const [moved] = groups.splice(from, 1);
+      groups.splice(gi, 0, moved);
+      return { ...f, colorGroups: groups };
+    });
+    dragColorGrpIdx.current = null;
+    setDragOverColorGrpIdx(null);
+  };
+  const onColorGrpDragEnd = () => { dragColorGrpIdx.current = null; setDragOverColorGrpIdx(null); };
 
   // ── Product images ────────────────────────────────────────────────────────────
 
@@ -573,9 +593,21 @@ export function ProductForm({ categories, initialData }: Props) {
 
         <div className="space-y-3">
           {form.colorGroups.map((group, gi) => (
-            <div key={gi} className="border rounded-xl overflow-hidden">
+            <div
+              key={gi}
+              draggable
+              onDragStart={() => onColorGrpDragStart(gi)}
+              onDragOver={(e) => onColorGrpDragOver(e, gi)}
+              onDrop={() => onColorGrpDrop(gi)}
+              onDragEnd={onColorGrpDragEnd}
+              className={`border rounded-xl overflow-hidden transition-all ${
+                dragOverColorGrpIdx === gi ? "border-cat-yellow shadow-md scale-[1.01]" : ""
+              } ${dragColorGrpIdx.current === gi ? "opacity-40" : ""}`}
+            >
               {/* Color group header */}
               <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
+                {/* Drag handle */}
+                <GripVertical className="w-4 h-4 text-gray-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
                 {/* Color name */}
                 <input
                   type="text"

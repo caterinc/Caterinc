@@ -16,8 +16,12 @@ import { toast } from "@/hooks/use-toast";
 
 function PixIcon({ size = 20 }: { size?: number }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src="/pix.png" alt="Pix" width={size} height={size} style={{ objectFit: "contain" }} />
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50,50 L32,23 Q50,4 68,23 Z"/>
+      <path d="M50,50 L77,32 Q96,50 77,68 Z"/>
+      <path d="M50,50 L68,77 Q50,96 32,77 Z"/>
+      <path d="M50,50 L23,68 Q4,50 23,32 Z"/>
+    </svg>
   );
 }
 
@@ -190,7 +194,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [consent, setConsent] = useState(false);
+  // consent removed — hardcoded true in payload
   const [payMethod, setPayMethod] = useState<PayMethod>("pix");
 
   const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "" });
@@ -252,7 +256,6 @@ export default function CheckoutPage() {
 
   // Submit
   const submit = useCallback(async (cardFormData?: unknown) => {
-    if (!consent) { toast({ title: "Aceite os termos para continuar", variant: "destructive" }); return; }
     setLoading(true);
     try {
       // Read UTMs captured by the layout script
@@ -291,7 +294,7 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false);
     }
-  }, [consent, personal, address, payMethod, items, dispatch, router, selectedShipping]);
+  }, [personal, address, payMethod, items, dispatch, router, selectedShipping]);
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -636,19 +639,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* LGPD */}
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
-                  className="w-5 h-5 rounded mt-0.5 flex-shrink-0 cursor-pointer accent-green-500" />
-                <span className="text-xs text-gray-500 leading-relaxed">
-                  Concordo com a{" "}
-                  <Link href="/privacidade" target="_blank" className="font-bold underline text-gray-800">
-                    Política de Privacidade
-                  </Link>{" "}
-                  e autorizo o uso dos meus dados conforme a <strong>LGPD (Lei nº 13.709/2018)</strong>.
-                </span>
-              </label>
-
               {/* Order summary inline */}
               <div className="border-t pt-3 space-y-1.5 text-sm">
                 <div className="flex justify-between text-gray-600"><span>Produto</span><span>{formatPrice(total)}</span></div>
@@ -714,7 +704,7 @@ export default function CheckoutPage() {
             <>
               <button
                 onClick={() => submit()}
-                disabled={loading || !consent}
+                disabled={loading}
                 className="w-full h-14 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98] shadow-md"
                 style={{ backgroundColor: "var(--vep-checkout-cta-bg,#16c789)", color: "var(--vep-checkout-cta-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
               >
@@ -722,6 +712,11 @@ export default function CheckoutPage() {
                   ? <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
                   : <>Finalizar pedido &nbsp;→</>}
               </button>
+              {payMethod === "card" && (
+                <p className="text-center text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                  Pagamento por cartão indisponível — use o <strong>PIX</strong> para finalizar seu pedido
+                </p>
+              )}
               <button
                 onClick={() => setStage("endereco")}
                 disabled={loading}
