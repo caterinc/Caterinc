@@ -115,7 +115,9 @@ export function ProductForm({ categories, initialData }: Props) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
   const dragImgIdx = useRef<number | null>(null);
+  const dragImgUrl  = useRef<string | null>(null);
   const [dragOverImgIdx, setDragOverImgIdx] = useState<number | null>(null);
+  const [dragOverColorIdx, setDragOverColorIdx] = useState<number | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
     id: initialData?.id,
@@ -162,7 +164,7 @@ export function ProductForm({ categories, initialData }: Props) {
 
   // ── Image drag-to-reorder ────────────────────────────────────────────────────
 
-  const onImgDragStart = (i: number) => { dragImgIdx.current = i; };
+  const onImgDragStart = (i: number) => { dragImgIdx.current = i; dragImgUrl.current = form.images[i] ?? null; };
   const onImgDragOver  = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOverImgIdx(i); };
   const onImgDrop      = (i: number) => {
     const from = dragImgIdx.current;
@@ -176,7 +178,22 @@ export function ProductForm({ categories, initialData }: Props) {
     dragImgIdx.current = null;
     setDragOverImgIdx(null);
   };
-  const onImgDragEnd = () => { dragImgIdx.current = null; setDragOverImgIdx(null); };
+  const onImgDragEnd = () => { dragImgIdx.current = null; dragImgUrl.current = null; setDragOverImgIdx(null); setDragOverColorIdx(null); };
+
+  const onColorDragOver = (e: React.DragEvent, gi: number) => { e.preventDefault(); setDragOverColorIdx(gi); };
+  const onColorDrop     = (gi: number) => {
+    const url = dragImgUrl.current;
+    if (!url) { setDragOverColorIdx(null); return; }
+    setForm((f) => {
+      const groups = f.colorGroups.map((g, i) => {
+        if (i !== gi) return g;
+        const imgs = g.images.filter((x) => x !== url);
+        return { ...g, images: [url, ...imgs] };
+      });
+      return { ...f, colorGroups: groups };
+    });
+    setDragOverColorIdx(null);
+  };
 
   // ── Product images ────────────────────────────────────────────────────────────
 
@@ -424,6 +441,57 @@ export function ProductForm({ categories, initialData }: Props) {
           </label>
         </div>
       </div>
+
+      {/* Color cover photo assignment */}
+      {form.colorGroups.length > 0 && form.colorGroups.some((g) => g.color.trim()) && (
+        <div className="bg-white rounded-xl border p-6 space-y-3">
+          <div>
+            <h2 className="font-bold text-lg">Foto de Capa por Cor</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Arraste uma imagem de cima e solte no bloco da cor desejada.</p>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            {form.colorGroups.map((group, gi) => {
+              const cover = group.images[0] ?? null;
+              const isOver = dragOverColorIdx === gi;
+              return (
+                <div
+                  key={gi}
+                  onDragOver={(e) => onColorDragOver(e, gi)}
+                  onDrop={() => onColorDrop(gi)}
+                  onDragLeave={() => setDragOverColorIdx(null)}
+                  className={`flex flex-col items-center gap-1.5 transition-all ${isOver ? "scale-105" : ""}`}
+                >
+                  <div
+                    className={`relative w-20 h-20 rounded-xl border-2 overflow-hidden bg-gray-50 flex items-center justify-center transition-all ${
+                      isOver ? "border-cat-yellow ring-2 ring-cat-yellow/40" : "border-dashed border-gray-300"
+                    }`}
+                  >
+                    {cover ? (
+                      <>
+                        <Image src={cover} alt="" fill className="object-contain pointer-events-none" />
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, colorGroups: f.colorGroups.map((g, i) => i === gi ? { ...g, images: g.images.slice(1) } : g) }))}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-2.5 h-2.5 text-white" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-gray-400 text-center px-1 leading-tight">
+                        {isOver ? "Soltar aqui" : "Arraste a foto"}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700 max-w-[80px] truncate text-center">
+                    {group.color.trim() || `Cor ${gi + 1}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Jersey quick-setup panel */}
       {form.productType === "jersey" && (
