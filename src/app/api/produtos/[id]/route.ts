@@ -53,7 +53,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         // Deduplicate variant SKUs — keep only first occurrence, null the rest
         const seenSkus = new Set<string>();
         await prisma.productVariant.createMany({
-          data: variantList.map((v) => {
+          data: variantList.map((v, idx) => {
             const rawSku = v.sku?.trim() || null;
             let sku: string | null = rawSku;
             if (sku) {
@@ -68,6 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
               stock:  v.stock  ?? 0,
               price:  v.price  ? parseFloat(v.price) : null,
               images: v.images ?? [],
+              order:  idx,
             };
           }),
         });

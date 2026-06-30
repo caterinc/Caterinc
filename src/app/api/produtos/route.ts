@@ -87,11 +87,11 @@ export async function POST(req: NextRequest) {
         tags:         (raw.tags as string[]) ?? [],
         variants: variants
           ? {
-              create: (variants as { size: string; color?: string; sku?: string; stock?: number; price?: string; images?: string[] }[]).map((v) => {
+              create: (variants as { size: string; color?: string; sku?: string; stock?: number; price?: string; images?: string[] }[]).map((v, idx) => {
                 const rawSku = v.sku?.trim() || null;
                 let sku: string | null = rawSku;
                 if (sku) { if (seenSkus.has(sku)) { sku = null; } else { seenSkus.add(sku); } }
-                return { size: v.size, color: v.color || null, sku, stock: v.stock ?? 0, price: v.price ? parseFloat(v.price) : null, images: v.images ?? [] };
+                return { size: v.size, color: v.color || null, sku, stock: v.stock ?? 0, price: v.price ? parseFloat(v.price) : null, images: v.images ?? [], order: idx };
               }),
             }
           : undefined,

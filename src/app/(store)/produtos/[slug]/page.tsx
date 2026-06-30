@@ -42,7 +42,7 @@ export default async function ProductPage({ params }: Props) {
     where: { slug: params.slug, isActive: true },
     include: {
       category: true,
-      variants: { orderBy: { size: "asc" } },
+      variants: { orderBy: { order: "asc" } },
       reviews: {
         where: { isVisible: true },
         orderBy: { createdAt: "desc" },
