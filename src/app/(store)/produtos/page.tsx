@@ -3,6 +3,9 @@ import { ProductCard } from "@/components/store/ProductCard";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { PageSection } from "@/components/admin/visual/VisualEditorClient";
+import type React from "react";
+
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   searchParams: {
@@ -50,12 +53,15 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
   if (cartSettings.quickaddText) quickaddText = cartSettings.quickaddText;
   if (cartSettings.quickaddRing) quickaddRing = cartSettings.quickaddRing;
 
-  if (categoria && sectionsSetting) {
+  if (sectionsSetting) {
     try {
       const sections: PageSection[] = JSON.parse(sectionsSetting.value || "[]");
-      const match = sections.find(
-        (s) => s.type === "collection" && s.enabled && s.settings.categorySlug === categoria
-      );
+      // Try exact category match first, then fall back to first enabled collection
+      const match =
+        (categoria
+          ? sections.find((s) => s.type === "collection" && s.enabled && s.settings.categorySlug === categoria)
+          : undefined) ??
+        sections.find((s) => s.type === "collection" && s.enabled);
       if (match) {
         const s = match.settings as Record<string, string>;
         if (s.quickaddBg)   quickaddBg   = s.quickaddBg;

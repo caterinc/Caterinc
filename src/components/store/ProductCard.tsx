@@ -67,15 +67,15 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     <>
       <Link
         href={`/produtos/${product.slug}`}
-        className="group block bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-gray-200 transition-all duration-300"
+        className="group block bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
       >
         {/* Image area */}
-        <div className="relative aspect-square bg-white overflow-hidden">
+        <div className="relative aspect-[4/3] bg-white overflow-hidden">
           <Image
             src={image}
             alt={product.name}
             fill
-            className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.04]"
+            className="object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
             priority={priority}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
@@ -83,7 +83,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           {/* Discount badge */}
           {hasDiscount && (
             <span
-              className="absolute top-3 left-3 flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-lg shadow-sm select-none"
+              className="absolute top-2 left-2 flex items-center gap-0.5 text-[11px] font-black px-2 py-0.5 rounded-md shadow-sm select-none"
               style={{
                 backgroundColor: "var(--vep-badge-bg, #FFCD11)",
                 color: "var(--vep-badge-text, #000000)",
@@ -95,7 +95,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
           {/* Featured badge */}
           {product.isFeatured && !hasDiscount && (
-            <span className="absolute top-3 left-3 flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-lg shadow-sm select-none bg-cat-yellow text-cat-black">
+            <span className="absolute top-2 left-2 flex items-center gap-0.5 text-[11px] font-black px-2 py-0.5 rounded-md shadow-sm select-none bg-cat-yellow text-cat-black">
               ◆ Destaque
             </span>
           )}
@@ -104,28 +104,28 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <button
             onClick={handleCartClick}
             aria-label="Adicionar ao carrinho"
-            className="absolute top-3 right-3 w-9 h-9 rounded-full shadow-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 hover:shadow-lg hover:scale-110 active:scale-95"
+            className="absolute top-2 right-2 w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 hover:shadow-lg hover:scale-110 active:scale-95"
             style={{ backgroundColor: "var(--vep-quickadd-bg,#16c789)", color: "var(--vep-quickadd-text,#fff)", outline: "2px solid var(--vep-quickadd-ring, transparent)", outlineOffset: "2px" }}
           >
             {loadingVariants
-              ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : <ShoppingCart className="w-4 h-4" strokeWidth={2} />
+              ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              : <ShoppingCart className="w-3.5 h-3.5" strokeWidth={2} />
             }
           </button>
         </div>
 
         {/* Info */}
-        <div className="px-4 pt-3 pb-4 text-center">
-          <h3 className="font-semibold text-cat-black text-sm leading-snug mb-3 line-clamp-2 min-h-[2.5rem]">
+        <div className="px-3 pt-2 pb-3 text-center">
+          <h3 className="font-semibold text-cat-black text-xs leading-snug mb-1.5 line-clamp-2 min-h-[2.2rem]">
             {product.name}
           </h3>
-          <div className="flex items-baseline justify-center gap-2 flex-wrap">
-            <span className="font-black text-lg text-cat-black">{formatPrice(price)}</span>
+          <div className="flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-black text-base text-cat-black">{formatPrice(price)}</span>
             {hasDiscount && (
-              <span className="text-sm text-gray-400 line-through">{formatPrice(comparePrice!)}</span>
+              <span className="text-xs text-gray-400 line-through">{formatPrice(comparePrice!)}</span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-[11px] text-gray-500 mt-0.5">
             em até{" "}
             <strong className="font-semibold text-gray-600">12x de {formatPrice(installment)}</strong>
           </p>
