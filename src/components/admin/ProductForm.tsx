@@ -114,6 +114,8 @@ export function ProductForm({ categories, initialData }: Props) {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const dragImgIdx = useRef<number | null>(null);
+  const [dragOverImgIdx, setDragOverImgIdx] = useState<number | null>(null);
 
   const [form, setForm] = useState<ProductFormData>({
     id: initialData?.id,
@@ -157,6 +159,24 @@ export function ProductForm({ categories, initialData }: Props) {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+
+  // ── Image drag-to-reorder ────────────────────────────────────────────────────
+
+  const onImgDragStart = (i: number) => { dragImgIdx.current = i; };
+  const onImgDragOver  = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOverImgIdx(i); };
+  const onImgDrop      = (i: number) => {
+    const from = dragImgIdx.current;
+    if (from === null || from === i) { setDragOverImgIdx(null); return; }
+    setForm((f) => {
+      const imgs = [...f.images];
+      const [moved] = imgs.splice(from, 1);
+      imgs.splice(i, 0, moved);
+      return { ...f, images: imgs };
+    });
+    dragImgIdx.current = null;
+    setDragOverImgIdx(null);
+  };
+  const onImgDragEnd = () => { dragImgIdx.current = null; setDragOverImgIdx(null); };
 
   // ── Product images ────────────────────────────────────────────────────────────
 
@@ -365,17 +385,35 @@ export function ProductForm({ categories, initialData }: Props) {
 
       {/* Product Images */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
-        <h2 className="font-bold text-lg">Imagens do Produto</h2>
+        <div>
+          <h2 className="font-bold text-lg">Imagens do Produto</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Arraste para reordenar. A primeira imagem é a capa do produto.</p>
+        </div>
         <div className="flex flex-wrap gap-3">
           {form.images.map((img, i) => (
-            <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border group bg-white">
-              <Image src={img} alt="" fill className="object-contain" />
+            <div
+              key={i}
+              draggable
+              onDragStart={() => onImgDragStart(i)}
+              onDragOver={(e) => onImgDragOver(e, i)}
+              onDrop={() => onImgDrop(i)}
+              onDragEnd={onImgDragEnd}
+              className={`relative w-20 h-20 rounded-lg overflow-hidden border group bg-white cursor-grab active:cursor-grabbing transition-all ${
+                dragOverImgIdx === i ? "ring-2 ring-cat-yellow scale-105" : ""
+              } ${dragImgIdx.current === i ? "opacity-40" : ""}`}
+            >
+              <Image src={img} alt="" fill className="object-contain pointer-events-none" />
+              {i === 0 && (
+                <span className="absolute bottom-0 left-0 right-0 text-[9px] font-bold text-center bg-cat-yellow/90 text-cat-black py-0.5">
+                  Capa
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))}
-                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
               >
-                <Trash2 className="w-4 h-4 text-white" />
+                <Trash2 className="w-3 h-3 text-white" />
               </button>
             </div>
           ))}
