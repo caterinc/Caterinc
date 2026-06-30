@@ -6,12 +6,26 @@ import { Minus, Plus, X, ShoppingBag, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function CarrinhoPage() {
   const router = useRouter();
   const { state, dispatch, total, itemCount, isHydrated } = useCart();
   const { items } = state;
-  const shipping = total >= 299 ? 0 : 29.9;
+  const [freeAbove, setFreeAbove] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/shipping")
+      .then((r) => r.json())
+      .then((methods: { freeAbove: number | null }[]) => {
+        const thresholds = methods.map((m) => m.freeAbove).filter((v): v is number => v !== null);
+        if (thresholds.length > 0) setFreeAbove(Math.min(...thresholds));
+      })
+      .catch(() => {});
+  }, []);
+
+  const freeShipping = freeAbove !== null && total >= freeAbove;
+  const shipping = freeShipping ? 0 : 29.9;
 
   if (!isHydrated) {
     return (
@@ -92,14 +106,14 @@ export default function CarrinhoPage() {
       </div>
 
       {/* Frete grátis progress */}
-      {total < 299 && (
+      {freeAbove !== null && !freeShipping && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-3 text-xs text-amber-800">
-          Falta <strong>{formatPrice(299 - total)}</strong> para frete grátis!
+          Falta <strong>{formatPrice(freeAbove - total)}</strong> para frete grátis!
         </div>
       )}
-      {total >= 299 && (
+      {freeShipping && (
         <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-3 text-xs text-green-700 font-semibold">
-          ✓ Frete grátis liberado!
+          🎉 Você ganhou frete grátis!
         </div>
       )}
 
