@@ -126,6 +126,8 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   );
 }
 
+const LS_KEY = "cat_rastreio_codigo";
+
 export default function RastreioPage() {
   const [numero, setNumero] = useState("");
   const [result, setResult] = useState<TrackResult | null>(null);
@@ -138,6 +140,18 @@ export default function RastreioPage() {
     if (result) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [result]);
 
+  // Auto-load saved code on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_KEY);
+    if (!saved) return;
+    setNumero(saved);
+    startTransition(async () => {
+      const res = await fetch(`/api/rastreio?numero=${encodeURIComponent(saved)}`);
+      if (res.ok) setResult(await res.json());
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const n = numero.trim().toUpperCase();
@@ -147,7 +161,9 @@ export default function RastreioPage() {
     startTransition(async () => {
       const res = await fetch(`/api/rastreio?numero=${encodeURIComponent(n)}`);
       if (res.ok) {
-        setResult(await res.json());
+        const data = await res.json();
+        setResult(data);
+        localStorage.setItem(LS_KEY, n);
       } else {
         const d = await res.json();
         setError(d.error || "Pedido não encontrado");
@@ -179,7 +195,7 @@ export default function RastreioPage() {
                 ref={inputRef}
                 value={numero}
                 onChange={(e) => setNumero(e.target.value.toUpperCase())}
-                placeholder="Ex: CAT-A7B3-X2Q9"
+                placeholder="Ex: AB123456789BR"
                 className="w-full px-4 py-3.5 pr-10 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow focus:border-transparent text-sm font-mono tracking-wider"
               />
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -350,7 +366,7 @@ export default function RastreioPage() {
 
           {/* Search again */}
           <button
-            onClick={() => { setResult(null); setNumero(""); setTimeout(() => inputRef.current?.focus(), 100); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            onClick={() => { setResult(null); setNumero(""); localStorage.removeItem(LS_KEY); setTimeout(() => inputRef.current?.focus(), 100); window.scrollTo({ top: 0, behavior: "smooth" }); }}
             className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium"
           >
             ← Rastrear outro pedido

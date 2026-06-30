@@ -7,11 +7,13 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 export const dynamic = "force-dynamic";
 
 function generateTrackingCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let p1 = "", p2 = "";
-  for (let i = 0; i < 4; i++) p1 += chars[Math.floor(Math.random() * chars.length)];
-  for (let i = 0; i < 4; i++) p2 += chars[Math.floor(Math.random() * chars.length)];
-  return `CAT-${p1}-${p2}`;
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const digits = "0123456789";
+  let prefix = "";
+  let number = "";
+  for (let i = 0; i < 2; i++) prefix += letters[Math.floor(Math.random() * letters.length)];
+  for (let i = 0; i < 9; i++) number += digits[Math.floor(Math.random() * digits.length)];
+  return `${prefix}${number}BR`;
 }
 
 interface CartItemInput {
