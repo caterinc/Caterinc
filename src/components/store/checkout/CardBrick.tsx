@@ -27,8 +27,12 @@ export function CardBrick({ amount, onSubmit, onError }: CardBrickProps) {
 
   if (notConfigured) {
     return (
-      <div className="py-6 text-center text-sm text-gray-500">
-        Pagamento por cartão em configuração. Use PIX ou Boleto por enquanto.
+      <div className="py-6 px-4 text-center space-y-2">
+        <p className="text-sm font-semibold text-gray-700">Pagamento por cartão indisponível</p>
+        <p className="text-xs text-gray-500">Use o <strong>PIX</strong> para finalizar seu pedido agora mesmo.</p>
+        <p className="text-[10px] text-gray-400 mt-3">
+          (Admin: configure <code>MP_PUBLIC_KEY</code> no Vercel para ativar o cartão.)
+        </p>
       </div>
     );
   }

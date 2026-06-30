@@ -135,6 +135,26 @@ export async function POST(req: NextRequest) {
   const lastName  = parts.slice(1).join(" ") || parts[0];
   const nameParts = parts;
 
+  // ── Translate Mercado Pago errors to friendly Portuguese ─────────────────────
+  function translateMpError(msg: string): string {
+    const m = msg.toLowerCase();
+    if (m.includes("identification number") || m.includes("cpf") || m.includes("document"))
+      return "CPF inválido. Confira se você digitou todos os 11 números corretamente.";
+    if (m.includes("email"))
+      return "E-mail inválido. Confira se o endereço de e-mail está correto.";
+    if (m.includes("phone") || m.includes("telefone"))
+      return "Telefone inválido. Confira o número informado.";
+    if (m.includes("unauthorized") || m.includes("live credentials") || m.includes("test"))
+      return "Erro de configuração do pagamento. Entre em contato com a loja.";
+    if (m.includes("insufficient") || m.includes("amount") || m.includes("minimum"))
+      return "Valor inválido para pagamento. Tente novamente.";
+    if (m.includes("blocked") || m.includes("rejected") || m.includes("denied"))
+      return "Pagamento recusado. Verifique seus dados ou tente outro método.";
+    if (m.includes("expired") || m.includes("token"))
+      return "Dados do cartão expirados. Tente novamente.";
+    return "Não foi possível processar o pagamento. Verifique seus dados e tente novamente.";
+  }
+
   // ── Step 1: attempt payment with Mercado Pago BEFORE creating any order ──────
   let mpClient: Awaited<ReturnType<typeof getMpClient>>;
   try { mpClient = await getMpClient(); }
@@ -160,7 +180,7 @@ export async function POST(req: NextRequest) {
       const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
       if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
         return NextResponse.json({ error: "Credenciais de TESTE ativas. Use o e-mail do usuario de teste do MP no checkout." }, { status: 401 });
-      return NextResponse.json({ error: "Erro no pagamento: " + msg }, { status: 502 });
+      return NextResponse.json({ error: translateMpError(msg) }, { status: 502 });
     }
 
     // Payment accepted by MP — now create the order
@@ -224,7 +244,7 @@ export async function POST(req: NextRequest) {
       const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
       if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
         return NextResponse.json({ error: "Credenciais de TESTE ativas." }, { status: 401 });
-      return NextResponse.json({ error: "Erro no pagamento: " + msg }, { status: 502 });
+      return NextResponse.json({ error: translateMpError(msg) }, { status: 502 });
     }
 
     const res2         = cardResult as unknown as Record<string, unknown>;
