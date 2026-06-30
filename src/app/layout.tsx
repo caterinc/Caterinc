@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="pt-BR" className={inter.variable}>
-      <body className="min-h-screen bg-cat-light">
+      <body className="min-h-screen bg-cat-light overflow-x-hidden">
         <SessionProvider session={session}>
           <CartProvider>
             {children}

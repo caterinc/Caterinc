@@ -102,9 +102,9 @@ export default async function ProductPage({ params }: Props) {
   } as React.CSSProperties;
 
   return (
-    <div data-ve-section="product-page" data-ve-label="Página do Produto" suppressHydrationWarning data-ve-page="produto" style={pageStyle} className="min-h-screen">
+    <div data-ve-section="product-page" data-ve-label="Página do Produto" suppressHydrationWarning data-ve-page="produto" style={pageStyle} className="min-h-screen w-full overflow-x-hidden">
     <MetaViewContent productId={product.id} name={product.name} price={price} />
-    <div className="max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
+    <div className="max-w-6xl mx-auto px-4 py-6 overflow-x-hidden w-full">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 mb-5 flex flex-wrap gap-1 items-center">
         <Link href="/" className="hover:text-cat-black transition-colors">Início</Link>

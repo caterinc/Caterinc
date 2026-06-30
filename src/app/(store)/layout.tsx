@@ -49,7 +49,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   ].join(";");
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen overflow-x-hidden w-full">
       {/* suppressHydrationWarning: CSS vars from DB can differ between SSR and client, that's expected */}
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `:root{${globalCss}}` }} />
       {/* UTMify: capture UTM parameters from URL and persist in localStorage */}

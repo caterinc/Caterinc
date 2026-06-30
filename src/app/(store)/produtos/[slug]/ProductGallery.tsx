@@ -51,7 +51,7 @@ export function ProductGallery({
   const src = allImages[activeIndex] || "/placeholder-product.jpg";
 
   return (
-    <div className="space-y-3 lg:sticky lg:top-24 min-w-0 overflow-hidden">
+    <div className="space-y-3 lg:sticky lg:top-24 min-w-0 overflow-hidden w-full" style={{ contain: "layout" }}>
       {/* Main image — swipeable, white bg */}
       <div
         className="relative aspect-square rounded-2xl overflow-hidden bg-white border select-none"

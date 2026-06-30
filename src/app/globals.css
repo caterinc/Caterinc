@@ -2,10 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent horizontal overflow on mobile */
-html, body {
+/* Prevent horizontal overflow on mobile — including iOS Safari */
+html {
   overflow-x: hidden;
-  max-width: 100vw;
+  width: 100%;
+}
+body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  position: relative; /* required for iOS Safari overflow-x: hidden to clip children */
 }
 
 /* Hide scrollbar utility */
@@ -17,17 +23,17 @@ html, body {
   display: none;
 }
 
-/* Gallery swipe animations */
+/* Gallery swipe animations — use clip-path so transform never causes page overflow */
 @keyframes slideFromRight {
-  from { transform: translateX(35%); opacity: 0; }
-  to   { transform: translateX(0);   opacity: 1; }
+  from { opacity: 0; clip-path: inset(0 0 0 15%); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); }
 }
 @keyframes slideFromLeft {
-  from { transform: translateX(-35%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from { opacity: 0; clip-path: inset(0 15% 0 0); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); }
 }
-.slide-from-right { animation: slideFromRight 0.22s ease-out; }
-.slide-from-left  { animation: slideFromLeft  0.22s ease-out; }
+.slide-from-right { animation: slideFromRight 0.2s ease-out; }
+.slide-from-left  { animation: slideFromLeft  0.2s ease-out; }
 
 @layer base {
   :root {
