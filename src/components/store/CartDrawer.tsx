@@ -220,6 +220,12 @@ export function CartDrawer() {
             >
               Ir ao Carrinho →
             </Link>
+            <button
+              onClick={() => dispatch({ type: "CLOSE_DRAWER" })}
+              className="w-full flex items-center justify-center py-2.5 px-6 rounded-xl font-semibold text-sm border-2 border-gray-200 text-gray-600 hover:border-gray-400 transition-colors"
+            >
+              Continuar comprando
+            </button>
           </div>
         )}
       </div>
