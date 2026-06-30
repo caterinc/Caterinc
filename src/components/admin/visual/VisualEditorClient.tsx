@@ -493,6 +493,8 @@ function FeaturesBarEditor({ settings, onChange, onSave, saving }: {
   );
 }
 
+interface CollProduct { id: string; name: string; images: string[]; order: number; }
+
 function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
   settings: Record<string, unknown>;
   onChange: (k: string, v: unknown) => void;
@@ -500,6 +502,52 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
   saving: boolean;
   categories: Category[];
 }) {
+  const categorySlug = (settings.categorySlug as string) || "";
+  const [products, setProducts]         = useState<CollProduct[]>([]);
+  const [loadingProds, setLoadingProds] = useState(false);
+  const [savingOrder, setSavingOrder]   = useState(false);
+  const [orderDirty, setOrderDirty]     = useState(false);
+  const dragProdIdx = useRef<number | null>(null);
+  const [dragOverProdIdx, setDragOverProdIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!categorySlug) { setProducts([]); return; }
+    setLoadingProds(true);
+    setOrderDirty(false);
+    fetch(`/api/produtos?categoria=${encodeURIComponent(categorySlug)}&adminAll=1&sortBy=order&limit=200`)
+      .then((r) => r.json())
+      .then((d: { products?: CollProduct[] }) => setProducts(d.products ?? []))
+      .catch(() => {})
+      .finally(() => setLoadingProds(false));
+  }, [categorySlug]);
+
+  const onProdDragStart = (i: number) => { dragProdIdx.current = i; };
+  const onProdDragOver  = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOverProdIdx(i); };
+  const onProdDrop      = (i: number) => {
+    const from = dragProdIdx.current;
+    if (from === null || from === i) { setDragOverProdIdx(null); return; }
+    setProducts((prev) => {
+      const arr = [...prev];
+      const [moved] = arr.splice(from, 1);
+      arr.splice(i, 0, moved);
+      return arr;
+    });
+    setOrderDirty(true);
+    dragProdIdx.current = null;
+    setDragOverProdIdx(null);
+  };
+
+  const saveOrder = async () => {
+    setSavingOrder(true);
+    await fetch("/api/produtos/reorder", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: products.map((p, i) => ({ id: p.id, order: i })) }),
+    }).catch(() => {});
+    setSavingOrder(false);
+    setOrderDirty(false);
+  };
+
   return (
     <div className="space-y-3">
       <Field label="Modo de Exibição">
@@ -595,6 +643,55 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
       </div>
 
       <SaveBtn saving={saving} onClick={onSave} label="Salvar Vitrine" />
+
+      {/* Product order panel */}
+      {categorySlug && (
+        <div className="pt-2 border-t space-y-2">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ordem dos Produtos</p>
+          <p className="text-xs text-gray-400">Arraste para definir a ordem de exibição na vitrine.</p>
+
+          {loadingProds ? (
+            <p className="text-xs text-gray-400 py-2">Carregando produtos...</p>
+          ) : products.length === 0 ? (
+            <p className="text-xs text-gray-400 py-2">Nenhum produto nesta coleção.</p>
+          ) : (
+            <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+              {products.map((p, i) => (
+                <div
+                  key={p.id}
+                  draggable
+                  onDragStart={() => onProdDragStart(i)}
+                  onDragOver={(e) => onProdDragOver(e, i)}
+                  onDrop={() => onProdDrop(i)}
+                  onDragEnd={() => { dragProdIdx.current = null; setDragOverProdIdx(null); }}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border bg-white cursor-grab active:cursor-grabbing transition-all ${
+                    dragOverProdIdx === i ? "border-cat-yellow bg-yellow-50 scale-[1.02]" : "border-gray-100"
+                  } ${dragProdIdx.current === i ? "opacity-40" : ""}`}
+                >
+                  <GripVertical className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                  <span className="text-[10px] font-bold text-gray-300 w-4 text-right flex-shrink-0">{i + 1}</span>
+                  {p.images[0] && (
+                    <img src={p.images[0]} alt="" className="w-8 h-8 rounded object-contain bg-gray-50 flex-shrink-0 border" />
+                  )}
+                  <span className="text-xs text-gray-700 font-medium truncate flex-1">{p.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {orderDirty && (
+            <button
+              onClick={saveOrder}
+              disabled={savingOrder}
+              className="w-full py-2 bg-cat-yellow text-cat-black text-xs font-bold rounded-lg hover:bg-yellow-400 disabled:opacity-60 flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {savingOrder ? "Salvando..." : "Salvar Ordem"}
+            </button>
+          )}
+        </div>
+      )}
+
       {categories.length === 0 && (
         <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
           Nenhuma categoria encontrada. <a href="/admin/categorias" target="_blank" className="underline">Criar categorias</a>
