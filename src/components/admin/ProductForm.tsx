@@ -450,27 +450,27 @@ export function ProductForm({ categories, initialData }: Props) {
             <h2 className="font-bold text-lg">Fotos por Cor</h2>
             <p className="text-xs text-gray-400 mt-0.5">Arraste imagens de cima para cada cor ou use o botão Upload. A primeira foto vira o ícone da cor.</p>
           </div>
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
             {form.colorGroups.map((group, gi) => {
               const isOver = dragOverColorIdx === gi;
               return (
-                <div key={gi}>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                <div key={gi} className="border rounded-xl overflow-hidden">
+                  <p className="text-xs font-bold text-gray-700 px-2 pt-2 pb-1 truncate">
                     {group.color.trim() || `Cor ${gi + 1}`}
                   </p>
                   <div
                     onDragOver={(e) => onColorDragOver(e, gi)}
                     onDrop={() => onColorDrop(gi)}
                     onDragLeave={() => setDragOverColorIdx(null)}
-                    className={`flex flex-wrap gap-2 p-2 rounded-xl border-2 transition-all ${
-                      isOver ? "border-cat-yellow bg-cat-yellow/5" : "border-dashed border-gray-200"
+                    className={`flex flex-wrap gap-1.5 p-1.5 min-h-[60px] transition-all ${
+                      isOver ? "bg-cat-yellow/10" : ""
                     }`}
                   >
                     {group.images.map((img, ii) => (
-                      <div key={ii} className="relative w-16 h-16 rounded-lg overflow-hidden border group/ci bg-white flex-shrink-0">
+                      <div key={ii} className="relative w-12 h-12 rounded-lg overflow-hidden border group/ci bg-white flex-shrink-0">
                         <Image src={img} alt="" fill className="object-contain pointer-events-none" />
                         {ii === 0 && (
-                          <span className="absolute bottom-0 left-0 right-0 text-[8px] font-bold text-center bg-cat-yellow/90 text-cat-black py-0.5 pointer-events-none">
+                          <span className="absolute bottom-0 left-0 right-0 text-[7px] font-bold text-center bg-cat-yellow/90 text-cat-black leading-tight py-px pointer-events-none">
                             Capa
                           </span>
                         )}
@@ -483,9 +483,9 @@ export function ProductForm({ categories, initialData }: Props) {
                         </button>
                       </div>
                     ))}
-                    <label className={`w-16 h-16 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-cat-yellow transition-colors flex-shrink-0 ${isOver ? "border-cat-yellow" : "border-gray-300"}`}>
-                      <Upload className="w-4 h-4 text-gray-400" />
-                      <span className="text-[10px] text-gray-400 mt-0.5">Upload</span>
+                    <label className={`w-12 h-12 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-cat-yellow transition-colors flex-shrink-0 ${isOver ? "border-cat-yellow" : "border-gray-300"}`}>
+                      <Upload className="w-3 h-3 text-gray-400" />
+                      <span className="text-[9px] text-gray-400 mt-0.5">Upload</span>
                       <input
                         type="file"
                         multiple
@@ -495,10 +495,7 @@ export function ProductForm({ categories, initialData }: Props) {
                       />
                     </label>
                     {group.images.length === 0 && !isOver && (
-                      <span className="text-xs text-gray-400 self-center pl-1">Arraste fotos de cima ou clique em Upload</span>
-                    )}
-                    {isOver && (
-                      <span className="text-xs text-cat-yellow font-semibold self-center pl-1">Soltar aqui</span>
+                      <span className="text-[10px] text-gray-400 self-center">Arraste ou Upload</span>
                     )}
                   </div>
                 </div>

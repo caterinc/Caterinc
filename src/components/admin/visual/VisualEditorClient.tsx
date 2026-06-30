@@ -1395,13 +1395,13 @@ export function VisualEditorClient({
                         if (id === "checkout" && currentPath !== "/checkout") navigateTo("/checkout");
                         if (id === "cart" && currentPath !== "/carrinho") navigateTo("/carrinho");
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 border-b hover:bg-yellow-50 transition-colors text-left group ${isH ? "bg-yellow-50 border-l-2 border-l-cat-yellow" : ""}`}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 border-b hover:bg-yellow-50 transition-colors text-left group ${isH ? "bg-yellow-50 border-l-2 border-l-cat-yellow" : ""}`}
                     >
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isH ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500 group-hover:bg-cat-yellow group-hover:text-cat-black"}`}>
-                        <Icon className="w-3.5 h-3.5" />
+                      <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isH ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500 group-hover:bg-cat-yellow group-hover:text-cat-black"}`}>
+                        <Icon className="w-3 h-3" />
                       </div>
-                      <p className="flex-1 text-sm font-semibold text-gray-800">{labels[id]}</p>
-                      <ChevronR className="w-4 h-4 text-gray-400 group-hover:text-cat-black" />
+                      <p className="flex-1 text-xs font-semibold text-gray-800">{labels[id]}</p>
+                      <ChevronR className="w-3 h-3 text-gray-400 group-hover:text-cat-black" />
                     </button>
                   );
                 })}
@@ -1424,27 +1424,27 @@ export function VisualEditorClient({
                       onDragOver={(e) => onDragOver(e, idx)}
                       onDrop={() => onDrop(idx)}
                       onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
-                      className={`flex items-center gap-2 px-2 py-2.5 border-b transition-colors ${
+                      className={`flex items-center gap-1.5 px-2 py-1.5 border-b transition-colors ${
                         isDragTarget ? "bg-yellow-100 border-l-2 border-l-cat-yellow" :
                         isH || isActive ? "bg-yellow-50" : "hover:bg-gray-50"
                       } ${dragSrc === idx ? "opacity-40" : ""}`}
                     >
                       {/* Drag handle */}
                       <div className="cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0">
-                        <GripVertical className="w-4 h-4" />
+                        <GripVertical className="w-3.5 h-3.5" />
                       </div>
                       {/* Section icon + label (click to edit) */}
                       <button
                         onClick={() => { setActiveSection(section.id); setView("editor"); }}
-                        className="flex-1 flex items-center gap-2 text-left min-w-0"
+                        className="flex-1 flex items-center gap-1.5 text-left min-w-0"
                       >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isH || isActive ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500"}`}>
-                          <Icon className="w-3.5 h-3.5" />
+                        <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isH || isActive ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500"}`}>
+                          <Icon className="w-3 h-3" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold text-gray-800 truncate">{section.label}</p>
                           {section.type === "collection" && !!section.settings.categorySlug && (
-                            <p className="text-xs text-gray-400 truncate">{section.settings.categorySlug as string}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{section.settings.categorySlug as string}</p>
                           )}
                         </div>
                       </button>
