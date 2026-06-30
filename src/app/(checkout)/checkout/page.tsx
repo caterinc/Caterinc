@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Loader2, Copy, Check, ChevronDown, ChevronUp,
   ShoppingBag, Truck, CreditCard, Smartphone, User,
-  Minus, Plus,
+  Minus, Plus, ArrowLeft,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
@@ -491,7 +491,13 @@ export default function CheckoutPage() {
           {/* ── Step 1: Dados ──────────────────────────────────────────────── */}
           {stage === "dados" && (
             <div className="bg-white rounded-xl border p-4">
-              <SectionHeader num={1} title="Identificação" />
+              <div className="flex items-center justify-between mb-1">
+                <SectionHeader num={1} title="Identificação" />
+                <Link href="/carrinho" className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors">
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Voltar ao carrinho
+                </Link>
+              </div>
               <p className="text-xs text-gray-500 mb-4 -mt-2 leading-relaxed">
                 Utilizaremos seu e-mail para: identificar seu perfil, histórico de compra, notificação de pedidos e carrinho de compras.
               </p>
