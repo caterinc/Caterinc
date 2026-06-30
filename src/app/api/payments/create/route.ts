@@ -130,148 +130,156 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const orderCount = await prisma.order.count();
-  const orderNumber = `CAT-${1001 + orderCount}`;
-  const order = await prisma.order.create({
-    data: {
-      orderNumber, email, status: "PENDING", paymentStatus: "PENDING", paymentMethod: method,
-      subtotal, shipping: shippingCost, total, shippingAddress,
-      utmData: utmData || undefined,
-      items: { create: orderItems },
-      statusHistory: { create: [{ status: "PENDING", note: "Pedido iniciado via " + method }] },
-    },
-  });
-
-  // Notify UTMify
-  await sendUtmifyEvent(
-    orderNumber,
-    "waiting_payment",
-    { name, email, phone },
-    orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
-    Math.round(total * 100),
-    new Date(),
-    utmData || null,
-    method
-  ).catch((e) => console.error("[UTMify] create event error:", e));
-
-  // Meta CAPI — InitiateCheckout on order creation
-  const nameParts = name.split(" ");
-  sendMetaEvent({
-    eventName: "InitiateCheckout",
-    eventId: `${orderNumber}-initiate`,
-    sourceUrl: "https://loja-caterpillar.com/checkout",
-    email,
-    phone,
-    firstName: nameParts[0] || null,
-    lastName: nameParts.slice(1).join(" ") || null,
-    value: total,
-    currency: "BRL",
-    contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-    orderId: orderNumber,
-  }).catch((e) => console.error("[Meta CAPI] create error:", e));
-
-  const parts = name.split(" ");
+  const parts     = name.split(" ");
   const firstName = parts[0];
   const lastName  = parts.slice(1).join(" ") || parts[0];
+  const nameParts = parts;
 
-  const cancelOrder = async (note: string) => {
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: "CANCELLED", paymentStatus: "FAILED",
-        statusHistory: { create: [{ status: "CANCELLED", note }] },
-      },
-    });
-  };
+  // ── Step 1: attempt payment with Mercado Pago BEFORE creating any order ──────
+  let mpClient: Awaited<ReturnType<typeof getMpClient>>;
+  try { mpClient = await getMpClient(); }
+  catch (e) {
+    const msg = e instanceof Error ? e.message : "Erro desconhecido";
+    if (msg === "MP_NOT_CONFIGURED")
+      return NextResponse.json({ error: "Pagamento nao configurado. Configure as credenciais do Mercado Pago no painel admin." }, { status: 503 });
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
-  try {
-    const mpClient = await getMpClient();
+  // Temporary external reference before order exists — replaced after order creation
+  const tempRef = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-    if (method === "pix") {
-      const result = await createPixPayment(
+  if (method === "pix") {
+    let pixResult: Awaited<ReturnType<typeof createPixPayment>>;
+    try {
+      pixResult = await createPixPayment(
         mpClient, total, { email, firstName, lastName, cpf },
-        "Pedido #" + orderNumber, order.id
+        `Pedido Caterpillar`, tempRef
       );
-      const mpPaymentId = String(result.id);
+    } catch (mpErr: unknown) {
+      const obj = mpErr as Record<string, unknown>;
+      const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
+      if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
+        return NextResponse.json({ error: "Credenciais de TESTE ativas. Use o e-mail do usuario de teste do MP no checkout." }, { status: 401 });
+      return NextResponse.json({ error: "Erro no pagamento: " + msg }, { status: 502 });
+    }
 
-      await prisma.$transaction(async (tx) => {
+    // Payment accepted by MP — now create the order
+    const mpPaymentId = String(pixResult.id);
+    const orderCount  = await prisma.order.count();
+    const orderNumber = `CAT-${1001 + orderCount}`;
+
+    const order = await prisma.$transaction(async (tx) => {
+      const o = await tx.order.create({
+        data: {
+          orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
+          paymentMethod: "pix", mpPaymentId,
+          subtotal, shipping: shippingCost, total, shippingAddress,
+          utmData: utmData || undefined,
+          items: { create: orderItems },
+          statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Mercado Pago" }] },
+        },
+      });
+      for (const item of orderItems) {
+        if (item.variantId)
+          await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
+      }
+      return o;
+    });
+
+    // Notifications after order is committed
+    sendUtmifyEvent(
+      orderNumber, "waiting_payment", { name, email, phone },
+      orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+      Math.round(total * 100), new Date(), utmData || null, "pix"
+    ).catch((e) => console.error("[UTMify] pix event error:", e));
+
+    sendMetaEvent({
+      eventName: "InitiateCheckout", eventId: `${orderNumber}-initiate`,
+      sourceUrl: "https://loja-caterpillar.com/checkout",
+      email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
+      value: total, currency: "BRL",
+      contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+      orderId: orderNumber,
+    }).catch((e) => console.error("[Meta CAPI] pix initiate error:", e));
+
+    const poi = (pixResult as unknown as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
+    const td  = poi?.transaction_data as Record<string, unknown> | undefined;
+
+    return NextResponse.json({
+      orderId: order.id, orderNumber, total,
+      qrCode:       sanitizeString(String(td?.qr_code || ""), 5000),
+      qrCodeBase64: sanitizeString(String(td?.qr_code_base64 || ""), 100000),
+    });
+  }
+
+  if (method === "card") {
+    if (!cardFormData?.token)
+      return NextResponse.json({ error: "Token do cartao ausente" }, { status: 400 });
+
+    let cardResult: Awaited<ReturnType<typeof createCardPayment>>;
+    try {
+      cardResult = await createCardPayment(mpClient, total, cardFormData, `Pedido Caterpillar`, tempRef);
+    } catch (mpErr: unknown) {
+      const obj = mpErr as Record<string, unknown>;
+      const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
+      if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
+        return NextResponse.json({ error: "Credenciais de TESTE ativas." }, { status: 401 });
+      return NextResponse.json({ error: "Erro no pagamento: " + msg }, { status: 502 });
+    }
+
+    const res2         = cardResult as unknown as Record<string, unknown>;
+    const mpPaymentId  = String(cardResult.id);
+    const status       = String(res2.status || "pending");
+    const statusDetail = String(res2.status_detail || "");
+
+    // Only create order if approved or in-process (not rejected)
+    if (status === "rejected")
+      return NextResponse.json({ error: "Cartao recusado: " + statusDetail, status, statusDetail }, { status: 402 });
+
+    const orderCount  = await prisma.order.count();
+    const orderNumber = `CAT-${1001 + orderCount}`;
+    const isApproved  = status === "approved";
+
+    const order = await prisma.$transaction(async (tx) => {
+      const o = await tx.order.create({
+        data: {
+          orderNumber, email,
+          status: isApproved ? "CONFIRMED" : "PENDING",
+          paymentStatus: isApproved ? "PAID" : "PENDING",
+          paymentMethod: "card", mpPaymentId,
+          subtotal, shipping: shippingCost, total, shippingAddress,
+          utmData: utmData || undefined,
+          items: { create: orderItems },
+          statusHistory: { create: [{ status: isApproved ? "CONFIRMED" : "PENDING", note: isApproved ? "Cartao aprovado pelo Mercado Pago" : "Cartao em processamento" }] },
+        },
+      });
+      if (isApproved) {
         for (const item of orderItems) {
           if (item.variantId)
             await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
         }
-        await tx.order.update({ where: { id: order.id }, data: { mpPaymentId } });
-      });
+      }
+      return o;
+    });
 
-      const poi = (result as unknown as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
-      const td  = poi?.transaction_data as Record<string, unknown> | undefined;
+    if (isApproved) {
+      sendMetaEvent({
+        eventName: "Purchase", eventId: `${orderNumber}-purchase`,
+        sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + orderNumber,
+        email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
+        value: total, currency: "BRL",
+        contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+        orderId: orderNumber,
+      }).catch((e) => console.error("[Meta CAPI] card purchase error:", e));
 
-      return NextResponse.json({
-        orderId: order.id, orderNumber, total,
-        qrCode:       sanitizeString(String(td?.qr_code || ""), 5000),
-        qrCodeBase64: sanitizeString(String(td?.qr_code_base64 || ""), 100000),
-      });
+      sendUtmifyEvent(
+        orderNumber, "paid", { name, email, phone },
+        orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+        Math.round(total * 100), new Date(), utmData || null, "card"
+      ).catch((e) => console.error("[UTMify] card paid error:", e));
     }
 
-    if (method === "card") {
-      if (!cardFormData?.token) {
-        await cancelOrder("Token do cartao ausente");
-        return NextResponse.json({ error: "Token do cartao ausente" }, { status: 400 });
-      }
-      const result = await createCardPayment(mpClient, total, cardFormData, "Pedido #" + orderNumber, order.id);
-      const res2         = result as unknown as Record<string, unknown>;
-      const mpPaymentId  = String(result.id);
-      const status       = String(res2.status || "pending");
-      const statusDetail = String(res2.status_detail || "");
-
-      if (status === "approved") {
-        await prisma.$transaction(async (tx) => {
-          for (const item of orderItems) {
-            if (item.variantId)
-              await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
-          }
-          await tx.order.update({
-            where: { id: order.id },
-            data: {
-              mpPaymentId, paymentStatus: "PAID", status: "CONFIRMED",
-              statusHistory: { create: [{ status: "CONFIRMED", note: "Cartao aprovado pelo Mercado Pago" }] },
-            },
-          });
-        });
-        // Meta CAPI — Purchase for approved card payment
-        sendMetaEvent({
-          eventName: "Purchase",
-          eventId: `${orderNumber}-purchase`,
-          sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + orderNumber,
-          email,
-          phone,
-          firstName: nameParts[0] || null,
-          lastName: nameParts.slice(1).join(" ") || null,
-          value: total,
-          currency: "BRL",
-          contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-          orderId: orderNumber,
-        }).catch((e) => console.error("[Meta CAPI] card purchase error:", e));
-      } else {
-        await prisma.order.update({ where: { id: order.id }, data: { mpPaymentId } });
-      }
-
-      return NextResponse.json({ orderId: order.id, orderNumber, total, status, statusDetail });
-    }
-
-  } catch (mpErr: unknown) {
-    console.error("[Payments/Create] MP error:", mpErr);
-    const obj = mpErr as Record<string, unknown>;
-    const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
-
-    await cancelOrder("Falha MP: " + msg);
-
-    if (msg === "MP_NOT_CONFIGURED")
-      return NextResponse.json({ error: "Pagamento nao configurado. Configure as credenciais do Mercado Pago no painel admin." }, { status: 503 });
-
-    if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
-      return NextResponse.json({ error: "Credenciais de TESTE ativas. Use o e-mail do usuario de teste do MP no checkout." }, { status: 401 });
-
-    return NextResponse.json({ error: "Erro no pagamento: " + msg }, { status: 502 });
+    return NextResponse.json({ orderId: order.id, orderNumber, total, status, statusDetail });
   }
 
   return NextResponse.json({ error: "Metodo invalido" }, { status: 400 });
