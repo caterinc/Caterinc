@@ -313,7 +313,8 @@ export function ProductForm({ categories, initialData }: Props) {
       router.push("/admin/produtos");
       router.refresh();
     } else {
-      toast({ title: "Erro ao salvar produto", variant: "destructive" });
+      const errData = await res.json().catch(() => ({})) as { error?: string };
+      toast({ title: "Erro ao salvar produto", description: errData.error ?? `HTTP ${res.status}`, variant: "destructive" });
     }
   };
 

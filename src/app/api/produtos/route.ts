@@ -65,32 +65,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { variants, ...productData } = body;
+  try {
+    const body = await req.json() as Record<string, unknown>;
+    const { variants, id: _id, colorGroups: _cg, productType: _pt, ...raw } = body;
 
-  const slug = productData.slug || generateSlug(productData.name);
+    const slug = (raw.slug as string)?.trim() || generateSlug(raw.name as string);
+    const seenSkus = new Set<string>();
 
-  const product = await prisma.product.create({
-    data: {
-      ...productData,
-      slug,
-      price: parseFloat(productData.price),
-      comparePrice: productData.comparePrice ? parseFloat(productData.comparePrice) : null,
-      variants: variants
-        ? {
-            create: variants.map((v: { size: string; color?: string; sku?: string; stock?: number; price?: string; images?: string[] }) => ({
-              size: v.size,
-              color: v.color || null,
-              sku: v.sku || null,
-              stock: v.stock ?? 0,
-              price: v.price ? parseFloat(v.price) : null,
-              images: v.images ?? [],
-            })),
-          }
-        : undefined,
-    },
-    include: { category: true, variants: true },
-  });
+    const product = await prisma.product.create({
+      data: {
+        name:         raw.name        as string,
+        slug,
+        description:  (raw.description as string) || null,
+        price:        parseFloat(raw.price as string),
+        comparePrice: raw.comparePrice ? parseFloat(raw.comparePrice as string) : null,
+        sku:          (raw.sku as string)?.trim() || null,
+        images:       (raw.images as string[]) ?? [],
+        categoryId:   (raw.categoryId as string) || null,
+        isActive:     (raw.isActive  as boolean) ?? true,
+        isFeatured:   (raw.isFeatured as boolean) ?? false,
+        tags:         (raw.tags as string[]) ?? [],
+        variants: variants
+          ? {
+              create: (variants as { size: string; color?: string; sku?: string; stock?: number; price?: string; images?: string[] }[]).map((v) => {
+                const rawSku = v.sku?.trim() || null;
+                let sku: string | null = rawSku;
+                if (sku) { if (seenSkus.has(sku)) { sku = null; } else { seenSkus.add(sku); } }
+                return { size: v.size, color: v.color || null, sku, stock: v.stock ?? 0, price: v.price ? parseFloat(v.price) : null, images: v.images ?? [] };
+              }),
+            }
+          : undefined,
+      },
+      include: { category: true, variants: true },
+    });
 
-  return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(product, { status: 201 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[POST /api/produtos]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
