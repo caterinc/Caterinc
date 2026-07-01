@@ -1,5 +1,9 @@
 import { createHash } from "crypto";
 
+export function stripBrand(name: string): string {
+  return name.replace(/caterpillar\s*/gi, "").replace(/\s+/g, " ").trim();
+}
+
 function hash(value: string | null | undefined): string | null {
   if (!value) return null;
   return createHash("sha256").update(value.trim().toLowerCase()).digest("hex");

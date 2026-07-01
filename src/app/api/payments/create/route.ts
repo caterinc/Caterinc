@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
     // Notifications after order is committed
     sendUtmifyEvent(
       orderNumber, "waiting_payment", { name, email, phone },
-      orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+      orderItems.map((i) => ({ id: i.productId || "item", name: i.name.replace(/caterpillar\s*/gi, "").trim(), quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
       Math.round(total * 100), new Date(), utmData || null, "pix"
     ).catch((e) => console.error("[UTMify] pix event error:", e));
 
@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
 
       sendUtmifyEvent(
         orderNumber, "paid", { name, email, phone },
-        orderItems.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+        orderItems.map((i) => ({ id: i.productId || "item", name: i.name.replace(/caterpillar\s*/gi, "").trim(), quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
         Math.round(total * 100), new Date(), utmData || null, "card"
       ).catch((e) => console.error("[UTMify] card paid error:", e));
     }

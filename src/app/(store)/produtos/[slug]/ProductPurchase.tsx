@@ -112,7 +112,7 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, c
     if (typeof window !== "undefined" && window.fbq) {
       window.fbq("track", "AddToCart", {
         content_ids: [product.id],
-        content_name: product.name,
+        content_name: product.name.replace(/caterpillar\s*/gi, "").trim(),
         content_type: "product",
         value: selectedVariant.price ?? product.price,
         currency: "BRL",
