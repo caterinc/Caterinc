@@ -267,6 +267,16 @@ model Review {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
+model WebhookLog {
+  id         String   @id @default(cuid())
+  source     String
+  paymentId  String?
+  action     String?
+  mpStatus   String?
+  result     String
+  createdAt  DateTime @default(now())
+}
+
 model SiteSetting {
   id        String   @id @default(cuid())
   key       String   @unique

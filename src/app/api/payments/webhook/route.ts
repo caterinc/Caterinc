@@ -29,52 +29,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, skipped: true });
   }
 
-  console.log(`[Webhook/MP] Recebido: action=${action} paymentId=${paymentId}`);
+  const log = async (mpStatus: string | null, result: string) => {
+    try {
+      await prisma.webhookLog.create({ data: { source: "mercadopago", paymentId, action, mpStatus, result } });
+    } catch { /* não bloqueia o fluxo */ }
+  };
 
   const accessToken = process.env.MP_ACCESS_TOKEN;
   if (!accessToken) {
-    console.error("[Webhook/MP] MP_ACCESS_TOKEN não configurado");
+    await log(null, "erro: MP_ACCESS_TOKEN não configurado");
     return NextResponse.json({ received: true });
   }
 
   try {
-    // Busca status do pagamento diretamente via fetch (mais confiável que SDK em serverless)
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     if (!mpRes.ok) {
-      console.warn(`[Webhook/MP] MP API retornou ${mpRes.status} para payment ${paymentId}`);
+      await log(null, `erro: MP API ${mpRes.status}`);
       return NextResponse.json({ received: true });
     }
 
     const mpData = await mpRes.json() as { status: string; external_reference: string };
     const mpStatus = mpData.status;
 
-    console.log(`[Webhook/MP] Payment ${paymentId} status: ${mpStatus}`);
-
     if (mpStatus !== "approved") {
+      await log(mpStatus, `ignorado: status=${mpStatus}`);
       return NextResponse.json({ received: true, status: mpStatus });
     }
 
-    // Busca pedido pelo mpPaymentId
     const order = await prisma.order.findFirst({
       where: { mpPaymentId: paymentId },
       include: { items: true },
     });
 
     if (!order) {
-      console.warn(`[Webhook/MP] Pedido não encontrado para paymentId=${paymentId}`);
+      await log(mpStatus, `pedido não encontrado para paymentId=${paymentId}`);
       return NextResponse.json({ received: true, notFound: true });
     }
 
-    // Já estava pago — retorna sem duplicar notificações
     if (order.paymentStatus === "PAID") {
-      console.log(`[Webhook/MP] Pedido ${order.orderNumber} já estava PAID, ignorando`);
+      await log(mpStatus, `já estava PAID: ${order.orderNumber}`);
       return NextResponse.json({ received: true, alreadyPaid: true });
     }
 
-    // Atualiza para PAID
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
@@ -83,13 +82,12 @@ export async function POST(req: NextRequest) {
       data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook (payment ${paymentId})` },
     });
 
-    console.log(`[Webhook/MP] Pedido ${order.orderNumber} → PAID (R$${order.total})`);
+    await log(mpStatus, `confirmado: ${order.orderNumber} R$${order.total}`);
 
     const addr = order.shippingAddress as Record<string, string> | null;
     const utms = (order as unknown as { utmData: Record<string, string> | null }).utmData;
     const nameParts = (addr?.name || "Cliente").split(" ");
 
-    // UTMify paid
     sendUtmifyEvent(
       order.orderNumber, "paid",
       { name: addr?.name || "Cliente", email: order.email, phone: addr?.phone },
@@ -98,7 +96,6 @@ export async function POST(req: NextRequest) {
       order.createdAt, utms, order.paymentMethod || "pix"
     ).catch((e) => console.error("[UTMify] webhook paid error:", e));
 
-    // Meta CAPI Purchase
     sendMetaEvent({
       eventName: "Purchase", eventId: `${order.orderNumber}-purchase`,
       sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + order.orderNumber,
@@ -112,6 +109,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, confirmed: order.orderNumber });
 
   } catch (err) {
+    await log(null, `exceção: ${String(err)}`).catch(() => {});
     console.error("[Webhook/MP] Erro:", err);
     return NextResponse.json({ received: true });
   }
