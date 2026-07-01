@@ -1,44 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createHmac } from "crypto";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
-
-// ─── MP event → order status ──────────────────────────────────────────────────
-const STATUS_MAP: Record<string, { status: string; paymentStatus: string }> = {
-  approved:        { status: "CONFIRMED",  paymentStatus: "PAID" },
-  authorized:      { status: "CONFIRMED",  paymentStatus: "PAID" },
-  in_process:      { status: "PENDING",    paymentStatus: "PENDING" },
-  pending:         { status: "PENDING",    paymentStatus: "PENDING" },
-  rejected:        { status: "CANCELLED",  paymentStatus: "FAILED" },
-  cancelled:       { status: "CANCELLED",  paymentStatus: "FAILED" },
-  refunded:        { status: "REFUNDED",   paymentStatus: "REFUNDED" },
-  charged_back:    { status: "REFUNDED",   paymentStatus: "REFUNDED" },
-};
-
-// ─── Verify MP signature (prevents fake webhook calls) ────────────────────────
-// Note: async version not possible here since it's called inline — secret is passed as param
-function verifyMpSignature(req: NextRequest, rawBody: string, secret: string): boolean {
-  if (!secret) return true; // skip if not configured (development)
-
-  const xSignature  = req.headers.get("x-signature") || "";
-  const xRequestId  = req.headers.get("x-request-id") || "";
-  const dataId      = req.nextUrl.searchParams.get("data.id") || "";
-
-  const tsMatch = xSignature.match(/ts=(\d+)/);
-  const v1Match = xSignature.match(/v1=([a-f0-9]+)/);
-  if (!tsMatch || !v1Match) return false;
-
-  const ts = tsMatch[1];
-  const v1 = v1Match[1];
-
-  const message = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-  const hmac = createHmac("sha256", secret).update(message).digest("hex");
-
-  return hmac === v1;
-}
 
 export async function POST(req: NextRequest) {
   let rawBody = "";
@@ -48,13 +13,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const webhookSecret = process.env.MP_WEBHOOK_SECRET || "";
-
-  // Verify signature — warn only, don't block (MP format varies)
-  if (webhookSecret && !verifyMpSignature(req, rawBody, webhookSecret)) {
-    console.warn("[Webhook/MP] Assinatura inválida — processando mesmo assim");
-  }
-
   let body: Record<string, unknown>;
   try {
     body = JSON.parse(rawBody);
@@ -62,8 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  // MP sends: { action: "payment.updated", data: { id: "123" } }
-  const action    = String(body.action || body.type || "");
+  const action = String(body.action || body.type || "");
   const paymentId = String(
     (body.data as Record<string, unknown>)?.id || body.id || ""
   );
@@ -72,107 +29,95 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, skipped: true });
   }
 
-  // Fetch full payment from MP API
+  console.log(`[Webhook/MP] Recebido: action=${action} paymentId=${paymentId}`);
+
+  const accessToken = process.env.MP_ACCESS_TOKEN;
+  if (!accessToken) {
+    console.error("[Webhook/MP] MP_ACCESS_TOKEN não configurado");
+    return NextResponse.json({ received: true });
+  }
+
   try {
-    const accessToken = process.env.MP_ACCESS_TOKEN;
-    if (!accessToken) throw new Error("MP not configured");
+    // Busca status do pagamento diretamente via fetch (mais confiável que SDK em serverless)
+    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-    const { default: MercadoPago, Payment } = await import("mercadopago");
-    const client  = new MercadoPago({ accessToken });
-    const payment = new Payment(client);
-    const mpData  = await payment.get({ id: Number(paymentId) });
-
-    const mpRaw        = mpData as unknown as Record<string, unknown>;
-    const mpStatus     = String(mpRaw.status || "pending");
-    const externalRef  = String(mpRaw.external_reference || "");
-
-    const mapped = STATUS_MAP[mpStatus];
-    if (!mapped || !externalRef) {
-      return NextResponse.json({ received: true, skipped: true });
+    if (!mpRes.ok) {
+      console.warn(`[Webhook/MP] MP API retornou ${mpRes.status} para payment ${paymentId}`);
+      return NextResponse.json({ received: true });
     }
 
+    const mpData = await mpRes.json() as { status: string; external_reference: string };
+    const mpStatus = mpData.status;
+
+    console.log(`[Webhook/MP] Payment ${paymentId} status: ${mpStatus}`);
+
+    if (mpStatus !== "approved") {
+      return NextResponse.json({ received: true, status: mpStatus });
+    }
+
+    // Busca pedido pelo mpPaymentId
     const order = await prisma.order.findFirst({
       where: { mpPaymentId: paymentId },
+      include: { items: true },
     });
 
     if (!order) {
-      console.warn(`[Webhook/MP] Order not found for ref=${externalRef}`);
+      console.warn(`[Webhook/MP] Pedido não encontrado para paymentId=${paymentId}`);
       return NextResponse.json({ received: true, notFound: true });
     }
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        mpPaymentId: paymentId,
-        status:        mapped.status as never,
-        paymentStatus: mapped.paymentStatus as never,
-      },
-    });
-
-    await prisma.orderStatusHistory.create({
-      data: {
-        orderId: order.id,
-        status: mapped.status as never,
-        note: `Mercado Pago: ${mpStatus} (payment ${paymentId})`,
-      },
-    });
-
-    console.log(`[Webhook/MP] Order ${order.orderNumber} → ${mapped.status}`);
-
-    // UTMify tracking — fire-and-forget
-    const utmStatus = mapped.paymentStatus === "PAID" ? "paid" as const
-      : mapped.paymentStatus === "REFUNDED" ? "refunded" as const
-      : mapped.status === "CANCELLED" ? "cancelled" as const
-      : "waiting_payment" as const;
-    const fullOrder = await prisma.order.findUnique({
-      where: { id: order.id },
-      include: { items: true },
-    });
-    if (fullOrder) {
-      const addr = fullOrder.shippingAddress as Record<string, string> | null;
-      const customerName = addr?.name || "Cliente";
-      const nameParts = customerName.split(" ");
-      const utms = (fullOrder as unknown as { utmData: Record<string, string> | null }).utmData;
-
-      // UTMify
-      sendUtmifyEvent(
-        fullOrder.orderNumber,
-        utmStatus,
-        { name: customerName, email: fullOrder.email },
-        fullOrder.items.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
-        Math.round(Number(fullOrder.total) * 100),
-        fullOrder.createdAt,
-        utms,
-        fullOrder.paymentMethod || "pix"
-      ).catch((e) => console.error("[UTMify] MP event error:", e));
-
-      // Meta CAPI — Purchase on payment confirmed, Refund on chargeback
-      if (mapped.paymentStatus === "PAID" || mapped.paymentStatus === "REFUNDED") {
-        sendMetaEvent({
-          eventName: mapped.paymentStatus === "PAID" ? "Purchase" : "Refund",
-          eventId: `${fullOrder.orderNumber}-${mapped.paymentStatus}`,
-          sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + fullOrder.orderNumber,
-          email: fullOrder.email,
-          phone: addr?.phone || null,
-          firstName: nameParts[0] || null,
-          lastName: nameParts.slice(1).join(" ") || null,
-          value: Number(fullOrder.total),
-          currency: "BRL",
-          contents: fullOrder.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-          orderId: fullOrder.orderNumber,
-        }).catch((e) => console.error("[Meta CAPI] webhook error:", e));
-      }
+    // Já estava pago — retorna sem duplicar notificações
+    if (order.paymentStatus === "PAID") {
+      console.log(`[Webhook/MP] Pedido ${order.orderNumber} já estava PAID, ignorando`);
+      return NextResponse.json({ received: true, alreadyPaid: true });
     }
 
-    return NextResponse.json({ received: true });
+    // Atualiza para PAID
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: "PAID", status: "CONFIRMED" },
+    });
+    await prisma.orderStatusHistory.create({
+      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook (payment ${paymentId})` },
+    });
+
+    console.log(`[Webhook/MP] Pedido ${order.orderNumber} → PAID (R$${order.total})`);
+
+    const addr = order.shippingAddress as Record<string, string> | null;
+    const utms = (order as unknown as { utmData: Record<string, string> | null }).utmData;
+    const nameParts = (addr?.name || "Cliente").split(" ");
+
+    // UTMify paid
+    sendUtmifyEvent(
+      order.orderNumber, "paid",
+      { name: addr?.name || "Cliente", email: order.email, phone: addr?.phone },
+      order.items.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+      Math.round(Number(order.total) * 100),
+      order.createdAt, utms, order.paymentMethod || "pix"
+    ).catch((e) => console.error("[UTMify] webhook paid error:", e));
+
+    // Meta CAPI Purchase
+    sendMetaEvent({
+      eventName: "Purchase", eventId: `${order.orderNumber}-purchase`,
+      sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + order.orderNumber,
+      email: order.email, phone: addr?.phone || null,
+      firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
+      value: Number(order.total), currency: "BRL",
+      contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+      orderId: order.orderNumber,
+    }).catch((e) => console.error("[Meta CAPI] webhook error:", e));
+
+    return NextResponse.json({ received: true, confirmed: order.orderNumber });
 
   } catch (err) {
-    console.error("[Webhook/MP] Error:", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error("[Webhook/MP] Erro:", err);
+    return NextResponse.json({ received: true });
   }
 }
 
-// MP pings GET to verify the URL is reachable
+// MP faz GET para verificar que a URL está acessível
 export async function GET() {
   return NextResponse.json({ status: "ok", webhook: "mercadopago" });
 }
