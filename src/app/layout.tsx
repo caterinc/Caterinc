@@ -7,6 +7,7 @@ import SessionProvider from "@/components/SessionProvider";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <CartProvider>
             {children}
             <Toaster />
+            <Analytics />
           </CartProvider>
         </SessionProvider>
       </body>
