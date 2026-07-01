@@ -8,17 +8,7 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const isAdminPath = pathname.startsWith("/admin");
 
-    // Extra protection: admin requires the gate cookie in addition to auth session
     if (isAdminPath) {
-      const gateSecret = process.env.ADMIN_GATE_SECRET;
-      if (gateSecret) {
-        const gk = req.cookies.get("adm_gk")?.value;
-        if (gk !== gateSecret) {
-          // No gate cookie → act as if page doesn't exist
-          return NextResponse.redirect(new URL("/", req.url));
-        }
-      }
-
       if (token?.role !== "ADMIN") {
         return NextResponse.redirect(new URL("/conta/login?error=unauthorized", req.url));
       }
