@@ -47,6 +47,7 @@ async function createPixPayment(
         identification: { type: "CPF", number: payer.cpf.replace(/\D/g, "") },
       },
       description, external_reference: externalRef,
+      notification_url: "https://loja-caterpillar.com/api/payments/webhook",
     },
   });
 }
@@ -65,6 +66,7 @@ async function createCardPayment(
       issuer_id: cardFormData.issuer_id ? Number(cardFormData.issuer_id) : undefined,
       payer: cardFormData.payer as { email: string; identification: { type: string; number: string } },
       description, external_reference: externalRef,
+      notification_url: "https://loja-caterpillar.com/api/payments/webhook",
     },
   });
 }

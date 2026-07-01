@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     const order = await prisma.order.findFirst({
-      where: { OR: [{ id: externalRef }, { mpPaymentId: paymentId }] },
+      where: { mpPaymentId: paymentId },
     });
 
     if (!order) {
