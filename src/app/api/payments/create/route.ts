@@ -197,8 +197,7 @@ export async function POST(req: NextRequest) {
 
     // Payment accepted by MP — now create the order
     const mpPaymentId = String(pixResult.id);
-    const orderCount  = await prisma.order.count();
-    const orderNumber = `CAT-${1001 + orderCount}`;
+    const orderNumber = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
     const trackingCode = generateTrackingCode();
 
     const order = await prisma.$transaction(async (tx) => {
@@ -269,8 +268,7 @@ export async function POST(req: NextRequest) {
     if (status === "rejected")
       return NextResponse.json({ error: "Cartao recusado: " + statusDetail, status, statusDetail }, { status: 402 });
 
-    const orderCount  = await prisma.order.count();
-    const orderNumber = `CAT-${1001 + orderCount}`;
+    const orderNumber = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
     const trackingCode = generateTrackingCode();
     const isApproved  = status === "approved";
 

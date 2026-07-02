@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
@@ -7,12 +9,15 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
-  // Allow Vercel cron calls (x-vercel-cron header) or CRON_SECRET if set
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get("authorization");
   const isVercelCron = req.headers.get("x-vercel-cron") === "1";
-  if (cronSecret && !isVercelCron && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const isCronSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  // Allow: Vercel cron, correct secret, OR logged-in admin session
+  if (!isVercelCron && !isCronSecret) {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const accessToken = process.env.MP_ACCESS_TOKEN;
