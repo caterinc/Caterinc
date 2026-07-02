@@ -203,8 +203,15 @@ export default function CheckoutPage() {
   const [pixPaid,  setPixPaid]  = useState(false);
 
   // Restaura PIX do sessionStorage se o cliente recarregar a página
+  // Só restaura se o carrinho estiver vazio (pedido já foi gerado)
   useEffect(() => {
+    if (!isHydrated) return;
     try {
+      if (items.length > 0) {
+        // Novo checkout — descarta qualquer PIX salvo anteriormente
+        sessionStorage.removeItem("_pix_result");
+        return;
+      }
       const saved = sessionStorage.getItem("_pix_result");
       if (saved) {
         const parsed = JSON.parse(saved) as PixResult & { savedAt: number; timerLeft: number };
@@ -219,7 +226,7 @@ export default function CheckoutPage() {
         }
       }
     } catch {}
-  }, []);
+  }, [isHydrated, items.length]);
 
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
