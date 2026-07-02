@@ -61,7 +61,7 @@ export default async function AdminPedidosPage({ searchParams }: PageProps) {
         ))}
       </div>
 
-      <BulkOrders orders={orders} />
+      <BulkOrders orders={orders.map((o) => ({ ...o, total: Number(o.total) }))} />
 
       {pages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
