@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +18,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
+  const orderStatus = status as OrderStatus;
+
   await prisma.order.updateMany({
     where: { id: { in: orderIds } },
-    data: { status },
+    data: { status: orderStatus },
   });
 
   await prisma.orderStatusHistory.createMany({
     data: orderIds.map((orderId) => ({
       orderId,
-      status,
+      status: orderStatus,
       note: "Status atualizado em massa pelo admin",
     })),
   });
