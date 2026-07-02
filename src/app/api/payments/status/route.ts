@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       // Meta CAPI Purchase
       sendMetaEvent({
         eventName: "Purchase", eventId: `${order.orderNumber}-purchase`,
-        sourceUrl: "https://lojalegado.com/pedido-confirmado/" + order.orderNumber,
+        sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + order.orderNumber,
         email: order.email, phone: addr?.phone || null,
         firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
         value: Number(order.total), currency: "BRL",
