@@ -202,6 +202,17 @@ export default function CheckoutPage() {
   const [pixTimer, setPixTimer] = useState(600);
   const [pixPaid,  setPixPaid]  = useState(false);
 
+  // Captura fbclid/fbp da URL (vindos da VSL) e salva no localStorage
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fbclid = params.get("fbclid");
+      const fbpParam = params.get("fbp");
+      if (fbclid) localStorage.setItem("_fbc", `fb.1.${Date.now()}.${fbclid}`);
+      if (fbpParam) localStorage.setItem("_fbp", fbpParam);
+    } catch {}
+  }, []);
+
   // Restaura PIX do sessionStorage se o cliente recarregar a página
   // Só restaura se o carrinho estiver vazio (pedido já foi gerado)
   useEffect(() => {
@@ -282,6 +293,8 @@ export default function CheckoutPage() {
       const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];
       const utmData: Record<string, string> = {};
       try { utmKeys.forEach((k) => { const v = localStorage.getItem('_utm_' + k); if (v) utmData[k] = v; }); } catch {}
+      let fbc: string | null = null; let fbp: string | null = null;
+      try { fbc = localStorage.getItem("_fbc"); fbp = localStorage.getItem("_fbp"); } catch {}
 
       const res = await fetch("/api/payments/create", {
         method: "POST",
@@ -290,6 +303,7 @@ export default function CheckoutPage() {
           personal, address, paymentMethod: payMethod, cardFormData: cardFormData || null,
           consent: true, shippingMethodId: selectedShipping?.id || null,
           utmData: Object.keys(utmData).length > 0 ? utmData : null,
+          fbc, fbp,
           cartItems: items.map((i) => ({
             productId: i.productId, variantId: i.variantId || null, name: i.name,
             price: i.price, quantity: i.quantity, size: i.size || null, color: i.color || null, image: i.image || null,

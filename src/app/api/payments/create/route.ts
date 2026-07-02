@@ -79,11 +79,12 @@ export async function POST(req: NextRequest) {
     cartItems?: CartItemInput[]; cardFormData?: Record<string, unknown>;
     consent?: boolean; shippingMethodId?: string | null;
     utmData?: Record<string, string> | null;
+    fbc?: string | null; fbp?: string | null;
   };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Payload invalido" }, { status: 400 }); }
 
-  const { personal, address, paymentMethod, cartItems, cardFormData, consent, shippingMethodId, utmData } = body;
+  const { personal, address, paymentMethod, cartItems, cardFormData, consent, shippingMethodId, utmData, fbc, fbp } = body;
 
   if (!consent) return NextResponse.json({ error: "Consentimento LGPD obrigatorio" }, { status: 400 });
   if (!personal || !address || !cartItems || cartItems.length === 0)
@@ -227,11 +228,10 @@ export async function POST(req: NextRequest) {
 
     sendMetaEvent({
       eventName: "InitiateCheckout", eventId: `${orderNumber}-initiate`,
-      sourceUrl: "https://loja-caterpillar.com/checkout",
       email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
       value: total, currency: "BRL",
       contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-      orderId: orderNumber,
+      orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
     }).catch((e) => console.error("[Meta CAPI] pix initiate error:", e));
 
     const poi = (pixResult as unknown as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
@@ -297,11 +297,10 @@ export async function POST(req: NextRequest) {
     if (isApproved) {
       sendMetaEvent({
         eventName: "Purchase", eventId: `${orderNumber}-purchase`,
-        sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + orderNumber,
         email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
         value: total, currency: "BRL",
         contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-        orderId: orderNumber,
+        orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
       }).catch((e) => console.error("[Meta CAPI] card purchase error:", e));
 
       sendUtmifyEvent(
