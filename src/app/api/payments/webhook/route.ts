@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const action = String(body.action || body.type || "");
+  // Suporta formato novo (action + data.id) e formato antigo IPN (topic + id)
+  const action = String(body.action || body.type || body.topic || "");
   const paymentId = String(
     (body.data as Record<string, unknown>)?.id || body.id || ""
   );
@@ -28,8 +29,9 @@ export async function POST(req: NextRequest) {
   console.log("[Webhook/MP] Body recebido:", JSON.stringify(body));
   console.log("[Webhook/MP] action:", action, "| paymentId:", paymentId);
 
-  if (!action.startsWith("payment") || !paymentId) {
-    console.log("[Webhook/MP] Skipped — action não é payment ou paymentId vazio");
+  const isPaymentEvent = action.startsWith("payment") || action === "payment";
+  if (!isPaymentEvent || !paymentId) {
+    console.log("[Webhook/MP] Skipped — action:", action, "| paymentId:", paymentId);
     return NextResponse.json({ received: true, skipped: true });
   }
 
@@ -74,13 +76,7 @@ export async function POST(req: NextRequest) {
     console.log("[Webhook/MP] Pedido encontrado pelo mpPaymentId:", order ? order.orderNumber : "NÃO ENCONTRADO");
 
     if (!order) {
-      // Tenta achar pelo external_reference como fallback
-      const orderByRef = await prisma.order.findFirst({
-        where: { orderNumber: mpData.external_reference },
-        include: { items: true },
-      });
-      console.log("[Webhook/MP] Fallback por external_reference:", orderByRef ? orderByRef.orderNumber : "NÃO ENCONTRADO");
-      await log(mpStatus, `pedido não encontrado para paymentId=${paymentId} | external_ref=${mpData.external_reference}`);
+      await log(mpStatus, `pedido não encontrado para paymentId=${paymentId}`);
       return NextResponse.json({ received: true, notFound: true });
     }
 
