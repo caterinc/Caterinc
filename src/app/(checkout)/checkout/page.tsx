@@ -202,6 +202,25 @@ export default function CheckoutPage() {
   const [pixTimer, setPixTimer] = useState(600);
   const [pixPaid,  setPixPaid]  = useState(false);
 
+  // Restaura PIX do sessionStorage se o cliente recarregar a página
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("_pix_result");
+      if (saved) {
+        const parsed = JSON.parse(saved) as PixResult & { savedAt: number; timerLeft: number };
+        const elapsed = Math.floor((Date.now() - parsed.savedAt) / 1000);
+        const remaining = (parsed.timerLeft || 600) - elapsed;
+        if (remaining > 0) {
+          setPixResult(parsed);
+          setStage("pix");
+          setPixTimer(remaining);
+        } else {
+          sessionStorage.removeItem("_pix_result");
+        }
+      }
+    } catch {}
+  }, []);
+
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
     : 0;
@@ -229,7 +248,7 @@ export default function CheckoutPage() {
       try {
         const r = await fetch(`/api/payments/status?orderId=${pixResult.orderId}`);
         const d = (await r.json()) as { paid: boolean };
-        if (d.paid) { setPixPaid(true); clearInterval(t); setTimeout(() => router.push(`/pedido-confirmado/${pixResult.orderNumber}`), 1800); }
+        if (d.paid) { setPixPaid(true); clearInterval(t); try { sessionStorage.removeItem("_pix_result"); } catch {} setTimeout(() => router.push(`/pedido-confirmado/${pixResult.orderNumber}`), 1800); }
       } catch {}
     }, 3000);
     return () => clearInterval(t);
@@ -274,8 +293,10 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || "Erro ao processar pedido");
       dispatch({ type: "CLEAR" });
       if (payMethod === "pix") {
-        setPixResult({ orderId: data.orderId!, orderNumber: data.orderNumber!, qrCode: data.qrCode!, qrCodeBase64: data.qrCodeBase64!, total: data.total! });
+        const pr: PixResult = { orderId: data.orderId!, orderNumber: data.orderNumber!, qrCode: data.qrCode!, qrCodeBase64: data.qrCodeBase64!, total: data.total! };
+        setPixResult(pr);
         setStage("pix");
+        try { sessionStorage.setItem("_pix_result", JSON.stringify({ ...pr, savedAt: Date.now(), timerLeft: 600 })); } catch {}
       } else {
         if (data.status === "rejected") {
           toast({ title: "Cartão recusado", description: data.statusDetail || "Verifique os dados.", variant: "destructive" });
