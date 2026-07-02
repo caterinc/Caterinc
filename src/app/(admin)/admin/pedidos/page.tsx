@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { formatPrice, formatDate, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/utils";
+import { ORDER_STATUS_LABELS } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { BulkOrders } from "./BulkOrders";
 
 interface PageProps {
   searchParams: { page?: string; status?: string };
@@ -20,7 +21,7 @@ export default async function AdminPedidosPage({ searchParams }: PageProps) {
       where,
       include: {
         user: { select: { name: true } },
-        items: { include: { product: true } },
+        items: { select: { id: true } },
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
@@ -60,45 +61,7 @@ export default async function AdminPedidosPage({ searchParams }: PageProps) {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Pedido</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cliente</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Data</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Itens</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <Link href={`/admin/pedidos/${order.id}`} className="font-bold text-cat-black hover:underline">
-                      {order.orderNumber}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{order.user?.name || order.email}</td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(order.createdAt)}</td>
-                  <td className="px-4 py-3 text-gray-600">{order.items.length}</td>
-                  <td className="px-4 py-3 font-semibold">{formatPrice(Number(order.total))}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn("text-xs px-2 py-1 rounded-full font-medium", ORDER_STATUS_COLORS[order.status])}>
-                      {ORDER_STATUS_LABELS[order.status]}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {orders.length === 0 && (
-          <div className="text-center py-12 text-gray-400">Nenhum pedido encontrado</div>
-        )}
-      </div>
+      <BulkOrders orders={orders} />
 
       {pages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
