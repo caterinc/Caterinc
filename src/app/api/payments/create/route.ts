@@ -228,7 +228,7 @@ export async function POST(req: NextRequest) {
 
     sendMetaEvent({
       eventName: "InitiateCheckout", eventId: `${orderNumber}-initiate`,
-      sourceUrl: "https://lojalegado.com/checkout",
+      sourceUrl: "https://loja-caterpillar.com/checkout",
       email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
       value: total, currency: "BRL",
       contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
     if (isApproved) {
       sendMetaEvent({
         eventName: "Purchase", eventId: `${orderNumber}-purchase`,
-        sourceUrl: "https://lojalegado.com/pedido-confirmado/" + orderNumber,
+        sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + orderNumber,
         email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
         value: total, currency: "BRL",
         contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
