@@ -109,15 +109,6 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, c
     if (!selectedSize) { toast({ title: "Selecione um tamanho", variant: "destructive" }); return; }
     if (!selectedVariant || selectedVariant.stock === 0) { toast({ title: "Produto sem estoque", variant: "destructive" }); return; }
     dispatch({ type: "ADD_ITEM", payload: buildPayload() });
-    if (typeof window !== "undefined" && window.fbq) {
-      window.fbq("track", "AddToCart", {
-        content_ids: [product.id],
-        content_name: product.name.replace(/caterpillar\s*/gi, "").trim(),
-        content_type: "product",
-        value: selectedVariant.price ?? product.price,
-        currency: "BRL",
-      });
-    }
   };
 
   const handleBuyNow = () => {

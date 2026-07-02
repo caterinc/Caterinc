@@ -38,7 +38,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="pt-BR" className={inter.variable}>
       <head>
-        <meta name="facebook-domain-verification" content="hmalweotrjgnalo53wlt9uvqx48zou" />
         {/* Block DevTools — stops casual inspection */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.key==='F12'){e.preventDefault();return false;}if(e.ctrlKey&&e.shiftKey&&['I','J','C','K'].indexOf(e.key.toUpperCase())!==-1){e.preventDefault();return false;}if(e.ctrlKey&&e.key.toLowerCase()==='u'){e.preventDefault();return false;}});})();` }} />
       </head>

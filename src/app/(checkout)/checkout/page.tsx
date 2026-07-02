@@ -231,7 +231,7 @@ export default function CheckoutPage() {
         const d = (await r.json()) as { paid: boolean };
         if (d.paid) { setPixPaid(true); clearInterval(t); setTimeout(() => router.push(`/pedido-confirmado/${pixResult.orderNumber}`), 1800); }
       } catch {}
-    }, 5000);
+    }, 3000);
     return () => clearInterval(t);
   }, [stage, pixResult, pixPaid, router]);
 

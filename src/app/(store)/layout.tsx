@@ -1,7 +1,6 @@
 import { Header } from "@/components/store/Header";
 import { Footer } from "@/components/store/Footer";
 import { prisma } from "@/lib/prisma";
-import Script from "next/script";
 
 export const revalidate = 60;
 
@@ -54,9 +53,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `:root{${globalCss}}` }} />
       {/* UTMify: capture UTM parameters from URL and persist in localStorage */}
       <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];var found=false;keys.forEach(function(k){if(p.get(k)){localStorage.setItem('_utm_'+k,p.get(k));found=true;}});if(found)localStorage.setItem('_utm_ts',Date.now().toString());}catch(e){}})();` }} />
-      {/* Meta Pixel */}
-      <Script id="meta-pixel" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1821164748580849');fbq('track','PageView');` }} />
-      <Header
+<Header
         menuItems={headerMenu?.items || []}
         storeName={sm.storeName as string}
         logoImage={(vh.logoImage as string) || undefined}
