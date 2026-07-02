@@ -340,17 +340,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#F5F5F5" }}>
 
-        {/* Header da loja */}
-        <div className="bg-black py-3 px-4">
-          <div className="max-w-md mx-auto flex items-center justify-between">
-            <span className="text-white font-black text-lg tracking-tight">CAT <span style={{ color: "#FFCD11" }}>Store</span></span>
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-              <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#16c789" }} />
-              <span>Compra segura</span>
-            </div>
-          </div>
-        </div>
-
+  
         <div className="max-w-md mx-auto px-4 py-6 space-y-4">
 
           {pixPaid ? (
