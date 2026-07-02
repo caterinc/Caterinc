@@ -59,6 +59,23 @@ export function AddToCartButton({ product, sizes, colors }: Props) {
     });
 
     toast({ title: "Adicionado ao carrinho!", variant: "success" });
+
+    // AddToCart via CAPI — loja invisível, evento aparece na VSL
+    try {
+      const fbc = localStorage.getItem("_fbc");
+      const fbp = localStorage.getItem("_fbp");
+      fetch("/api/payments/add-to-cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fbc, fbp,
+          value: selectedVariant.price ? Number(selectedVariant.price) : Number(product.price),
+          currency: "BRL",
+          contentId: product.id,
+          contentName: product.name,
+        }),
+      }).catch(() => {});
+    } catch {}
   };
 
   return (
