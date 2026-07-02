@@ -315,55 +315,152 @@ export default function CheckoutPage() {
 
   if (stage === "pix" && pixResult) {
     const pm = Math.floor(pixTimer / 60); const ps = pixTimer % 60;
+    const timerPct = Math.round((pixTimer / 600) * 100);
     return (
-      <div className="min-h-screen bg-white">
-        <div className="max-w-md mx-auto px-4 py-8">
+      <div className="min-h-screen" style={{ backgroundColor: "#F5F5F5" }}>
+
+        {/* Header da loja */}
+        <div className="bg-black py-3 px-4">
+          <div className="max-w-md mx-auto flex items-center justify-between">
+            <span className="text-white font-black text-lg tracking-tight">CAT <span style={{ color: "#FFCD11" }}>Store</span></span>
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+              <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#16c789" }} />
+              <span>Compra segura</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-md mx-auto px-4 py-6 space-y-4">
+
           {pixPaid ? (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: STEP_COLOR }}>
+            <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#16c789" }}>
                 <Check className="w-10 h-10 text-white" />
               </div>
-              <h1 className="text-2xl font-black text-gray-800">Pagamento confirmado!</h1>
+              <h1 className="text-2xl font-black text-gray-900">Pagamento confirmado!</h1>
               <p className="text-gray-500 text-sm mt-2">Redirecionando para seu pedido...</p>
             </div>
           ) : (
             <>
-              <div className="text-center mb-6">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: STEP_COLOR }}>
-                  <Smartphone className="w-7 h-7 text-white" />
-                </div>
-                <h1 className="text-2xl font-black">Pague com PIX</h1>
-                <p className="text-sm text-gray-500 mt-1">Escaneie o QR code ou copie o código</p>
-              </div>
-              {pixResult.qrCodeBase64 && (
-                <div className="flex justify-center mb-5">
-                  <div className="p-3 border-2 border-gray-100 rounded-2xl">
-                    <img src={`data:image/png;base64,${pixResult.qrCodeBase64}`} alt="QR Code PIX" className="w-52 h-52" />
+              {/* Card principal */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                {/* Topo verde */}
+                <div className="px-5 py-4" style={{ backgroundColor: "#16c789" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                      <PixIcon size={22} />
+                    </div>
+                    <div>
+                      <p className="text-white font-black text-base leading-tight">Pague com PIX</p>
+                      <p className="text-white/80 text-xs">Aprovação em segundos · Sem taxas</p>
+                    </div>
                   </div>
                 </div>
-              )}
-              <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-                <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">Código PIX copia e cola</p>
-                <p className="text-[11px] font-mono text-gray-600 break-all mb-3 line-clamp-3">{pixResult.qrCode}</p>
-                <button onClick={() => copy(pixResult.qrCode)}
-                  className="w-full h-11 flex items-center justify-center gap-2 text-white font-bold text-sm rounded-xl"
-                  style={{ backgroundColor: STEP_COLOR }}>
-                  {copied ? <><Check className="w-4 h-4" /> Copiado!</> : <><Copy className="w-4 h-4" /> Copiar código PIX</>}
-                </button>
+
+                <div className="px-5 py-5 space-y-5">
+
+                  {/* Valor */}
+                  <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                    <div>
+                      <p className="text-xs text-gray-400 font-semibold">Pedido #{pixResult.orderNumber}</p>
+                      <p className="text-2xl font-black text-gray-900 mt-0.5">{formatPrice(pixResult.total)}</p>
+                    </div>
+                    <div className="text-right">
+                      {pixTimer > 0 ? (
+                        <>
+                          <p className="text-xs text-gray-400">Expira em</p>
+                          <p className="font-black text-base" style={{ color: pixTimer < 60 ? "#ef4444" : "#111" }}>
+                            {String(pm).padStart(2,"0")}:{String(ps).padStart(2,"0")}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-red-500 font-bold">Expirado</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Barra de progresso do timer */}
+                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${timerPct}%`, backgroundColor: pixTimer < 60 ? "#ef4444" : "#16c789" }} />
+                  </div>
+
+                  {/* QR Code */}
+                  {pixResult.qrCodeBase64 && (
+                    <div className="flex flex-col items-center">
+                      <div className="p-3 border-2 border-gray-100 rounded-2xl inline-block">
+                        <img src={`data:image/png;base64,${pixResult.qrCodeBase64}`} alt="QR Code PIX" className="w-48 h-48" />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2 text-center">Abra o app do seu banco e escaneie</p>
+                    </div>
+                  )}
+
+                  {/* Divisor */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-100" />
+                    <span className="text-xs text-gray-400 font-semibold">ou copie o código</span>
+                    <div className="flex-1 h-px bg-gray-100" />
+                  </div>
+
+                  {/* Copia e cola */}
+                  <div>
+                    <p className="text-[11px] font-mono text-gray-400 break-all mb-3 bg-gray-50 rounded-lg p-3 line-clamp-2">{pixResult.qrCode}</p>
+                    <button onClick={() => copy(pixResult.qrCode)}
+                      className="w-full h-12 flex items-center justify-center gap-2 font-black text-sm rounded-xl transition-all active:scale-[0.98]"
+                      style={{ backgroundColor: copied ? "#111" : "#16c789", color: "#fff" }}>
+                      {copied ? <><Check className="w-4 h-4" /> Código copiado!</> : <><Copy className="w-4 h-4" /> Copiar código PIX</>}
+                    </button>
+                  </div>
+
+                  {/* Verificando */}
+                  {pixTimer > 0 && (
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Aguardando confirmação do pagamento...
+                    </div>
+                  )}
+                  {pixTimer === 0 && (
+                    <p className="text-center text-sm text-red-500">
+                      PIX expirado.{" "}
+                      <Link href="/checkout" className="underline font-bold">Tentar novamente</Link>
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="text-center mb-5">
-                {pixTimer > 0
-                  ? <><p className="text-sm text-gray-500">Expira em <span className="font-black text-gray-800">{String(pm).padStart(2,"0")}:{String(ps).padStart(2,"0")}</span></p>
-                     <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Verificando...</p></>
-                  : <p className="text-sm text-red-500">Expirado. <Link href="/checkout" className="underline font-bold">Tentar novamente</Link></p>
-                }
+
+              {/* Como pagar */}
+              <div className="bg-white rounded-2xl shadow-sm px-5 py-4">
+                <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">Como pagar</p>
+                <div className="space-y-3">
+                  {[
+                    { n: "1", t: "Abra o app do seu banco ou carteira digital" },
+                    { n: "2", t: "Escolha pagar via PIX com QR Code ou Copia e Cola" },
+                    { n: "3", t: "Confirme o valor e finalize o pagamento" },
+                  ].map(({ n, t }) => (
+                    <div key={n} className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-black text-white" style={{ backgroundColor: "#16c789" }}>{n}</div>
+                      <p className="text-sm text-gray-600 pt-0.5">{t}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="bg-blue-50 rounded-2xl p-4 mb-4">
-                <p className="text-xs font-bold text-blue-700">Pedido #{pixResult.orderNumber}</p>
-                <p className="text-xl font-black text-blue-800 mt-0.5">{formatPrice(pixResult.total)}</p>
+
+              {/* CNPJ / identidade do beneficiário */}
+              <div className="bg-white rounded-2xl shadow-sm px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#16c789" }} />
+                  <div>
+                    <p className="text-xs font-black text-gray-700">Beneficiário do pagamento</p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">ZENYX INTERMEDIAÇÕES LTDA</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Os pagamentos são processados exclusivamente em nome deste CNPJ. Verifique no app do seu banco antes de confirmar.</p>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
-                <ShieldCheck className="w-3.5 h-3.5" style={{ color: STEP_COLOR }} /> Processado com segurança pelo Mercado Pago
+
+              {/* Rodapé de segurança */}
+              <div className="text-center pb-2">
+                <p className="text-[11px] text-gray-400">
+                  Ambiente seguro · Processado pelo <span className="font-bold">Mercado Pago</span>
+                </p>
               </div>
             </>
           )}
