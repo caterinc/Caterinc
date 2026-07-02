@@ -202,7 +202,7 @@ export default function CheckoutPage() {
   const [pixTimer, setPixTimer] = useState(600);
   const [pixPaid,  setPixPaid]  = useState(false);
 
-  // Captura fbclid/fbp da URL (vindos da VSL) e salva no localStorage
+  // Captura fbclid/fbp da URL (vindos da VSL) e dispara InitiateCheckout via CAPI
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -210,6 +210,15 @@ export default function CheckoutPage() {
       const fbpParam = params.get("fbp");
       if (fbclid) localStorage.setItem("_fbc", `fb.1.${Date.now()}.${fbclid}`);
       if (fbpParam) localStorage.setItem("_fbp", fbpParam);
+
+      const fbc = fbclid ? `fb.1.${Date.now()}.${fbclid}` : localStorage.getItem("_fbc");
+      const fbp = fbpParam || localStorage.getItem("_fbp");
+
+      fetch("/api/payments/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fbc, fbp }),
+      }).catch(() => {});
     } catch {}
   }, []);
 
