@@ -448,7 +448,7 @@ export default function CheckoutPage() {
                     <button onClick={() => copy(pixResult.qrCode)}
                       className="w-full h-12 flex items-center justify-center gap-2 font-black text-sm rounded-xl transition-all active:scale-[0.98]"
                       style={{ backgroundColor: "#16c789", color: "#fff" }}>
-                      <Copy className="w-4 h-4" /> Copiar código PIX
+                      {copied ? <><Check className="w-4 h-4" /> Copiado!</> : <><Copy className="w-4 h-4" /> Copiar código PIX</>}
                     </button>
                   </div>
 
