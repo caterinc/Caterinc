@@ -5,8 +5,11 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("s");
-  if (!secret || secret !== process.env.CRON_SECRET)
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("authorization");
+  const querySecret = req.nextUrl.searchParams.get("s");
+  const ok = (cronSecret && authHeader === `Bearer ${cronSecret}`) || (cronSecret && querySecret === cronSecret);
+  if (!ok)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const orderNumber = req.nextUrl.searchParams.get("order");
