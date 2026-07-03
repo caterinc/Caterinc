@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
     const addr = order.shippingAddress as Record<string, string> | null;
     const utms = (order as unknown as { utmData: Record<string, string> | null }).utmData;
     const nameParts = (addr?.name || "Cliente").split(" ");
+    const fbc = utms?.fbc || null;
+    const fbp = utms?.fbp || null;
 
     sendUtmifyEvent(
       order.orderNumber, "paid",
@@ -109,12 +111,11 @@ export async function POST(req: NextRequest) {
 
     sendMetaEvent({
       eventName: "Purchase", eventId: `${order.orderNumber}-purchase`,
-      sourceUrl: "https://loja-caterpillar.com/pedido-confirmado/" + order.orderNumber,
       email: order.email, phone: addr?.phone || null,
       firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
       value: Number(order.total), currency: "BRL",
       contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-      orderId: order.orderNumber,
+      orderId: order.orderNumber, fbc, fbp,
     }).catch((e) => console.error("[Meta CAPI] webhook error:", e));
 
     return NextResponse.json({ received: true, confirmed: order.orderNumber });

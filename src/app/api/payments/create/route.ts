@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
           orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
           paymentMethod: "pix", mpPaymentId, trackingCode,
           subtotal, shipping: shippingCost, total, shippingAddress,
-          utmData: utmData || undefined,
+          utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}) },
           items: { create: orderItems },
           statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Mercado Pago" }] },
         },
