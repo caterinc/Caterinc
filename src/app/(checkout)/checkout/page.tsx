@@ -775,6 +775,14 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {/* Rastreio */}
+              <div className="flex items-center gap-3 rounded-xl px-4 py-3.5" style={{ backgroundColor: "#f0fdf4", border: "1.5px solid #16c789" }}>
+                <span className="text-2xl">📦</span>
+                <p className="text-sm font-semibold leading-snug" style={{ color: "#14532d" }}>
+                  Após o pagamento você receberá o <strong>código de rastreio</strong> para acompanhar a entrega do seu pedido.
+                </p>
+              </div>
+
               {/* Order summary inline */}
               <div className="border-t pt-3 space-y-1.5 text-sm">
                 <div className="flex justify-between text-gray-600"><span>Produto</span><span>{formatPrice(total)}</span></div>
