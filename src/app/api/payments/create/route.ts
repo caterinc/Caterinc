@@ -227,12 +227,12 @@ export async function POST(req: NextRequest) {
     ).catch((e) => console.error("[UTMify] pix event error:", e));
 
     sendMetaEvent({
-      eventName: "InitiateCheckout", eventId: `${orderNumber}-initiate`,
+      eventName: "AddPaymentInfo", eventId: `${orderNumber}-pending`,
       email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
       value: total, currency: "BRL",
       contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
       orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
-    }).catch((e) => console.error("[Meta CAPI] pix initiate error:", e));
+    }).catch((e) => console.error("[Meta CAPI] pix pending error:", e));
 
     const poi = (pixResult as unknown as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
     const td  = poi?.transaction_data as Record<string, unknown> | undefined;
