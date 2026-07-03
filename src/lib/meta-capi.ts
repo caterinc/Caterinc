@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const PIXEL_ID = "1821164748580849";
-const VSL_URL = "https://caterinc.github.io/force-one";
+const VSL_URL = "https://forces-one.com";
 
 function hash(value: string): string {
   return crypto.createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
