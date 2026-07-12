@@ -31,7 +31,7 @@ export async function GET() {
     offerError = String(e);
   }
 
-  // Step 2: test create transaction with fixed offer
+  // Step 2: test with checkout-exact amount (24890 = R$248.90)
   let txResult: unknown = null;
   let txError: string | null = null;
   try {
@@ -39,31 +39,31 @@ export async function GET() {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        amount: 15990,
+        amount: 24890,
         payment_method: "pix",
         offer_hash: offerHash,
         expire_in_days: 1,
         transaction_origin: "api",
         postback_url: "https://loja-caterpillar.com/api/payments/webhook",
         customer: {
-          name: "Teste",
-          email: "teste@teste.com",
+          name: "Alexandre Cosme",
+          email: "alexandrecosme125@gmail.com",
           phone_number: "11999999999",
           document: "52998224725",
           street_name: "Rua Teste",
-          number: "1",
+          number: "123",
           complement: "",
           neighborhood: "Centro",
           city: "Sao Paulo",
           state: "SP",
           zip_code: "01001000",
         },
-        cart: [{ title: "Teste", price: 15990, quantity: 1, operation_type: 1, tangible: true, cover: null, product_hash: productHash }],
-        tracking: { src: "DIAG-001" },
+        cart: [{ title: "Bota Original Hadear", price: 24890, quantity: 1, operation_type: 1, tangible: true, cover: null, product_hash: productHash }],
+        tracking: { src: "DIAG-EXACT" },
       }),
     });
-    const body = await r.json();
-    txResult = { status: r.status, body };
+    const rawText = await r.text();
+    txResult = { status: r.status, ok: r.ok, rawText: rawText.slice(0, 500) };
   } catch (e) {
     txError = String(e);
   }
