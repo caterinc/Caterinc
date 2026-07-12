@@ -500,7 +500,7 @@ export default function CheckoutPage() {
               {/* Rodapé de segurança */}
               <div className="text-center pb-2">
                 <p className="text-[11px] text-gray-400">
-                  Ambiente seguro · Processado pelo <span className="font-bold">Mercado Pago</span>
+                  Ambiente seguro · Pagamento processado com segurança
                 </p>
               </div>
             </>
@@ -867,7 +867,7 @@ export default function CheckoutPage() {
           )}
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: STEP_COLOR }} />
-            Pagamento 100% seguro · Mercado Pago
+            Pagamento 100% seguro
           </div>
         </div>
       </div>

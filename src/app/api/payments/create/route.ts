@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import { slimmpayConfigured, slimmpayCreatePix } from "@/lib/slimmpay";
 
 export const dynamic = "force-dynamic";
 
@@ -26,65 +28,19 @@ interface AddressInput {
   district: string; city: string; state: string;
 }
 
-async function getMpClient() {
-  const token = process.env.MP_ACCESS_TOKEN;
-  if (!token) throw new Error("MP_NOT_CONFIGURED");
-  const { default: MercadoPago } = await import("mercadopago");
-  return new MercadoPago({ accessToken: token });
-}
-
-async function createPixPayment(
-  client: Awaited<ReturnType<typeof getMpClient>>, amount: number,
-  payer: { email: string; firstName: string; lastName: string; cpf: string },
-  description: string, externalRef: string
-) {
-  const { Payment } = await import("mercadopago");
-  return new Payment(client).create({
-    body: {
-      transaction_amount: amount, payment_method_id: "pix",
-      payer: {
-        email: payer.email, first_name: payer.firstName, last_name: payer.lastName,
-        identification: { type: "CPF", number: payer.cpf.replace(/\D/g, "") },
-      },
-      description, external_reference: externalRef,
-      notification_url: "https://loja-caterpillar.com/api/payments/webhook",
-    },
-  });
-}
-
-async function createCardPayment(
-  client: Awaited<ReturnType<typeof getMpClient>>, amount: number,
-  cardFormData: Record<string, unknown>, description: string, externalRef: string
-) {
-  const { Payment } = await import("mercadopago");
-  return new Payment(client).create({
-    body: {
-      transaction_amount: amount,
-      token: cardFormData.token as string,
-      installments: Number(cardFormData.installments) || 1,
-      payment_method_id: cardFormData.payment_method_id as string,
-      issuer_id: cardFormData.issuer_id ? Number(cardFormData.issuer_id) : undefined,
-      payer: cardFormData.payer as { email: string; identification: { type: string; number: string } },
-      description, external_reference: externalRef,
-      notification_url: "https://loja-caterpillar.com/api/payments/webhook",
-    },
-  });
-}
-
 export async function POST(req: NextRequest) {
   if (!verifyOrigin(req)) return NextResponse.json({ error: "Origem invalida" }, { status: 403 });
 
   let body: {
     personal?: PersonalInput; address?: AddressInput; paymentMethod?: string;
-    cartItems?: CartItemInput[]; cardFormData?: Record<string, unknown>;
-    consent?: boolean; shippingMethodId?: string | null;
+    cartItems?: CartItemInput[]; consent?: boolean; shippingMethodId?: string | null;
     utmData?: Record<string, string> | null;
     fbc?: string | null; fbp?: string | null;
   };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Payload invalido" }, { status: 400 }); }
 
-  const { personal, address, paymentMethod, cartItems, cardFormData, consent, shippingMethodId, utmData, fbc, fbp } = body;
+  const { personal, address, cartItems, consent, shippingMethodId, utmData, fbc, fbp } = body;
 
   if (!consent) return NextResponse.json({ error: "Consentimento LGPD obrigatorio" }, { status: 400 });
   if (!personal || !address || !cartItems || cartItems.length === 0)
@@ -95,8 +51,10 @@ export async function POST(req: NextRequest) {
   const phone = sanitizeString(personal.phone, 20);
   const cpf   = (personal.cpf || "").replace(/\D/g, "").slice(0, 11);
   if (!name || !email || !phone) return NextResponse.json({ error: "Dados pessoais invalidos" }, { status: 400 });
+  if (cpf.length !== 11) return NextResponse.json({ error: "CPF inválido. Confira se você digitou todos os 11 números corretamente." }, { status: 400 });
 
-  const method = paymentMethod === "pix" || paymentMethod === "card" ? paymentMethod : "pix";
+  if (!slimmpayConfigured())
+    return NextResponse.json({ error: "Pagamento nao configurado. Configure as credenciais no painel admin." }, { status: 503 });
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
   const products = await prisma.product.findMany({
@@ -144,174 +102,92 @@ export async function POST(req: NextRequest) {
   }
 
   const parts     = name.split(" ");
-  const firstName = parts[0];
-  const lastName  = parts.slice(1).join(" ") || parts[0];
   const nameParts = parts;
 
-  // ── Translate Mercado Pago errors to friendly Portuguese ─────────────────────
-  function translateMpError(msg: string): string {
-    const m = msg.toLowerCase();
-    if (m.includes("identification number") || m.includes("cpf") || m.includes("document"))
-      return "CPF inválido. Confira se você digitou todos os 11 números corretamente.";
-    if (m.includes("email"))
-      return "E-mail inválido. Confira se o endereço de e-mail está correto.";
-    if (m.includes("phone") || m.includes("telefone"))
-      return "Telefone inválido. Confira o número informado.";
-    if (m.includes("unauthorized") || m.includes("live credentials") || m.includes("test"))
-      return "Erro de configuração do pagamento. Entre em contato com a loja.";
-    if (m.includes("insufficient") || m.includes("amount") || m.includes("minimum"))
-      return "Valor inválido para pagamento. Tente novamente.";
-    if (m.includes("blocked") || m.includes("rejected") || m.includes("denied"))
-      return "Pagamento recusado. Verifique seus dados ou tente outro método.";
-    if (m.includes("expired") || m.includes("token"))
-      return "Dados do cartão expirados. Tente novamente.";
-    return "Não foi possível processar o pagamento. Verifique seus dados e tente novamente.";
-  }
+  // Generate order number before calling Slimmpay so it can go in metadata
+  const orderNumber  = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+  const trackingCode = generateTrackingCode();
+  const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
-  // ── Step 1: attempt payment with Mercado Pago BEFORE creating any order ──────
-  let mpClient: Awaited<ReturnType<typeof getMpClient>>;
-  try { mpClient = await getMpClient(); }
-  catch (e) {
-    const msg = e instanceof Error ? e.message : "Erro desconhecido";
-    if (msg === "MP_NOT_CONFIGURED")
-      return NextResponse.json({ error: "Pagamento nao configurado. Configure as credenciais do Mercado Pago no painel admin." }, { status: 503 });
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
-
-  // Temporary external reference before order exists — replaced after order creation
-  const tempRef = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  if (method === "pix") {
-    let pixResult: Awaited<ReturnType<typeof createPixPayment>>;
-    try {
-      pixResult = await createPixPayment(
-        mpClient, total, { email, firstName, lastName, cpf },
-        `Pedido Caterpillar`, tempRef
-      );
-    } catch (mpErr: unknown) {
-      const obj = mpErr as Record<string, unknown>;
-      const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
-      if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
-        return NextResponse.json({ error: "Credenciais de TESTE ativas. Use o e-mail do usuario de teste do MP no checkout." }, { status: 401 });
-      return NextResponse.json({ error: translateMpError(msg) }, { status: 502 });
-    }
-
-    // Payment accepted by MP — now create the order
-    const mpPaymentId = String(pixResult.id);
-    const orderNumber = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-    const trackingCode = generateTrackingCode();
-
-    const order = await prisma.$transaction(async (tx) => {
-      const o = await tx.order.create({
-        data: {
-          orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
-          paymentMethod: "pix", mpPaymentId, trackingCode,
-          subtotal, shipping: shippingCost, total, shippingAddress,
-          utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}) },
-          items: { create: orderItems },
-          statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Mercado Pago" }] },
-        },
-      });
-      for (const item of orderItems) {
-        if (item.variantId)
-          await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
-      }
-      return o;
+  let pixData: Awaited<ReturnType<typeof slimmpayCreatePix>>;
+  try {
+    pixData = await slimmpayCreatePix({
+      amount: total,
+      orderNumber,
+      name, email, cpf, phone,
+      itemName: itemName || "Pedido Caterpillar",
+      shippingFee: shippingCost,
+      address: {
+        street:     shippingAddress.street,
+        number:     shippingAddress.number,
+        complement: shippingAddress.complement,
+        district:   shippingAddress.district,
+        city:       shippingAddress.city,
+        state:      shippingAddress.state,
+        zipCode:    shippingAddress.zipCode,
+      },
     });
-
-    // Notifications after order is committed
-    sendUtmifyEvent(
-      orderNumber, "waiting_payment", { name, email, phone },
-      orderItems.map((i) => ({ id: i.productId || "item", name: i.name.replace(/caterpillar\s*/gi, "").trim(), quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
-      Math.round(total * 100), new Date(), utmData || null, "pix"
-    ).catch((e) => console.error("[UTMify] pix event error:", e));
-
-    sendMetaEvent({
-      eventName: "AddPaymentInfo", eventId: `${orderNumber}-pending`,
-      email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
-      value: total, currency: "BRL",
-      contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-      orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
-    }).catch((e) => console.error("[Meta CAPI] pix pending error:", e));
-
-    const poi = (pixResult as unknown as Record<string, unknown>)?.point_of_interaction as Record<string, unknown> | undefined;
-    const td  = poi?.transaction_data as Record<string, unknown> | undefined;
-
-    return NextResponse.json({
-      orderId: order.id, orderNumber, total,
-      qrCode:       sanitizeString(String(td?.qr_code || ""), 5000),
-      qrCodeBase64: sanitizeString(String(td?.qr_code_base64 || ""), 100000),
-    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Erro desconhecido";
+    console.error("[Slimmpay] PIX create error:", msg);
+    return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
-  if (method === "card") {
-    if (!cardFormData?.token)
-      return NextResponse.json({ error: "Token do cartao ausente" }, { status: 400 });
+  const slimmpayId = pixData.id;
+  const pixCode    = pixData.pix?.[0]?.qr_code || "";
 
-    let cardResult: Awaited<ReturnType<typeof createCardPayment>>;
-    try {
-      cardResult = await createCardPayment(mpClient, total, cardFormData, `Pedido Caterpillar`, tempRef);
-    } catch (mpErr: unknown) {
-      const obj = mpErr as Record<string, unknown>;
-      const msg = typeof obj?.message === "string" ? obj.message : "Erro desconhecido";
-      if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("live credentials"))
-        return NextResponse.json({ error: "Credenciais de TESTE ativas." }, { status: 401 });
-      return NextResponse.json({ error: translateMpError(msg) }, { status: 502 });
-    }
-
-    const res2         = cardResult as unknown as Record<string, unknown>;
-    const mpPaymentId  = String(cardResult.id);
-    const status       = String(res2.status || "pending");
-    const statusDetail = String(res2.status_detail || "");
-
-    // Only create order if approved or in-process (not rejected)
-    if (status === "rejected")
-      return NextResponse.json({ error: "Cartao recusado: " + statusDetail, status, statusDetail }, { status: 402 });
-
-    const orderNumber = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-    const trackingCode = generateTrackingCode();
-    const isApproved  = status === "approved";
-
-    const order = await prisma.$transaction(async (tx) => {
-      const o = await tx.order.create({
-        data: {
-          orderNumber, email,
-          status: isApproved ? "CONFIRMED" : "PENDING",
-          paymentStatus: isApproved ? "PAID" : "PENDING",
-          paymentMethod: "card", mpPaymentId, trackingCode,
-          subtotal, shipping: shippingCost, total, shippingAddress,
-          utmData: utmData || undefined,
-          items: { create: orderItems },
-          statusHistory: { create: [{ status: isApproved ? "CONFIRMED" : "PENDING", note: isApproved ? "Cartao aprovado pelo Mercado Pago" : "Cartao em processamento" }] },
-        },
-      });
-      if (isApproved) {
-        for (const item of orderItems) {
-          if (item.variantId)
-            await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
-        }
-      }
-      return o;
-    });
-
-    if (isApproved) {
-      sendMetaEvent({
-        eventName: "Purchase", eventId: `${orderNumber}-purchase`,
-        email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
-        value: total, currency: "BRL",
-        contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-        orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
-      }).catch((e) => console.error("[Meta CAPI] card purchase error:", e));
-
-      sendUtmifyEvent(
-        orderNumber, "paid", { name, email, phone },
-        orderItems.map((i) => ({ id: i.productId || "item", name: i.name.replace(/caterpillar\s*/gi, "").trim(), quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
-        Math.round(total * 100), new Date(), utmData || null, "card"
-      ).catch((e) => console.error("[UTMify] card paid error:", e));
-    }
-
-    return NextResponse.json({ orderId: order.id, orderNumber, total, status, statusDetail });
+  if (!pixCode) {
+    console.error("[Slimmpay] Resposta sem qr_code:", JSON.stringify(pixData));
+    return NextResponse.json({ error: "Erro ao gerar QR Code PIX. Tente novamente." }, { status: 502 });
   }
 
-  return NextResponse.json({ error: "Metodo invalido" }, { status: 400 });
+  // Generate QR code image from PIX code string
+  let qrCodeBase64 = "";
+  try {
+    const dataUrl = await QRCode.toDataURL(pixCode, { width: 300, margin: 1 });
+    qrCodeBase64 = dataUrl.replace("data:image/png;base64,", "");
+  } catch (e) {
+    console.error("[QRCode] generation error:", e);
+  }
+
+  // Create order in DB after successful Slimmpay response
+  const order = await prisma.$transaction(async (tx) => {
+    const o = await tx.order.create({
+      data: {
+        orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
+        paymentMethod: "pix",
+        mpPaymentId: slimmpayId,
+        trackingCode,
+        subtotal, shipping: shippingCost, total, shippingAddress,
+        utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}) },
+        items: { create: orderItems },
+        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Slimmpay" }] },
+      },
+    });
+    for (const item of orderItems) {
+      if (item.variantId)
+        await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
+    }
+    return o;
+  });
+
+  sendUtmifyEvent(
+    orderNumber, "waiting_payment", { name, email, phone },
+    orderItems.map((i) => ({ id: i.productId || "item", name: i.name.replace(/caterpillar\s*/gi, "").trim(), quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+    Math.round(total * 100), new Date(), utmData || null, "pix"
+  ).catch((e) => console.error("[UTMify] pix event error:", e));
+
+  sendMetaEvent({
+    eventName: "AddPaymentInfo", eventId: `${orderNumber}-pending`,
+    email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
+    value: total, currency: "BRL",
+    contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+    orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
+  }).catch((e) => console.error("[Meta CAPI] pix pending error:", e));
+
+  return NextResponse.json({
+    orderId: order.id, orderNumber, total,
+    qrCode:       pixCode,
+    qrCodeBase64: qrCodeBase64,
+  });
 }

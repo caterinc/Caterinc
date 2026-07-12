@@ -31,7 +31,7 @@ Loja de e-commerce de calçados (tênis Force One / linha Caterpillar). Next.js 
 - **ORM:** Prisma
 - **Banco:** PostgreSQL — Neon (`DATABASE_URL` no Vercel)
 - **Auth:** NextAuth.js (credenciais + JWT)
-- **Pagamento:** Mercado Pago (PIX + cartão)
+- **Pagamento:** Slimmpay (PIX)
 - **Deploy:** Vercel
 - **CSS:** Tailwind CSS
 
@@ -81,8 +81,8 @@ Loja de e-commerce de calçados (tênis Force One / linha Caterpillar). Next.js 
 | `DATABASE_URL` | Neon PostgreSQL |
 | `NEXTAUTH_SECRET` | Segredo do NextAuth |
 | `NEXTAUTH_URL` | `https://loja-caterpillar.com` |
-| `MP_ACCESS_TOKEN` | Mercado Pago (conta pode estar suspensa) |
-| `MP_PUBLIC_KEY` | Mercado Pago público |
+| `SLIMMPAY_PUBLIC_KEY` | Slimmpay — chave pública |
+| `SLIMMPAY_SECRET_KEY` | Slimmpay — chave secreta |
 | `META_CAPI_TOKEN` | Token da API de Conversões do Meta |
 | `CRON_SECRET` | Header Bearer para o cron-job.org (ver Vercel) |
 | `ADMIN_GATE_SECRET` | Segredo para desbloquear /admin (ver Vercel) |
@@ -130,12 +130,16 @@ Configurado no cron-job.org para checar pagamentos PIX pendentes:
 
 ---
 
-## Pagamento — Mercado Pago
+## Pagamento — Slimmpay
 
-- Conta pode estar suspensa — verificar status antes de testar
+- Auth: `Basic Base64(SLIMMPAY_PUBLIC_KEY:SLIMMPAY_SECRET_KEY)`
 - PIX: webhook em `https://loja-caterpillar.com/api/payments/webhook`
+- Webhook Slimmpay envia `{ Id, Status, PaymentMethod, Amount, PaidAt, ExternalId }`
+- Status aprovado: `Status === "PAID"`
+- Slimmpay transaction ID salvo em `order.mpPaymentId` (campo reaproveitado)
 - Fallback: cron a cada 1 min verifica pedidos PENDING dos últimos 3 dias
 - Após aprovação: status → CONFIRMED, paymentStatus → PAID
+- QR Code: gerado localmente a partir do `qr_code` (EMV string) via biblioteca `qrcode`
 
 ---
 

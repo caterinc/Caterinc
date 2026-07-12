@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import { slimmpayGetTransaction } from "@/lib/slimmpay";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,16 +15,12 @@ export async function GET(req: NextRequest) {
   const isVercelCron = req.headers.get("x-vercel-cron") === "1";
   const isCronSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-  // Allow: Vercel cron, correct secret, OR logged-in admin session
   if (!isVercelCron && !isCronSecret) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const accessToken = process.env.MP_ACCESS_TOKEN;
-  if (!accessToken) return NextResponse.json({ error: "MP not configured" }, { status: 500 });
-
-  // Find all PENDING PIX orders with an mpPaymentId (created in last 3 days)
+  // Find all PENDING PIX orders with a Slimmpay ID (created in last 3 days)
   const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const pendingOrders = await prisma.order.findMany({
     where: {
@@ -39,21 +36,15 @@ export async function GET(req: NextRequest) {
 
   for (const order of pendingOrders) {
     try {
-      const res = await fetch(`https://api.mercadopago.com/v1/payments/${order.mpPaymentId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) continue;
+      const status = await slimmpayGetTransaction(order.mpPaymentId!);
+      if (!status || status !== "PAID") continue;
 
-      const mp = await res.json() as { status: string };
-      if (mp.status !== "approved") continue;
-
-      // Mark as PAID
       await prisma.order.update({
         where: { id: order.id },
         data: { paymentStatus: "PAID", status: "CONFIRMED" },
       });
       await prisma.orderStatusHistory.create({
-        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron" },
+        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron (Slimmpay)" },
       });
 
       const addr = order.shippingAddress as Record<string, string> | null;
@@ -62,7 +53,6 @@ export async function GET(req: NextRequest) {
       const fbc = utms?.fbc || null;
       const fbp = utms?.fbp || null;
 
-      // UTMify paid
       sendUtmifyEvent(
         order.orderNumber, "paid",
         { name: addr?.name || "Cliente", email: order.email, phone: addr?.phone },
@@ -71,7 +61,6 @@ export async function GET(req: NextRequest) {
         order.createdAt, utms, "pix"
       ).catch((e) => console.error("[Cron/UTMify]", e));
 
-      // Meta CAPI Purchase
       sendMetaEvent({
         eventName: "Purchase", eventId: `${order.orderNumber}-purchase`,
         email: order.email, phone: addr?.phone || null,

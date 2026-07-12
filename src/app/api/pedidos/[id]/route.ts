@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { OrderStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -39,8 +40,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json();
   const { status, trackingCode, note, paymentStatus } = body;
 
+  const current = await prisma.order.findUnique({ where: { id: params.id } });
+  if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const updateData: Record<string, unknown> = {};
   if (paymentStatus) updateData.paymentStatus = paymentStatus;
+
+  // When tracking code is set → auto-advance to SHIPPED
+  let effectiveStatus: OrderStatus | undefined = status as OrderStatus | undefined;
+  if (
+    trackingCode !== undefined &&
+    trackingCode !== "" &&
+    trackingCode !== null &&
+    !effectiveStatus &&
+    (current.status === "CONFIRMED" || current.status === "PROCESSING")
+  ) {
+    effectiveStatus = "SHIPPED";
+  }
   if (trackingCode !== undefined) updateData.trackingCode = trackingCode;
 
   const order = await prisma.$transaction(async (tx) => {
@@ -48,13 +64,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       data: {
         ...updateData,
-        ...(status ? { status } : {}),
+        ...(effectiveStatus ? { status: effectiveStatus } : {}),
       },
     });
 
-    if (status) {
+    if (effectiveStatus) {
       await tx.orderStatusHistory.create({
-        data: { orderId: params.id, status, note: note || null },
+        data: {
+          orderId: params.id,
+          status: effectiveStatus,
+          note: note || (effectiveStatus === "SHIPPED" && trackingCode ? `Código de rastreio adicionado: ${trackingCode}` : null),
+        },
       });
     }
 

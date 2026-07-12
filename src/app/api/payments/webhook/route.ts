@@ -5,83 +5,63 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
+// Slimmpay webhook body: { Id, Status, PaymentMethod, Amount, PaidAt, ExternalId }
+interface SlimmpayWebhookBody {
+  Id?: string;
+  Status?: string;
+  PaymentMethod?: string;
+  Amount?: number;
+  PaidAt?: string;
+  ExternalId?: string;
+}
+
 export async function POST(req: NextRequest) {
   let rawBody = "";
-  try {
-    rawBody = await req.text();
-  } catch {
-    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
-  }
+  try { rawBody = await req.text(); }
+  catch { return NextResponse.json({ error: "Body inválido" }, { status: 400 }); }
 
-  let body: Record<string, unknown>;
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
-  }
+  let body: SlimmpayWebhookBody;
+  try { body = JSON.parse(rawBody) as SlimmpayWebhookBody; }
+  catch { return NextResponse.json({ error: "JSON inválido" }, { status: 400 }); }
 
-  // Suporta formato novo (action + data.id) e formato antigo IPN (topic + id)
-  const action = String(body.action || body.type || body.topic || "");
-  const paymentId = String(
-    (body.data as Record<string, unknown>)?.id || body.id || ""
-  );
+  const slimmpayId = body.Id || "";
+  const status     = (body.Status || "").toUpperCase();
 
-  console.log("[Webhook/MP] Body recebido:", JSON.stringify(body));
-  console.log("[Webhook/MP] action:", action, "| paymentId:", paymentId);
+  console.log("[Webhook/Slimmpay] Body recebido:", JSON.stringify(body));
+  console.log("[Webhook/Slimmpay] Id:", slimmpayId, "| Status:", status);
 
-  const isPaymentEvent = action.startsWith("payment") || action === "payment";
-  if (!isPaymentEvent || !paymentId) {
-    console.log("[Webhook/MP] Skipped — action:", action, "| paymentId:", paymentId);
+  if (!slimmpayId) {
+    console.log("[Webhook/Slimmpay] Skipped — sem Id");
     return NextResponse.json({ received: true, skipped: true });
   }
 
-  const log = async (mpStatus: string | null, result: string) => {
+  const log = async (result: string) => {
     try {
-      await prisma.webhookLog.create({ data: { source: "mercadopago", paymentId, action, mpStatus, result } });
+      await prisma.webhookLog.create({ data: { source: "slimmpay", paymentId: slimmpayId, action: status, mpStatus: status, result } });
     } catch { /* não bloqueia o fluxo */ }
   };
 
-  const accessToken = process.env.MP_ACCESS_TOKEN;
-  if (!accessToken) {
-    await log(null, "erro: MP_ACCESS_TOKEN não configurado");
-    return NextResponse.json({ received: true });
+  if (status !== "PAID") {
+    console.log("[Webhook/Slimmpay] Ignorado — status:", status);
+    await log(`ignorado: status=${status}`);
+    return NextResponse.json({ received: true, status });
   }
 
   try {
-    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!mpRes.ok) {
-      await log(null, `erro: MP API ${mpRes.status}`);
-      return NextResponse.json({ received: true });
-    }
-
-    const mpData = await mpRes.json() as { status: string; external_reference: string };
-    const mpStatus = mpData.status;
-
-    console.log("[Webhook/MP] Status do MP:", mpStatus, "| external_reference:", mpData.external_reference);
-
-    if (mpStatus !== "approved") {
-      console.log("[Webhook/MP] Ignorado — status não é approved:", mpStatus);
-      await log(mpStatus, `ignorado: status=${mpStatus}`);
-      return NextResponse.json({ received: true, status: mpStatus });
-    }
-
     const order = await prisma.order.findFirst({
-      where: { mpPaymentId: paymentId },
+      where: { mpPaymentId: slimmpayId },
       include: { items: true },
     });
 
-    console.log("[Webhook/MP] Pedido encontrado pelo mpPaymentId:", order ? order.orderNumber : "NÃO ENCONTRADO");
+    console.log("[Webhook/Slimmpay] Pedido encontrado:", order ? order.orderNumber : "NÃO ENCONTRADO");
 
     if (!order) {
-      await log(mpStatus, `pedido não encontrado para paymentId=${paymentId}`);
+      await log(`pedido não encontrado para slimmpayId=${slimmpayId}`);
       return NextResponse.json({ received: true, notFound: true });
     }
 
     if (order.paymentStatus === "PAID") {
-      await log(mpStatus, `já estava PAID: ${order.orderNumber}`);
+      await log(`já estava PAID: ${order.orderNumber}`);
       return NextResponse.json({ received: true, alreadyPaid: true });
     }
 
@@ -90,10 +70,10 @@ export async function POST(req: NextRequest) {
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook (payment ${paymentId})` },
+      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook Slimmpay (${slimmpayId})` },
     });
 
-    await log(mpStatus, `confirmado: ${order.orderNumber} R$${order.total}`);
+    await log(`confirmado: ${order.orderNumber} R$${order.total}`);
 
     const addr = order.shippingAddress as Record<string, string> | null;
     const utms = (order as unknown as { utmData: Record<string, string> | null }).utmData;
@@ -121,13 +101,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, confirmed: order.orderNumber });
 
   } catch (err) {
-    await log(null, `exceção: ${String(err)}`).catch(() => {});
-    console.error("[Webhook/MP] Erro:", err);
+    await log(`exceção: ${String(err)}`).catch(() => {});
+    console.error("[Webhook/Slimmpay] Erro:", err);
     return NextResponse.json({ received: true });
   }
 }
 
-// MP faz GET para verificar que a URL está acessível
 export async function GET() {
-  return NextResponse.json({ status: "ok", webhook: "mercadopago" });
+  return NextResponse.json({ status: "ok", webhook: "slimmpay" });
 }
