@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import { slimmpayGetTransaction } from "@/lib/slimmpay";
+import { goatpayGetTransaction } from "@/lib/goatpay";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Find all PENDING PIX orders with a Slimmpay ID (created in last 3 days)
   const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const pendingOrders = await prisma.order.findMany({
     where: {
@@ -36,15 +35,15 @@ export async function GET(req: NextRequest) {
 
   for (const order of pendingOrders) {
     try {
-      const status = await slimmpayGetTransaction(order.mpPaymentId!);
-      if (!status || status !== "PAID") continue;
+      const status = await goatpayGetTransaction(order.mpPaymentId!);
+      if (!status || status !== "paid") continue;
 
       await prisma.order.update({
         where: { id: order.id },
         data: { paymentStatus: "PAID", status: "CONFIRMED" },
       });
       await prisma.orderStatusHistory.create({
-        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron (Slimmpay)" },
+        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron (Goatpay)" },
       });
 
       const addr = order.shippingAddress as Record<string, string> | null;

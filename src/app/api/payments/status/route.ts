@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import { slimmpayGetTransaction } from "@/lib/slimmpay";
+import { goatpayGetTransaction } from "@/lib/goatpay";
 
 export const dynamic = "force-dynamic";
 
@@ -17,23 +17,20 @@ export async function GET(req: NextRequest) {
 
   if (!order) return NextResponse.json({ paid: false });
 
-  // Already confirmed in DB
   if (order.paymentStatus === "PAID") return NextResponse.json({ paid: true, orderNumber: order.orderNumber });
 
-  // Check Slimmpay API directly
   try {
     if (!order.mpPaymentId) return NextResponse.json({ paid: false });
 
-    const status = await slimmpayGetTransaction(order.mpPaymentId);
-    if (!status || status !== "PAID") return NextResponse.json({ paid: false });
+    const status = await goatpayGetTransaction(order.mpPaymentId);
+    if (!status || status !== "paid") return NextResponse.json({ paid: false });
 
-    // Update DB
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via polling (Slimmpay)" },
+      data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via polling (Goatpay)" },
     });
 
     const addr = order.shippingAddress as Record<string, string> | null;
@@ -62,7 +59,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ paid: true, orderNumber: order.orderNumber });
 
   } catch (e) {
-    console.error("[Status] Slimmpay check error:", e);
+    console.error("[Status] Goatpay check error:", e);
   }
 
   return NextResponse.json({ paid: false });

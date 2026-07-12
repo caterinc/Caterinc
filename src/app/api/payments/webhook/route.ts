@@ -5,14 +5,13 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
-// Slimmpay webhook body: { Id, Status, PaymentMethod, Amount, PaidAt, ExternalId }
-interface SlimmpayWebhookBody {
-  Id?: string;
-  Status?: string;
-  PaymentMethod?: string;
-  Amount?: number;
-  PaidAt?: string;
-  ExternalId?: string;
+// Goatpay webhook: { transaction_hash, status, amount, payment_method, paid_at }
+interface GoatpayWebhook {
+  transaction_hash?: string;
+  status?: string;
+  amount?: number;
+  payment_method?: string;
+  paid_at?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -20,43 +19,41 @@ export async function POST(req: NextRequest) {
   try { rawBody = await req.text(); }
   catch { return NextResponse.json({ error: "Body inválido" }, { status: 400 }); }
 
-  let body: SlimmpayWebhookBody;
-  try { body = JSON.parse(rawBody) as SlimmpayWebhookBody; }
+  let body: GoatpayWebhook;
+  try { body = JSON.parse(rawBody) as GoatpayWebhook; }
   catch { return NextResponse.json({ error: "JSON inválido" }, { status: 400 }); }
 
-  const slimmpayId = body.Id || "";
-  const status     = (body.Status || "").toUpperCase();
+  const hash   = body.transaction_hash || "";
+  const status = (body.status || "").toLowerCase();
 
-  console.log("[Webhook/Slimmpay] Body recebido:", JSON.stringify(body));
-  console.log("[Webhook/Slimmpay] Id:", slimmpayId, "| Status:", status);
+  console.log("[Webhook/Goatpay] hash:", hash, "| status:", status);
 
-  if (!slimmpayId) {
-    console.log("[Webhook/Slimmpay] Skipped — sem Id");
+  if (!hash) {
+    console.log("[Webhook/Goatpay] Skipped — sem transaction_hash");
     return NextResponse.json({ received: true, skipped: true });
   }
 
   const log = async (result: string) => {
     try {
-      await prisma.webhookLog.create({ data: { source: "slimmpay", paymentId: slimmpayId, action: status, mpStatus: status, result } });
-    } catch { /* não bloqueia o fluxo */ }
+      await prisma.webhookLog.create({ data: { source: "goatpay", paymentId: hash, action: status, mpStatus: status, result } });
+    } catch { /* não bloqueia */ }
   };
 
-  if (status !== "PAID") {
-    console.log("[Webhook/Slimmpay] Ignorado — status:", status);
+  if (status !== "paid") {
     await log(`ignorado: status=${status}`);
     return NextResponse.json({ received: true, status });
   }
 
   try {
     const order = await prisma.order.findFirst({
-      where: { mpPaymentId: slimmpayId },
+      where: { mpPaymentId: hash },
       include: { items: true },
     });
 
-    console.log("[Webhook/Slimmpay] Pedido encontrado:", order ? order.orderNumber : "NÃO ENCONTRADO");
+    console.log("[Webhook/Goatpay] Pedido:", order ? order.orderNumber : "NÃO ENCONTRADO");
 
     if (!order) {
-      await log(`pedido não encontrado para slimmpayId=${slimmpayId}`);
+      await log(`pedido não encontrado para hash=${hash}`);
       return NextResponse.json({ received: true, notFound: true });
     }
 
@@ -70,7 +67,7 @@ export async function POST(req: NextRequest) {
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook Slimmpay (${slimmpayId})` },
+      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook Goatpay (${hash})` },
     });
 
     await log(`confirmado: ${order.orderNumber} R$${order.total}`);
@@ -102,11 +99,11 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     await log(`exceção: ${String(err)}`).catch(() => {});
-    console.error("[Webhook/Slimmpay] Erro:", err);
+    console.error("[Webhook/Goatpay] Erro:", err);
     return NextResponse.json({ received: true });
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ status: "ok", webhook: "slimmpay" });
+  return NextResponse.json({ status: "ok", webhook: "goatpay" });
 }

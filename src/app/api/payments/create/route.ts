@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import { slimmpayConfigured, slimmpayCreatePix } from "@/lib/slimmpay";
+import { goatpayConfigured, goatpayCreatePix } from "@/lib/goatpay";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !phone) return NextResponse.json({ error: "Dados pessoais invalidos" }, { status: 400 });
   if (cpf.length !== 11) return NextResponse.json({ error: "CPF inválido. Confira se você digitou todos os 11 números corretamente." }, { status: 400 });
 
-  if (!slimmpayConfigured())
+  if (!goatpayConfigured())
     return NextResponse.json({ error: "Pagamento nao configurado. Configure as credenciais no painel admin." }, { status: 503 });
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
@@ -104,14 +104,13 @@ export async function POST(req: NextRequest) {
   const parts     = name.split(" ");
   const nameParts = parts;
 
-  // Generate order number before calling Slimmpay so it can go in metadata
   const orderNumber  = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
   const trackingCode = generateTrackingCode();
   const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
-  let pixData: Awaited<ReturnType<typeof slimmpayCreatePix>>;
+  let pixData: Awaited<ReturnType<typeof goatpayCreatePix>>;
   try {
-    pixData = await slimmpayCreatePix({
+    pixData = await goatpayCreatePix({
       amount: total,
       orderNumber,
       name, email, cpf, phone,
@@ -129,19 +128,18 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    console.error("[Slimmpay] PIX create error:", msg);
+    console.error("[Goatpay] PIX create error:", msg);
     return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
-  const slimmpayId = pixData.id;
-  const pixCode    = pixData.pix?.[0]?.qr_code || "";
+  const goatpayHash = pixData.hash;
+  const pixCode     = pixData.pix?.qr_code || pixData.pix?.qr_code_url || "";
 
   if (!pixCode) {
-    console.error("[Slimmpay] Resposta sem qr_code:", JSON.stringify(pixData));
+    console.error("[Goatpay] Resposta sem qr_code:", JSON.stringify(pixData));
     return NextResponse.json({ error: "Erro ao gerar QR Code PIX. Tente novamente." }, { status: 502 });
   }
 
-  // Generate QR code image from PIX code string
   let qrCodeBase64 = "";
   try {
     const dataUrl = await QRCode.toDataURL(pixCode, { width: 300, margin: 1 });
@@ -150,18 +148,17 @@ export async function POST(req: NextRequest) {
     console.error("[QRCode] generation error:", e);
   }
 
-  // Create order in DB after successful Slimmpay response
   const order = await prisma.$transaction(async (tx) => {
     const o = await tx.order.create({
       data: {
         orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
         paymentMethod: "pix",
-        mpPaymentId: slimmpayId,
+        mpPaymentId: goatpayHash,
         trackingCode,
         subtotal, shipping: shippingCost, total, shippingAddress,
         utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}) },
         items: { create: orderItems },
-        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Slimmpay" }] },
+        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Goatpay" }] },
       },
     });
     for (const item of orderItems) {
