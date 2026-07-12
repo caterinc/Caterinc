@@ -90,8 +90,9 @@ async function tryCreatePixWithProduct(
     return null;
   }
 
-  const json = await res.json() as { data?: GoatpayPixData; transaction?: GoatpayPixData } & GoatpayPixData;
-  const data = json.data || json.transaction || json;
+  // GoatPay returns a flat object — "transaction" field is a STRING gateway ID, not an object
+  const json = await res.json() as { data?: GoatpayPixData } & GoatpayPixData;
+  const data = json.data || json;
 
   // Make sure PIX QR code was actually generated (some adquirentes accept but return null QR)
   const hasQr = data?.pix?.pix_qr_code || data?.pix?.qr_code || data?.pix?.pix_url || data?.pix?.qr_code_url;
