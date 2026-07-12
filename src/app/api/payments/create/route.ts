@@ -186,5 +186,6 @@ export async function POST(req: NextRequest) {
     orderId: order.id, orderNumber, total,
     qrCode:       pixCode,
     qrCodeBase64: qrCodeBase64,
+    merchantName: pixData.merchantName || "",
   });
 }

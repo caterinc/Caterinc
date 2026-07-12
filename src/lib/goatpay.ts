@@ -12,6 +12,7 @@ export interface GoatpayPixData {
   hash: string;
   status: string;
   payment_status?: string;
+  merchantName?: string;
   pix?: {
     pix_qr_code?: string;
     pix_url?: string;
@@ -19,6 +20,19 @@ export interface GoatpayPixData {
     qr_code_url?: string;
     expiration_date?: string;
   };
+}
+
+// Parses field 59 (merchant name) from a PIX EMV string
+function extractPixMerchantName(emv: string): string {
+  let i = 0;
+  while (i + 4 <= emv.length) {
+    const id = emv.slice(i, i + 2);
+    const len = parseInt(emv.slice(i + 2, i + 4), 10);
+    if (isNaN(len)) break;
+    if (id === "59") return emv.slice(i + 4, i + 4 + len).trim();
+    i += 4 + len;
+  }
+  return "";
 }
 
 // Creates a dynamic offer on a product with the exact price needed
@@ -95,13 +109,14 @@ async function tryCreatePixWithProduct(
   const data = json.data || json;
 
   // Make sure PIX QR code was actually generated (some adquirentes accept but return null QR)
-  const hasQr = data?.pix?.pix_qr_code || data?.pix?.qr_code || data?.pix?.pix_url || data?.pix?.qr_code_url;
-  if (!hasQr) {
+  const pixCode = data?.pix?.pix_qr_code || data?.pix?.qr_code || data?.pix?.pix_url || data?.pix?.qr_code_url;
+  if (!pixCode) {
     console.warn(`[Goatpay] Produto ${productHash}: transação criada mas sem QR code — adquirente recusou`);
     return null;
   }
 
-  return data;
+  const merchantName = extractPixMerchantName(typeof pixCode === "string" ? pixCode : "");
+  return { ...data, merchantName };
 }
 
 export async function goatpayCreatePix(params: {

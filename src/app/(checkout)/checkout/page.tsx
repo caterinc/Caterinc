@@ -33,7 +33,7 @@ interface ShippingMethod {
   id: string; name: string; description: string | null;
   price: number; minDays: number | null; maxDays: number | null; freeAbove: number | null;
 }
-interface PixResult    { orderId: string; orderNumber: string; qrCode: string; qrCodeBase64: string; total: number }
+interface PixResult    { orderId: string; orderNumber: string; qrCode: string; qrCodeBase64: string; total: number; merchantName?: string }
 
 const STEP_COLOR = "var(--vep-checkout-step-active-bg, #16c789)";
 const STEP_TEXT  = "var(--vep-checkout-step-active-text, #fff)";
@@ -319,11 +319,11 @@ export default function CheckoutPage() {
           })),
         }),
       });
-      const data = (await res.json()) as { error?: string; orderId?: string; orderNumber?: string; total?: number; qrCode?: string; qrCodeBase64?: string; barcode?: string; pdfUrl?: string | null; status?: string; statusDetail?: string };
+      const data = (await res.json()) as { error?: string; orderId?: string; orderNumber?: string; total?: number; qrCode?: string; qrCodeBase64?: string; barcode?: string; pdfUrl?: string | null; status?: string; statusDetail?: string; merchantName?: string };
       if (!res.ok) throw new Error(data.error || "Erro ao processar pedido");
       dispatch({ type: "CLEAR" });
       if (payMethod === "pix") {
-        const pr: PixResult = { orderId: data.orderId!, orderNumber: data.orderNumber!, qrCode: data.qrCode!, qrCodeBase64: data.qrCodeBase64!, total: data.total! };
+        const pr: PixResult = { orderId: data.orderId!, orderNumber: data.orderNumber!, qrCode: data.qrCode!, qrCodeBase64: data.qrCodeBase64!, total: data.total!, merchantName: data.merchantName };
         setPixResult(pr);
         setStage("pix");
         try { sessionStorage.setItem("_pix_result", JSON.stringify({ ...pr, savedAt: Date.now(), timerLeft: 600 })); } catch {}
@@ -432,6 +432,11 @@ export default function CheckoutPage() {
                         <img src={`data:image/png;base64,${pixResult.qrCodeBase64}`} alt="QR Code PIX" className="w-48 h-48" />
                       </div>
                       <p className="text-xs text-gray-400 mt-2 text-center">Abra o app do seu banco e escaneie</p>
+                      {pixResult.merchantName && (
+                        <p className="text-xs text-gray-400 mt-1 text-center">
+                          Beneficiário: <span className="font-semibold text-gray-600">{pixResult.merchantName}</span>
+                        </p>
+                      )}
                     </div>
                   )}
 
