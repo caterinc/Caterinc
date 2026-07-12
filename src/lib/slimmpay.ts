@@ -31,7 +31,7 @@ export async function slimmpayCreatePix(params: {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: authHeader() },
     body: JSON.stringify({
-      amount: params.amount,
+      amount: Math.round(params.amount * 100),
       payment_method: "pix",
       postback_url: "https://loja-caterpillar.com/api/payments/webhook",
       customer: {
@@ -41,10 +41,10 @@ export async function slimmpayCreatePix(params: {
         phone: params.phone.replace(/\D/g, ""),
       },
       pix: { expires_in_days: 1 },
-      items: [{ title: params.itemName, unit_price: params.amount, quantity: 1, tangible: true }],
-      metadata: JSON.stringify({ order_number: params.orderNumber }),
+      items: [{ title: params.itemName, unit_price: Math.round(params.amount * 100), quantity: 1, tangible: true }],
+      metadata: { order_number: params.orderNumber },
       shipping: {
-        fee: params.shippingFee,
+        fee: Math.round(params.shippingFee * 100),
         address: {
           street: params.address.street,
           street_number: params.address.number,
