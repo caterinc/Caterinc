@@ -34,31 +34,15 @@ async function createDynamicOffer(productHash: string, amountCents: number): Pro
   return json.hash;
 }
 
-export async function goatpayCreatePix(params: {
-  amount: number;
-  orderNumber: string;
-  name: string;
-  email: string;
-  cpf: string;
-  phone: string;
-  itemName: string;
-  shippingFee: number;
-  address: { street: string; number: string; complement: string; district: string; city: string; state: string; zipCode: string };
-}): Promise<GoatpayPixData> {
-  const amountCents = Math.round(params.amount * 100);
-
-  // Resolve offer_hash: use env if set, otherwise create a dynamic offer on the product
-  let offerHash = process.env.GOATPAY_OFFER_HASH || "";
-  const productHash = process.env.GOATPAY_PRODUCT_HASH || "";
-
-  if (!offerHash && productHash) {
-    offerHash = await createDynamicOffer(productHash, amountCents);
+async function tryCreatePixWithProduct(
+  productHash: string,
+  offerHash: string,
+  amountCents: number,
+  params: {
+    orderNumber: string; name: string; email: string; cpf: string; phone: string; itemName: string;
+    address: { street: string; number: string; complement: string; district: string; city: string; state: string; zipCode: string };
   }
-
-  if (!offerHash) {
-    throw new Error("Goatpay: configure GOATPAY_OFFER_HASH ou GOATPAY_PRODUCT_HASH nas variáveis de ambiente");
-  }
-
+): Promise<GoatpayPixData | null> {
   const body: Record<string, unknown> = {
     amount: amountCents,
     payment_method: "pix",
@@ -86,7 +70,7 @@ export async function goatpayCreatePix(params: {
       operation_type: 1,
       tangible: true,
       cover: null,
-      product_hash: productHash || undefined,
+      product_hash: productHash,
     }],
     tracking: { src: params.orderNumber },
   };
@@ -98,12 +82,69 @@ export async function goatpayCreatePix(params: {
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Goatpay ${res.status}: ${err}`);
+    console.warn(`[Goatpay] Produto ${productHash} falhou (${res.status}) — tentando próximo`);
+    return null;
   }
 
   const json = await res.json() as { data?: GoatpayPixData; transaction?: GoatpayPixData } & GoatpayPixData;
-  return json.data || json.transaction || json;
+  const data = json.data || json.transaction || json;
+
+  // Make sure PIX QR code was actually generated (some adquirentes accept but return null QR)
+  if (!data?.pix?.qr_code && !data?.pix?.qr_code_url) {
+    console.warn(`[Goatpay] Produto ${productHash}: transação criada mas sem QR code — adquirente recusou`);
+    return null;
+  }
+
+  return data;
+}
+
+export async function goatpayCreatePix(params: {
+  amount: number;
+  orderNumber: string;
+  name: string;
+  email: string;
+  cpf: string;
+  phone: string;
+  itemName: string;
+  shippingFee: number;
+  address: { street: string; number: string; complement: string; district: string; city: string; state: string; zipCode: string };
+}): Promise<GoatpayPixData> {
+  const amountCents = Math.round(params.amount * 100);
+
+  // GOATPAY_PRODUCT_HASH supports multiple products separated by comma for fallback
+  // e.g. "qatodoboiz,g2tbuuxtyh"  → tries Woovi first, Rapdyn as backup
+  const productHashes = (process.env.GOATPAY_PRODUCT_HASH || "").split(",").map(h => h.trim()).filter(Boolean);
+  const fixedOfferHash = process.env.GOATPAY_OFFER_HASH || "";
+
+  if (productHashes.length === 0 && !fixedOfferHash) {
+    throw new Error("Goatpay: configure GOATPAY_PRODUCT_HASH (ou GOATPAY_OFFER_HASH) nas variáveis de ambiente");
+  }
+
+  // If a fixed offer hash is provided, use it directly with the first product
+  if (fixedOfferHash) {
+    const productHash = productHashes[0] || "";
+    const result = await tryCreatePixWithProduct(productHash, fixedOfferHash, amountCents, params);
+    if (result) return result;
+    throw new Error("Goatpay: adquirente recusou o PIX");
+  }
+
+  // Otherwise try each product (creates a dynamic offer per product)
+  let lastError = "";
+  for (const productHash of productHashes) {
+    try {
+      const offerHash = await createDynamicOffer(productHash, amountCents);
+      const result = await tryCreatePixWithProduct(productHash, offerHash, amountCents, params);
+      if (result) {
+        console.log(`[Goatpay] PIX gerado com sucesso via produto ${productHash}`);
+        return result;
+      }
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : String(e);
+      console.warn(`[Goatpay] Produto ${productHash} erro:`, lastError);
+    }
+  }
+
+  throw new Error(`Goatpay: nenhum adquirente gerou PIX. Último erro: ${lastError}`);
 }
 
 export async function goatpayGetTransaction(hash: string): Promise<string | null> {
@@ -112,7 +153,8 @@ export async function goatpayGetTransaction(hash: string): Promise<string | null
   });
   if (!res.ok) return null;
 
-  const json = await res.json() as { data?: { status?: string }; status?: string };
-  const status = json.data?.status || json.status;
+  const json = await res.json() as { data?: { status?: string; payment_status?: string }; status?: string; payment_status?: string };
+  const d = json.data || json;
+  const status = (d as { status?: string; payment_status?: string }).payment_status || (d as { status?: string }).status;
   return status ? status.toLowerCase() : null;
 }
