@@ -11,7 +11,10 @@ export function goatpayConfigured(): boolean {
 export interface GoatpayPixData {
   hash: string;
   status: string;
+  payment_status?: string;
   pix?: {
+    pix_qr_code?: string;
+    pix_url?: string;
     qr_code?: string;
     qr_code_url?: string;
     expiration_date?: string;
@@ -90,7 +93,8 @@ async function tryCreatePixWithProduct(
   const data = json.data || json.transaction || json;
 
   // Make sure PIX QR code was actually generated (some adquirentes accept but return null QR)
-  if (!data?.pix?.qr_code && !data?.pix?.qr_code_url) {
+  const hasQr = data?.pix?.pix_qr_code || data?.pix?.qr_code || data?.pix?.pix_url || data?.pix?.qr_code_url;
+  if (!hasQr) {
     console.warn(`[Goatpay] Produto ${productHash}: transação criada mas sem QR code — adquirente recusou`);
     return null;
   }

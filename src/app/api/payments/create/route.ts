@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
   }
 
   const goatpayHash = pixData.hash;
-  const pixCode     = pixData.pix?.qr_code || pixData.pix?.qr_code_url || "";
+  const pixCode     = pixData.pix?.pix_qr_code || pixData.pix?.qr_code || pixData.pix?.pix_url || pixData.pix?.qr_code_url || "";
 
   if (!pixCode) {
     console.error("[Goatpay] Resposta sem qr_code:", JSON.stringify(pixData));
