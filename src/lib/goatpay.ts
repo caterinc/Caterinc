@@ -85,7 +85,8 @@ async function tryCreatePixWithProduct(
   });
 
   if (!res.ok) {
-    console.warn(`[Goatpay] Produto ${productHash} falhou (${res.status}) — tentando próximo`);
+    const errBody = await res.text().catch(() => "");
+    console.warn(`[Goatpay] Produto ${productHash} falhou (${res.status}): ${errBody}`);
     return null;
   }
 
