@@ -41,10 +41,19 @@ export function sanitizeSlug(input: unknown): string {
 
 // Verify request Origin/Referer for state-changing routes
 export function verifyOrigin(req: Request, allowedOrigin?: string): boolean {
-  const allowed = allowedOrigin || process.env.NEXTAUTH_URL || "";
+  const rawAllowed = allowedOrigin || process.env.NEXTAUTH_URL || "";
+  let allowedHost = "";
+  try { allowedHost = rawAllowed ? new URL(rawAllowed).origin : ""; } catch { allowedHost = ""; }
+
+  const isAllowed = (url: string): boolean => {
+    if (url.startsWith("http://localhost")) return true;
+    if (!allowedHost) return true;
+    try { return new URL(url).origin === allowedHost; } catch { return false; }
+  };
+
   const origin  = req.headers.get("origin");
   const referer = req.headers.get("referer");
-  if (origin)  return origin.startsWith("http://localhost")  || (allowed ? origin  === allowed                : true);
-  if (referer) return referer.startsWith("http://localhost") || (allowed ? referer.startsWith(allowed)        : true);
+  if (origin)  return isAllowed(origin);
+  if (referer) return isAllowed(referer);
   return true;
 }
