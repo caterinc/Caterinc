@@ -432,11 +432,6 @@ export default function CheckoutPage() {
                         <img src={`data:image/png;base64,${pixResult.qrCodeBase64}`} alt="QR Code PIX" className="w-48 h-48" />
                       </div>
                       <p className="text-xs text-gray-400 mt-2 text-center">Abra o app do seu banco e escaneie</p>
-                      {pixResult.merchantName && (
-                        <p className="text-xs text-gray-400 mt-1 text-center">
-                          Beneficiário: <span className="font-semibold text-gray-600">{pixResult.merchantName}</span>
-                        </p>
-                      )}
                     </div>
                   )}
 
@@ -496,7 +491,7 @@ export default function CheckoutPage() {
                   <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#16c789" }} />
                   <div>
                     <p className="text-xs font-black text-gray-700">Beneficiário do pagamento</p>
-                    <p className="text-sm font-bold text-gray-900 mt-0.5">ZENYX INTERMEDIAÇÕES LTDA</p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">{pixResult.merchantName || "ZENYX INTERMEDIAÇÕES LTDA"}</p>
                     <p className="text-xs text-gray-400 mt-0.5">Os pagamentos são processados exclusivamente em nome deste CNPJ. Verifique no app do seu banco antes de confirmar.</p>
                   </div>
                 </div>
