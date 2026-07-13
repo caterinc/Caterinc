@@ -769,9 +769,9 @@ export default function CheckoutPage() {
               </div>
 
               {payMethod === "card" && (
-                <div className="border-2 border-amber-100 rounded-xl p-5 text-center space-y-1.5 bg-amber-50">
-                  <p className="text-sm font-semibold text-amber-800">Temporariamente indisponível — sistema em atualização</p>
-                  <p className="text-sm text-amber-700">Por favor, utilize o <strong>PIX</strong> para finalizar seu pedido.</p>
+                <div className="border-2 border-gray-100 rounded-xl p-5 text-center space-y-1.5 bg-gray-50">
+                  <p className="text-sm font-semibold text-gray-700">Temporariamente indisponível — sistema em atualização</p>
+                  <p className="text-sm text-gray-500">Por favor, utilize o <strong>PIX</strong> para finalizar seu pedido.</p>
                 </div>
               )}
 
