@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Edit, Trash2, Package } from "lucide-react";
+import { Edit, Trash2, Package, Archive, ArchiveRestore } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ interface Product {
   price: number | string | { toNumber?: () => number };
   images: string[];
   isActive: boolean;
+  isArchived: boolean;
   isFeatured: boolean;
   category: Category | null;
   variants: Variant[];
@@ -31,6 +32,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
+  const [archiving, setArchiving] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
 
   const allSelected = products.length > 0 && selected.size === products.length;
@@ -51,6 +53,22 @@ export function ProductsTable({ products }: ProductsTableProps) {
       else next.add(id);
       return next;
     });
+  };
+
+  const toggleArchive = async (id: string, name: string, isArchived: boolean) => {
+    setArchiving((prev) => new Set(prev).add(id));
+    const res = await fetch(`/api/produtos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isArchived: !isArchived }),
+    });
+    setArchiving((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    if (res.ok) {
+      toast({ title: isArchived ? `"${name}" desarquivado` : `"${name}" arquivado — só acessível pelo link direto`, variant: "success" });
+      startTransition(() => router.refresh());
+    } else {
+      toast({ title: "Erro ao arquivar produto", variant: "destructive" });
+    }
   };
 
   const deleteOne = async (id: string, name: string) => {
@@ -186,15 +204,29 @@ export function ProductsTable({ products }: ProductsTableProps) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={product.isActive ? "success" : "secondary"}>
-                      {product.isActive ? "Ativo" : "Inativo"}
-                    </Badge>
+                    {product.isArchived ? (
+                      <Badge variant="secondary">Arquivado</Badge>
+                    ) : (
+                      <Badge variant={product.isActive ? "success" : "secondary"}>
+                        {product.isActive ? "Ativo" : "Inativo"}
+                      </Badge>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <Link href={`/admin/produtos/${product.id}`} className="text-gray-400 hover:text-cat-black transition-colors" title="Editar">
                         <Edit className="w-4 h-4" />
                       </Link>
+                      <button
+                        onClick={() => toggleArchive(product.id, product.name, product.isArchived)}
+                        disabled={archiving.has(product.id)}
+                        className={`transition-colors disabled:opacity-40 ${product.isArchived ? "text-blue-400 hover:text-blue-600" : "text-gray-400 hover:text-orange-500"}`}
+                        title={product.isArchived ? "Desarquivar" : "Arquivar (oculta das listagens, acessível pelo link)"}
+                      >
+                        {product.isArchived
+                          ? <ArchiveRestore className="w-4 h-4" />
+                          : <Archive className="w-4 h-4" />}
+                      </button>
                       <button
                         onClick={() => deleteOne(product.id, product.name)}
                         disabled={isDeleting}

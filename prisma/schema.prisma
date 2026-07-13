@@ -109,6 +109,7 @@ model Product {
   images          String[]
   categoryId      String?
   isActive        Boolean  @default(true)
+  isArchived      Boolean  @default(false)
   isFeatured      Boolean  @default(false)
   order           Int      @default(0)
   tags            String[]

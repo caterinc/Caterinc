@@ -20,7 +20,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
   const busca = searchParams.busca;
   const sortBy = searchParams.sortBy ?? "order";
 
-  const where: Record<string, unknown> = { isActive: true };
+  const where: Record<string, unknown> = { isActive: true, isArchived: false };
   if (categoria) where.category = { slug: categoria };
   if (busca) where.name = { contains: busca, mode: "insensitive" };
 

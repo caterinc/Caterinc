@@ -83,6 +83,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as { role: string }).role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const body = await req.json() as { isArchived?: boolean; isActive?: boolean };
+  const data: Record<string, unknown> = {};
+  if (typeof body.isArchived === "boolean") data.isArchived = body.isArchived;
+  if (typeof body.isActive === "boolean") data.isActive = body.isActive;
+  const product = await prisma.product.update({ where: { id: params.id }, data });
+  return NextResponse.json(product);
+}
+
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role: string }).role !== "ADMIN") {

@@ -62,7 +62,7 @@ export default async function HomePage() {
           where: { slug: { in: slugs }, isActive: true },
           include: {
             products: {
-              where: { isActive: true },
+              where: { isActive: true, isArchived: false },
               include: { variants: true, category: true },
               orderBy: { order: "asc" },
               take: maxProducts,
