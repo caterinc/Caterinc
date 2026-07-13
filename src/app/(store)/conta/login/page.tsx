@@ -2,35 +2,29 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/conta";
+  const error = searchParams.get("error");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await signIn("credentials", {
+    await signIn("credentials", {
       email: form.email,
       password: form.password,
-      redirect: false,
+      callbackUrl,
+      redirect: true,
     });
-
     setLoading(false);
-    if (res?.error) {
-      toast({ title: "Email ou senha inválidos", variant: "destructive" });
-    } else {
-      window.location.href = callbackUrl;
-    }
   };
 
   return (
@@ -41,6 +35,12 @@ export default function LoginPage() {
           <h1 className="text-2xl font-black text-cat-black">Entrar na sua conta</h1>
           <p className="text-gray-500 text-sm mt-1">Acesse seus pedidos e dados</p>
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4 text-center font-medium">
+            Email ou senha inválidos
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
