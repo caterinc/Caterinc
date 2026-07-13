@@ -29,8 +29,7 @@ export default function LoginPage() {
     if (res?.error) {
       toast({ title: "Email ou senha inválidos", variant: "destructive" });
     } else {
-      router.push(callbackUrl);
-      router.refresh();
+      window.location.href = callbackUrl;
     }
   };
 
