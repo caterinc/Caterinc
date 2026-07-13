@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import {
   Upload, FileText, CheckCircle, XCircle, Trash2, Eye, EyeOff,
-  Star, AlertCircle, Download, Package, ChevronDown, X,
+  Star, AlertCircle, Download, Package, ChevronDown, X, ChevronLeft, ChevronRight,
 } from "lucide-react";
+
+const REVIEWS_PER_PAGE = 10;
 
 interface ReviewRow {
   product_slug?: string;
@@ -69,6 +71,7 @@ export default function AvaliacoesPage() {
   const [reviews, setReviews] = useState<StoredReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [filterProduct, setFilterProduct] = useState("");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
@@ -272,6 +275,18 @@ export default function AvaliacoesPage() {
         r.reviewerName.toLowerCase().includes(filterProduct.toLowerCase())
       )
     : reviews;
+
+  // Reset page when filter changes
+  useEffect(() => { setPage(1); }, [filterProduct]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredReviews.length / REVIEWS_PER_PAGE));
+  const safePage = Math.min(page, pageCount);
+  const pagedReviews = filteredReviews.slice((safePage - 1) * REVIEWS_PER_PAGE, safePage * REVIEWS_PER_PAGE);
+
+  // Sliding window of 5 pages
+  const windowStart = Math.max(1, Math.min(safePage - 2, pageCount - 4));
+  const windowEnd = Math.min(pageCount, windowStart + 4);
+  const pageWindow = Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i);
 
   const allSelected = filteredReviews.length > 0 && filteredReviews.every((r) => selected.has(r.id));
   const someSelected = filteredReviews.some((r) => selected.has(r.id));
@@ -597,7 +612,7 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
                   Nenhuma avaliação encontrada
                 </td></tr>
               ) : (
-                filteredReviews.map((review) => (
+                pagedReviews.map((review) => (
                   <tr key={review.id} className={`hover:bg-gray-50 ${!review.isVisible ? "opacity-50" : ""}`}>
                     <td className="px-4 py-3">
                       <input
@@ -646,6 +661,44 @@ Maria Oliveira,4,"Ótima qualidade, entrega rápida.",false,2024-03-20`;
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {pageCount > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+            <p className="text-xs text-gray-500">
+              {(safePage - 1) * REVIEWS_PER_PAGE + 1}–{Math.min(safePage * REVIEWS_PER_PAGE, filteredReviews.length)} de {filteredReviews.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {pageWindow.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`min-w-[32px] h-8 px-2 text-sm font-semibold rounded-lg transition-colors ${
+                    n === safePage
+                      ? "bg-cat-black text-white"
+                      : "text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                disabled={safePage === pageCount}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
