@@ -769,9 +769,9 @@ export default function CheckoutPage() {
               </div>
 
               {payMethod === "card" && (
-                <div className="border-2 border-gray-100 rounded-xl p-5 text-center space-y-2 bg-gray-50">
-                  <p className="text-sm font-semibold text-gray-700">Pagamento por cartão indisponível</p>
-                  <p className="text-sm text-gray-500">Use o <strong>PIX</strong> para finalizar seu pedido agora mesmo.</p>
+                <div className="border-2 border-amber-100 rounded-xl p-5 text-center space-y-1.5 bg-amber-50">
+                  <p className="text-sm font-semibold text-amber-800">Temporariamente indisponível — sistema em atualização</p>
+                  <p className="text-sm text-amber-700">Por favor, utilize o <strong>PIX</strong> para finalizar seu pedido.</p>
                 </div>
               )}
 
@@ -848,7 +848,7 @@ export default function CheckoutPage() {
             <>
               <button
                 onClick={() => submit()}
-                disabled={loading}
+                disabled={loading || payMethod === "card"}
                 className="w-full h-14 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98] shadow-md"
                 style={{ backgroundColor: "var(--vep-checkout-cta-bg,#16c789)", color: "var(--vep-checkout-cta-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
               >
