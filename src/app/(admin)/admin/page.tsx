@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
 import { ShoppingBag, Users, Package, AlertTriangle, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import CheckPaymentsButton from "./CheckPaymentsButton";
+import TestPixButton from "./TestPixButton";
 
 export default async function AdminDashboard() {
   const [
@@ -151,9 +151,9 @@ export default async function AdminDashboard() {
           </div>
 
           <div className="bg-white border rounded-xl p-5">
-            <h3 className="font-bold text-cat-black mb-3">Pagamentos MP</h3>
-            <p className="text-xs text-gray-500 mb-3">Clique para checar se há vendas pagas no Mercado Pago que ainda não foram confirmadas.</p>
-            <CheckPaymentsButton />
+            <h3 className="font-bold text-cat-black mb-1">Testar Adquirente</h3>
+            <p className="text-xs text-gray-500 mb-3">Gera um PIX de R$5,50 para verificar qual adquirente está ativa e o nome do beneficiário.</p>
+            <TestPixButton />
           </div>
         </div>
       </div>

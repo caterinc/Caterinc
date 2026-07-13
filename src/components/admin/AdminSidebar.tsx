@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, Users,
-  BarChart3, FileDown, Palette, Star, ChevronLeft, ChevronRight, Plug, Truck
+  BarChart3, FileDown, Palette, Star, ChevronLeft, ChevronRight, Plug, Truck, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -23,29 +23,45 @@ const navItems = [
   { label: "Editor Visual", href: "/admin/visual/editor", icon: Palette },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className={cn(
-      "bg-cat-black text-white flex flex-col transition-all duration-300 flex-shrink-0",
-      collapsed ? "w-16" : "w-60"
+      "bg-cat-black text-white flex flex-col flex-shrink-0 transition-all duration-300",
+      // Mobile: fixed drawer, slides in/out
+      "fixed inset-y-0 left-0 z-30 lg:relative lg:translate-x-0",
+      mobileOpen ? "translate-x-0" : "-translate-x-full",
+      // Desktop: collapsible
+      collapsed ? "lg:w-16" : "lg:w-60",
+      // Mobile always full width sidebar
+      "w-72"
     )}>
       {/* Logo */}
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="bg-cat-yellow text-cat-black font-black text-sm px-2 py-0.5 tracking-widest rounded">dropfy</div>
-            <span className="font-bold text-sm text-gray-300">Admin</span>
-          </div>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-400 hover:text-white transition-colors ml-auto"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="bg-cat-yellow text-cat-black font-black text-sm px-2 py-0.5 tracking-widest rounded">dropfy</div>
+          {!collapsed && <span className="font-bold text-sm text-gray-300 hidden lg:block">Admin</span>}
+        </div>
+        <div className="flex items-center gap-1">
+          {/* Mobile close */}
+          <button onClick={onMobileClose} className="text-gray-400 hover:text-white transition-colors lg:hidden">
+            <X className="w-5 h-5" />
+          </button>
+          {/* Desktop collapse */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-gray-400 hover:text-white transition-colors hidden lg:block"
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -57,6 +73,7 @@ export function AdminSidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={onMobileClose}
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
@@ -66,7 +83,7 @@ export function AdminSidebar() {
                   )}
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && item.label}
+                  {!collapsed && <span>{item.label}</span>}
                 </Link>
               </li>
             );
@@ -74,13 +91,11 @@ export function AdminSidebar() {
         </ul>
       </nav>
 
-      {!collapsed && (
-        <div className="p-4 border-t border-gray-800">
-          <Link href="/" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
-            ← Ver loja
-          </Link>
-        </div>
-      )}
+      <div className="p-4 border-t border-gray-800">
+        <Link href="/" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+          ← Ver loja
+        </Link>
+      </div>
     </div>
   );
 }
