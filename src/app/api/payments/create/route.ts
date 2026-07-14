@@ -61,20 +61,24 @@ export async function POST(req: NextRequest) {
     where: { id: { in: productIds }, isActive: true }, include: { variants: true },
   });
 
-  const orderItems = cartItems.map((item) => {
+  const orderItems: {
+    productId: string; variantId: string | null; name: string; price: number;
+    quantity: number; size: string; color: string; image: string;
+  }[] = [];
+  for (const item of cartItems) {
     const product = products.find((p) => p.id === item.productId);
-    if (!product) throw new Error("Produto nao encontrado: " + item.productId);
+    if (!product) return NextResponse.json({ error: "Produto não encontrado no carrinho. Recarregue a página e tente novamente." }, { status: 400 });
     const variant = item.variantId ? product.variants.find((v) => v.id === item.variantId) : null;
     const serverPrice = variant?.price ? Number(variant.price) : Number(product.price);
-    return {
+    orderItems.push({
       productId: product.id, variantId: variant?.id || null,
       name: sanitizeString(product.name, 300), price: serverPrice,
       quantity: sanitizeInt(item.quantity, 1),
       size:  sanitizeString(item.size  || variant?.size  || "", 50),
       color: sanitizeString(item.color || variant?.color || "", 50),
       image: sanitizeString(item.image || product.images[0] || "", 2048),
-    };
-  });
+    });
+  }
 
   const subtotal = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
 
