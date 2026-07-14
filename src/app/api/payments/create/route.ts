@@ -5,7 +5,6 @@ import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { vezionConfigured, vezionCreatePix } from "@/lib/vezion";
-import { goatpayConfigured, goatpayCreatePix } from "@/lib/goatpay";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +56,6 @@ export async function POST(req: NextRequest) {
   if (!vezionConfigured())
     return NextResponse.json({ error: "Pagamento nao configurado." }, { status: 503 });
 
-  try {
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true }, include: { variants: true },
@@ -169,9 +167,4 @@ export async function POST(req: NextRequest) {
     qrCodeBase64: qrCodeBase64,
     merchantName: pixData.merchantName,
   });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Create/unhandled]", msg);
-    return NextResponse.json({ error: "Erro ao processar pedido. Tente novamente." }, { status: 500 });
-  }
 }
