@@ -111,17 +111,22 @@ export async function POST(req: NextRequest) {
   const trackingCode = generateTrackingCode();
   const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")
+    || null;
+
   let pixData: Awaited<ReturnType<typeof vezionCreatePix>>;
   try {
     pixData = await vezionCreatePix({
       amount: total, orderNumber, name, email, cpf, phone,
       itemName: itemName || "Pedido",
+      ip: clientIp,
       utmData: utmData || null, fbc: fbc || null,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
     console.error("[Vezion] PIX create error:", msg);
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
   let qrCodeBase64 = "";

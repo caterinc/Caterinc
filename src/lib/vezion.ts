@@ -1,4 +1,5 @@
 const BASE_URL = "https://api.vezion.com.br";
+const WEBHOOK_URL = "https://loja-caterpillar.com/api/payments/webhook";
 
 function apiSecret(): string {
   return process.env.VEZION_API_SECRET || "";
@@ -39,11 +40,10 @@ export async function vezionCreatePix(params: {
   cpf: string;
   phone: string;
   itemName: string;
+  ip?: string | null;
   utmData?: Record<string, string> | null;
   fbc?: string | null;
 }): Promise<VezionPixData> {
-  const webhookUrl = `${process.env.NEXTAUTH_URL}/api/payments/webhook`;
-
   const customer: Record<string, string | undefined> = {
     name: params.name,
     email: params.email,
@@ -53,8 +53,8 @@ export async function vezionCreatePix(params: {
   };
 
   const utm = params.utmData || {};
-  if (utm.utm_source || utm.source)  customer.utm_source   = utm.utm_source || utm.source;
-  if (utm.utm_medium || utm.medium)  customer.utm_medium   = utm.utm_medium || utm.medium;
+  if (utm.utm_source || utm.source)     customer.utm_source   = utm.utm_source || utm.source;
+  if (utm.utm_medium || utm.medium)     customer.utm_medium   = utm.utm_medium || utm.medium;
   if (utm.utm_campaign || utm.campaign) customer.utm_campaign = utm.utm_campaign || utm.campaign;
   if (utm.utm_content || utm.content)   customer.utm_content  = utm.utm_content || utm.content;
   if (utm.utm_term || utm.term)         customer.utm_term     = utm.utm_term || utm.term;
@@ -65,20 +65,23 @@ export async function vezionCreatePix(params: {
     customer.click_type = "fbclid";
   }
 
-  const body = {
+  const body: Record<string, unknown> = {
     external_id:    params.orderNumber,
     total_amount:   params.amount,
     payment_method: "PIX",
-    webhook_url:    webhookUrl,
+    webhook_url:    WEBHOOK_URL,
     items: [{
       id:          params.orderNumber,
       title:       params.itemName,
+      description: params.itemName,
       price:       params.amount,
       quantity:    1,
       is_physical: true,
     }],
     customer,
   };
+
+  if (params.ip) body.ip = params.ip;
 
   const res = await fetch(`${BASE_URL}/v1/transactions`, {
     method: "POST",
