@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { ProductGallery } from "./ProductGallery";
 import { ProductPurchase } from "./ProductPurchase";
 
@@ -34,6 +34,18 @@ interface Props {
 export function ProductPageClient({
   product, variants, sizes, discountPct, infoBefore, infoAfter,
 }: Props) {
+  // ViewContent pixel event
+  useEffect(() => {
+    try {
+      (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.("track", "ViewContent", {
+        content_ids: [product.id],
+        content_type: "product",
+        value: product.price,
+        currency: "BRL",
+      });
+    } catch {}
+  }, [product.id, product.price]);
+
   // Map color → images array (first variant per color wins)
   const colorImagesMap = useMemo(() => {
     const map: Record<string, string[]> = {};

@@ -5,6 +5,7 @@ import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { goatpayConfigured, goatpayCreatePix } from "@/lib/goatpay";
+import { vezionConfigured, vezionCreatePix } from "@/lib/vezion";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !phone) return NextResponse.json({ error: "Dados pessoais invalidos" }, { status: 400 });
   if (cpf.length !== 11) return NextResponse.json({ error: "CPF inválido. Confira se você digitou todos os 11 números corretamente." }, { status: 400 });
 
-  if (!goatpayConfigured())
+  if (!vezionConfigured() && !goatpayConfigured())
     return NextResponse.json({ error: "Pagamento nao configurado. Configure as credenciais no painel admin." }, { status: 503 });
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
@@ -101,43 +102,60 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const parts     = name.split(" ");
-  const nameParts = parts;
-
+  const nameParts  = name.split(" ");
   const orderNumber  = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
   const trackingCode = generateTrackingCode();
   const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
-  let pixData: Awaited<ReturnType<typeof goatpayCreatePix>>;
-  try {
-    pixData = await goatpayCreatePix({
-      amount: total,
-      orderNumber,
-      name, email, cpf, phone,
-      itemName: itemName || "Pedido Caterpillar",
-      shippingFee: shippingCost,
-      address: {
-        street:     shippingAddress.street,
-        number:     shippingAddress.number,
-        complement: shippingAddress.complement,
-        district:   shippingAddress.district,
-        city:       shippingAddress.city,
-        state:      shippingAddress.state,
-        zipCode:    shippingAddress.zipCode,
-      },
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    console.error("[Goatpay] PIX create error:", msg);
-    return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
+  // ── Vezion (primary) → GoatPay (fallback) ──────────────────────────────────
+  let pixCode      = "";
+  let gatewayId    = "";
+  let merchantName = "";
+  let gatewayNote  = "";
+
+  if (vezionConfigured()) {
+    try {
+      const vData = await vezionCreatePix({
+        amount: total, orderNumber, name, email, cpf, phone,
+        itemName: itemName || "Pedido",
+        utmData: utmData || null, fbc: fbc || null,
+      });
+      pixCode      = vData.pixPayload;
+      gatewayId    = vData.id;
+      merchantName = vData.merchantName;
+      gatewayNote  = "PIX gerado via Vezion";
+    } catch (err) {
+      console.warn("[Vezion] falhou, tentando GoatPay:", err instanceof Error ? err.message : err);
+    }
   }
 
-  const goatpayHash = pixData.hash;
-  const pixCode     = pixData.pix?.pix_qr_code || pixData.pix?.qr_code || pixData.pix?.pix_url || pixData.pix?.qr_code_url || "";
+  if (!pixCode && goatpayConfigured()) {
+    try {
+      const gData = await goatpayCreatePix({
+        amount: total, orderNumber, name, email, cpf, phone,
+        itemName: itemName || "Pedido Caterpillar",
+        shippingFee: shippingCost,
+        address: {
+          street:     shippingAddress.street,
+          number:     shippingAddress.number,
+          complement: shippingAddress.complement,
+          district:   shippingAddress.district,
+          city:       shippingAddress.city,
+          state:      shippingAddress.state,
+          zipCode:    shippingAddress.zipCode,
+        },
+      });
+      pixCode      = gData.pix?.pix_qr_code || gData.pix?.qr_code || gData.pix?.pix_url || gData.pix?.qr_code_url || "";
+      gatewayId    = gData.hash;
+      merchantName = gData.merchantName || "";
+      gatewayNote  = "PIX gerado via GoatPay";
+    } catch (err) {
+      console.error("[GoatPay] PIX create error:", err instanceof Error ? err.message : err);
+    }
+  }
 
   if (!pixCode) {
-    console.error("[Goatpay] Resposta sem qr_code:", JSON.stringify(pixData));
-    return NextResponse.json({ error: "Erro ao gerar QR Code PIX. Tente novamente." }, { status: 502 });
+    return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
   let qrCodeBase64 = "";
@@ -153,12 +171,12 @@ export async function POST(req: NextRequest) {
       data: {
         orderNumber, email, status: "PENDING", paymentStatus: "PENDING",
         paymentMethod: "pix",
-        mpPaymentId: goatpayHash,
+        mpPaymentId: gatewayId,
         trackingCode,
         subtotal, shipping: shippingCost, total, shippingAddress,
         utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}) },
         items: { create: orderItems },
-        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Goatpay" }] },
+        statusHistory: { create: [{ status: "PENDING", note: gatewayNote }] },
       },
     });
     for (const item of orderItems) {
@@ -186,6 +204,6 @@ export async function POST(req: NextRequest) {
     orderId: order.id, orderNumber, total,
     qrCode:       pixCode,
     qrCodeBase64: qrCodeBase64,
-    merchantName: pixData.merchantName || "",
+    merchantName,
   });
 }

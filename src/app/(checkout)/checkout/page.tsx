@@ -219,6 +219,9 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fbc, fbp }),
       }).catch(() => {});
+
+      // Browser-side pixel InitiateCheckout
+      try { (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.("track", "InitiateCheckout"); } catch {}
     } catch {}
   }, []);
 

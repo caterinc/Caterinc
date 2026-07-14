@@ -97,17 +97,17 @@ const CartContext = createContext<{
 } | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [], isOpen: false, isHydrated: false });
+  const [state, rawDispatch] = useReducer(cartReducer, { items: [], isOpen: false, isHydrated: false });
 
   useEffect(() => {
     const stored = localStorage.getItem("cart");
     if (stored) {
       try {
-        dispatch({ type: "HYDRATE", payload: JSON.parse(stored) });
+        rawDispatch({ type: "HYDRATE", payload: JSON.parse(stored) });
         return;
       } catch {}
     }
-    dispatch({ type: "SET_HYDRATED" });
+    rawDispatch({ type: "SET_HYDRATED" });
   }, []);
 
   useEffect(() => {
@@ -115,6 +115,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!state.isHydrated) return;
     localStorage.setItem("cart", JSON.stringify(state.items));
   }, [state.items, state.isHydrated]);
+
+  const dispatch = (action: CartAction) => {
+    if (action.type === "ADD_ITEM") {
+      try {
+        const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
+        fbq?.("track", "AddToCart", {
+          content_ids: [action.payload.productId],
+          content_type: "product",
+          value: action.payload.price * action.payload.quantity,
+          currency: "BRL",
+        });
+      } catch {}
+    }
+    rawDispatch(action);
+  };
 
   const total = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
