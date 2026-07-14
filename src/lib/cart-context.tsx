@@ -117,6 +117,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [state.items, state.isHydrated]);
 
   const dispatch = (action: CartAction) => {
+    if (action.type === "ADD_ITEM") {
+      try {
+        const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
+        fbq?.("track", "AddToCart", {
+          content_ids: [action.payload.productId],
+          content_type: "product",
+          value: action.payload.price * action.payload.quantity,
+          currency: "BRL",
+        });
+      } catch {}
+    }
     rawDispatch(action);
   };
 
