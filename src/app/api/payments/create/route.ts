@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
     console.error("[Vezion] PIX create error:", msg);
-    return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
 
   let qrCodeBase64 = "";
