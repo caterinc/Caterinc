@@ -54,8 +54,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `:root{${globalCss}}` }} />
       {/* UTMify: capture UTM parameters from URL and persist in localStorage */}
       <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];var found=false;keys.forEach(function(k){if(p.get(k)){localStorage.setItem('_utm_'+k,p.get(k));found=true;}});if(found)localStorage.setItem('_utm_ts',Date.now().toString());}catch(e){}})();` }} />
-      {/* Meta Pixel — substitua NEXT_PUBLIC_META_PIXEL_SCRIPT pela URL do Clocker quando configurado */}
-      <script dangerouslySetInnerHTML={{ __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src='${process.env.NEXT_PUBLIC_META_PIXEL_SCRIPT||"https://connect.facebook.net/en_US/fbevents.js"}';s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script');fbq('init','${process.env.NEXT_PUBLIC_META_PIXEL_ID||"1002744542493838"}');fbq('track','PageView');` }} />
+      {/* Meta Pixel — script assíncrono para não interferir na hidratação do React */}
+      <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src='${process.env.NEXT_PUBLIC_META_PIXEL_SCRIPT||"https://connect.facebook.net/en_US/fbevents.js"}';s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script');fbq('init','${process.env.NEXT_PUBLIC_META_PIXEL_ID||"1002744542493838"}');fbq('track','PageView');` }} />
 <Header
         menuItems={headerMenu?.items || []}
         storeName={sm.storeName as string}
