@@ -119,13 +119,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const dispatch = (action: CartAction) => {
     if (action.type === "ADD_ITEM") {
       try {
-        const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
-        fbq?.("track", "AddToCart", {
-          content_ids: [action.payload.productId],
-          content_type: "product",
-          value: action.payload.price * action.payload.quantity,
-          currency: "BRL",
-        });
+        const fbc = localStorage.getItem("_fbc") || undefined;
+        const fbp = localStorage.getItem("_fbp") || undefined;
+        fetch("/api/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "AddToCart",
+            productId: action.payload.productId,
+            productName: action.payload.name,
+            value: action.payload.price * action.payload.quantity,
+            quantity: action.payload.quantity,
+            fbc, fbp,
+          }),
+        }).catch(() => {});
       } catch {}
     }
     rawDispatch(action);

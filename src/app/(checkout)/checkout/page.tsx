@@ -220,7 +220,6 @@ export default function CheckoutPage() {
         body: JSON.stringify({ fbc, fbp }),
       }).catch(() => {});
 
-      try { (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.("track", "InitiateCheckout"); } catch {}
     } catch {}
   }, []);
 

@@ -25,6 +25,8 @@ interface MetaEventParams {
   orderId?: string;
   fbc?: string | null;
   fbp?: string | null;
+  clientIp?: string | null;
+  clientUserAgent?: string | null;
 }
 
 export async function sendMetaEvent(params: MetaEventParams): Promise<void> {
@@ -38,6 +40,8 @@ export async function sendMetaEvent(params: MetaEventParams): Promise<void> {
   if (params.lastName) userData.ln = [hash(params.lastName)];
   if (params.fbc) userData.fbc = params.fbc;
   if (params.fbp) userData.fbp = params.fbp;
+  if (params.clientIp) userData.client_ip_address = params.clientIp;
+  if (params.clientUserAgent) userData.client_user_agent = params.clientUserAgent;
 
   const customData: Record<string, unknown> = {};
   if (params.value !== undefined) {

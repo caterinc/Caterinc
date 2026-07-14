@@ -36,14 +36,21 @@ export function ProductPageClient({
 }: Props) {
   useEffect(() => {
     try {
-      (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.("track", "ViewContent", {
-        content_ids: [product.id],
-        content_type: "product",
-        value: product.price,
-        currency: "BRL",
-      });
+      const fbc = localStorage.getItem("_fbc") || undefined;
+      const fbp = localStorage.getItem("_fbp") || undefined;
+      fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "ViewContent",
+          productId: product.id,
+          productName: product.name,
+          value: product.price,
+          fbc, fbp,
+        }),
+      }).catch(() => {});
     } catch {}
-  }, [product.id, product.price]);
+  }, [product.id, product.price, product.name]);
 
   // Map color → images array (first variant per color wins)
   const colorImagesMap = useMemo(() => {
