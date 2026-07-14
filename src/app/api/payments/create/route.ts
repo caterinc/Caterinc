@@ -7,6 +7,7 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 import { vezionConfigured, vezionCreatePix } from "@/lib/vezion";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 function generateTrackingCode(): string {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
