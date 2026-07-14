@@ -4,8 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import { goatpayGetTransaction } from "@/lib/goatpay";
-import { vezionGetTransaction, isVezionId } from "@/lib/vezion";
+import { vezionGetTransaction } from "@/lib/vezion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -36,25 +35,15 @@ export async function GET(req: NextRequest) {
 
   for (const order of pendingOrders) {
     try {
-      const id = order.mpPaymentId!;
-      let paid = false;
-
-      if (isVezionId(id)) {
-        const status = await vezionGetTransaction(id);
-        paid = status === "AUTHORIZED";
-      } else {
-        const status = await goatpayGetTransaction(id);
-        paid = status === "paid";
-      }
-
-      if (!paid) continue;
+      const status = await vezionGetTransaction(order.mpPaymentId!);
+      if (status !== "AUTHORIZED") continue;
 
       await prisma.order.update({
         where: { id: order.id },
         data: { paymentStatus: "PAID", status: "CONFIRMED" },
       });
       await prisma.orderStatusHistory.create({
-        data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado — detectado via cron (${isVezionId(id) ? "Vezion" : "GoatPay"})` },
+        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron (Vezion)" },
       });
 
       const addr = order.shippingAddress as Record<string, string> | null;
