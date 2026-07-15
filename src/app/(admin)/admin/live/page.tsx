@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Activity } from "lucide-react";
+import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Eye } from "lucide-react";
 
 interface LiveStats {
   visitorsNow: number;
@@ -15,49 +15,51 @@ interface LiveStats {
   revenueToday: number;
   totalOrders: number;
   totalRevenue: number;
-  updatedAt: string;
 }
 
-function fmt(n: number) {
-  return n.toLocaleString("pt-BR");
-}
+const CARD = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
 
+function fmt(n: number) { return n.toLocaleString("pt-BR"); }
 function fmtMoney(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function StatCard({ label, value, icon: Icon, color, sub }: {
+function MetricCard({ label, value, icon: Icon, iconBg, iconColor, sub }: {
   label: string; value: string | number; icon: React.ElementType;
-  color: string; sub?: string;
+  iconBg: string; iconColor: string; sub?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
-          <p className="text-3xl font-black text-gray-900 mt-1">{typeof value === "number" ? fmt(value) : value}</p>
-          {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-        </div>
-        <div className={`${color} p-3 rounded-xl`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
+    <div className="rounded-2xl p-5 flex items-center justify-between" style={CARD}>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: "#7b7fa3" }}>{label}</p>
+        <p className="text-3xl font-black text-white">{typeof value === "number" ? fmt(value) : value}</p>
+        {sub && <p className="text-xs mt-1" style={{ color: "#7b7fa3" }}>{sub}</p>}
+      </div>
+      <div className="p-3 rounded-xl flex-shrink-0" style={{ background: iconBg }}>
+        <Icon className="w-5 h-5" style={{ color: iconColor }} />
       </div>
     </div>
   );
 }
 
-function FunnelBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+function FunnelRow({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+  const pct = total > 0 ? Math.min((value / total) * 100, 100) : 0;
+  const convPct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-gray-500 w-28 flex-shrink-0">{label}</span>
-      <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-white/70">{label}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs" style={{ color: "#7b7fa3" }}>{convPct}%</span>
+          <span className="text-sm font-bold text-white w-6 text-right">{value}</span>
+        </div>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
         <div
-          className={`h-full rounded-full transition-all duration-700 ${color}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, background: color }}
         />
       </div>
-      <span className="text-sm font-bold text-gray-800 w-8 text-right">{value}</span>
     </div>
   );
 }
@@ -65,140 +67,144 @@ function FunnelBar({ label, value, max, color }: { label: string; value: number;
 export default function LivePage() {
   const [stats, setStats] = useState<LiveStats | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("");
-  const [tick, setTick] = useState(0);
 
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/live-stats", { cache: "no-store" });
       if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-        setLastUpdate(new Date().toLocaleTimeString("pt-BR"));
+        setStats(await res.json());
+        setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       }
     } catch {}
   }, []);
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(() => {
-      fetchStats();
-      setTick((t) => t + 1);
-    }, 2000);
-    return () => clearInterval(interval);
+    const t = setInterval(fetchStats, 2000);
+    return () => clearInterval(t);
   }, [fetchStats]);
 
-  const maxFunnel = Math.max(stats?.visitorsNow || 0, 1);
+  const total = Math.max(stats?.visitorsNow || 0, 1);
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-5 max-w-7xl">
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Live View</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Atualiza automaticamente a cada 3 segundos</p>
+          <h1 className="text-2xl font-black text-white">Live View</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#7b7fa3" }}>Atividade em tempo real na sua loja</p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+        <div className="flex items-center gap-2 rounded-full px-4 py-2"
+          style={{ background: "rgba(34,211,160,0.1)", border: "1px solid rgba(34,211,160,0.25)" }}>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#22d3a0" }} />
+            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#22d3a0" }} />
           </span>
-          <span className="text-xs font-semibold text-gray-700">AO VIVO</span>
-          {lastUpdate && <span className="text-xs text-gray-400">{lastUpdate}</span>}
+          <span className="text-xs font-bold" style={{ color: "#22d3a0" }}>AO VIVO</span>
+          {lastUpdate && <span className="text-xs" style={{ color: "#7b7fa3" }}>{lastUpdate}</span>}
         </div>
       </div>
 
-      {!stats ? (
-        <div className="flex items-center justify-center h-48 text-gray-400">
-          <Activity className="w-6 h-6 animate-pulse mr-2" />
-          Carregando...
+      {/* Hero — visitors right now */}
+      <div className="rounded-2xl p-6 lg:p-8 relative overflow-hidden" style={CARD}>
+        <div className="flex items-center gap-2 mb-4">
+          <Eye className="w-4 h-4" style={{ color: "#7b7fa3" }} />
+          <span className="text-sm font-medium uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Visitantes agora</span>
         </div>
-      ) : (
-        <>
-          {/* Top stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Visitantes agora" value={stats.visitorsNow} icon={Users} color="bg-blue-500" sub="tempo real" />
-            <StatCard label="Carrinhos ativos" value={stats.activeCarts} icon={ShoppingCart} color="bg-orange-500" sub="tempo real" />
-            <StatCard label="Pedidos hoje" value={stats.ordersToday} icon={ShoppingBag} color="bg-purple-500" />
-            <StatCard label="Receita hoje" value={fmtMoney(stats.revenueToday)} icon={TrendingUp} color="bg-green-500" />
-          </div>
-
-          {/* Customer behavior */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <h2 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Comportamento dos visitantes</h2>
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="text-center p-3 bg-orange-50 rounded-xl">
-                  <p className="text-2xl font-black text-orange-600">{fmt(stats.activeCarts)}</p>
-                  <p className="text-xs text-gray-500 mt-1">Carrinhos ativos</p>
-                </div>
-                <div className="text-center p-3 bg-blue-50 rounded-xl">
-                  <p className="text-2xl font-black text-blue-600">{fmt(stats.onCheckout)}</p>
-                  <p className="text-xs text-gray-500 mt-1">No checkout</p>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-xl">
-                  <p className="text-2xl font-black text-green-600">{fmt(stats.purchasedToday)}</p>
-                  <p className="text-xs text-gray-500 mt-1">Compraram hoje</p>
-                </div>
-              </div>
-              {/* Funnel */}
-              <div className="space-y-3">
-                <FunnelBar label="Página inicial" value={stats.onHome} max={maxFunnel} color="bg-blue-400" />
-                <FunnelBar label="Produto" value={stats.onProduct} max={maxFunnel} color="bg-indigo-400" />
-                <FunnelBar label="Carrinho" value={stats.onCart} max={maxFunnel} color="bg-orange-400" />
-                <FunnelBar label="Checkout" value={stats.onCheckout} max={maxFunnel} color="bg-green-400" />
-              </div>
-            </div>
-
-            {/* Totals */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <h2 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Totais gerais</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <ShoppingBag className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <span className="text-sm text-gray-600">Total de pedidos</span>
-                  </div>
-                  <span className="text-lg font-black text-gray-900">{fmt(stats.totalOrders)}</span>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                    </div>
-                    <span className="text-sm text-gray-600">Receita total</span>
-                  </div>
-                  <span className="text-lg font-black text-gray-900">{fmtMoney(stats.totalRevenue)}</span>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-orange-100 p-2 rounded-lg">
-                      <ShoppingCart className="w-4 h-4 text-orange-600" />
-                    </div>
-                    <span className="text-sm text-gray-600">Carrinhos ativos agora</span>
-                  </div>
-                  <span className="text-lg font-black text-gray-900">{fmt(stats.activeCarts)}</span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 p-2 rounded-lg">
-                      <CreditCard className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <span className="text-sm text-gray-600">Compraram hoje</span>
-                  </div>
-                  <span className="text-lg font-black text-gray-900">{fmt(stats.purchasedToday)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tick indicator for visual confirmation of updates */}
-          <p className="text-center text-xs text-gray-300">
-            Atualização #{tick + 1}
+        <div className="flex items-end gap-4">
+          <p className="text-7xl lg:text-8xl font-black text-white leading-none">
+            {stats ? fmt(stats.visitorsNow) : "—"}
           </p>
-        </>
-      )}
+          <div className="mb-2 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: "#6c52ff" }} />
+              <span className="text-xs" style={{ color: "#7b7fa3" }}>{stats ? fmt(stats.onProduct) : "—"} em produto</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: "#22d3a0" }} />
+              <span className="text-xs" style={{ color: "#7b7fa3" }}>{stats ? fmt(stats.onCheckout) : "—"} no checkout</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: "#60a5fa" }} />
+              <span className="text-xs" style={{ color: "#7b7fa3" }}>{stats ? fmt(stats.onHome) : "—"} na home</span>
+            </div>
+          </div>
+        </div>
+        {/* decorative pulse */}
+        <div className="absolute right-6 top-6 w-24 h-24 rounded-full opacity-10 animate-pulse"
+          style={{ background: "radial-gradient(circle, #6c52ff, transparent)" }} />
+      </div>
+
+      {/* Metric cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard label="Carrinhos ativos" value={stats?.activeCarts ?? "—"} icon={ShoppingCart}
+          iconBg="rgba(251,146,60,0.15)" iconColor="#fb923c" sub="tempo real" />
+        <MetricCard label="No checkout" value={stats?.onCheckout ?? "—"} icon={CreditCard}
+          iconBg="rgba(108,82,255,0.15)" iconColor="#a78bfa" sub="tempo real" />
+        <MetricCard label="Pedidos hoje" value={stats?.ordersToday ?? "—"} icon={ShoppingBag}
+          iconBg="rgba(96,165,250,0.15)" iconColor="#60a5fa" />
+        <MetricCard label="Receita hoje" value={stats ? fmtMoney(stats.revenueToday) : "—"} icon={TrendingUp}
+          iconBg="rgba(34,211,160,0.15)" iconColor="#22d3a0" />
+      </div>
+
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Funnel */}
+        <div className="rounded-2xl p-5 space-y-5" style={CARD}>
+          <div>
+            <h2 className="text-sm font-bold text-white">Jornada do cliente</h2>
+            <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Onde estão os visitantes agora</p>
+          </div>
+          <div className="space-y-4">
+            <FunnelRow label="🏠 Página inicial" value={stats?.onHome ?? 0} total={total} color="#60a5fa" />
+            <FunnelRow label="👟 Produto" value={stats?.onProduct ?? 0} total={total} color="#a78bfa" />
+            <FunnelRow label="🛒 Carrinho" value={stats?.onCart ?? 0} total={total} color="#fb923c" />
+            <FunnelRow label="💳 Checkout" value={stats?.onCheckout ?? 0} total={total} color="#22d3a0" />
+          </div>
+          {/* Mini legend */}
+          <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(34,211,160,0.08)" }}>
+                <p className="text-xl font-black" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.purchasedToday) : "—"}</p>
+                <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Compraram hoje</p>
+              </div>
+              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(108,82,255,0.08)" }}>
+                <p className="text-xl font-black" style={{ color: "#a78bfa" }}>{stats ? fmt(stats.activeCarts) : "—"}</p>
+                <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Carrinhos ativos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Totals */}
+        <div className="rounded-2xl p-5" style={CARD}>
+          <div className="mb-5">
+            <h2 className="text-sm font-bold text-white">Totais gerais</h2>
+            <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Acumulado de todos os tempos</p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: "Total de pedidos", value: stats ? fmt(stats.totalOrders) : "—", icon: ShoppingBag, color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
+              { label: "Receita total", value: stats ? fmtMoney(stats.totalRevenue) : "—", icon: TrendingUp, color: "#22d3a0", bg: "rgba(34,211,160,0.1)" },
+              { label: "Pedidos hoje", value: stats ? fmt(stats.ordersToday) : "—", icon: ShoppingCart, color: "#fb923c", bg: "rgba(251,146,60,0.1)" },
+              { label: "Compraram hoje", value: stats ? fmt(stats.purchasedToday) : "—", icon: CreditCard, color: "#a78bfa", bg: "rgba(108,82,255,0.1)" },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between py-3 rounded-xl px-3"
+                style={{ background: "rgba(255,255,255,0.03)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg" style={{ background: row.bg }}>
+                    <row.icon className="w-4 h-4" style={{ color: row.color }} />
+                  </div>
+                  <span className="text-sm" style={{ color: "#7b7fa3" }}>{row.label}</span>
+                </div>
+                <span className="text-base font-black text-white">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
