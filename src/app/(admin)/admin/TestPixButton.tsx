@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, X, Copy, Check, Zap, QrCode } from "lucide-react";
+import { Loader2, X, Copy, Check, Zap, ChevronDown, ChevronUp } from "lucide-react";
 
 interface PixResult {
   qrCode: string;
@@ -15,11 +15,13 @@ export default function TestPixButton() {
   const [result, setResult] = useState<PixResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   async function generate() {
     setLoading(true);
     setError("");
     setResult(null);
+    setShowQr(false);
     try {
       const res = await fetch("/api/admin/test-pix", { method: "POST" });
       const data = await res.json();
@@ -52,45 +54,93 @@ export default function TestPixButton() {
       </button>
 
       {error && (
-        <p className="text-xs text-red-600 mt-2 text-center">{error}</p>
+        <p className="text-xs text-red-400 mt-2 text-center">{error}</p>
       )}
 
       {/* Modal */}
       {result && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setResult(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          onClick={() => setResult(null)}
+        >
           <div
-            className="rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
-            style={{ background: "#16132e", border: "1px solid rgba(255,255,255,0.1)" }}
+            className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl"
+            style={{ background: "#12102a", border: "1px solid rgba(255,255,255,0.1)", maxHeight: "90dvh" }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <div className="flex items-center gap-2">
-                <QrCode className="w-4 h-4" style={{ color: "#a78bfa" }} />
-                <span className="font-black text-white text-sm">Testar Adquirente PIX</span>
-              </div>
-              <button onClick={() => setResult(null)} className="transition-colors" style={{ color: "#7b7fa3" }}>
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="text-center">
-                <p className="text-3xl font-black text-white">R$&nbsp;5,50</p>
+              <div>
+                <p className="font-black text-white text-sm">Código PIX gerado</p>
                 {result.merchantName && (
-                  <p className="text-xs mt-1" style={{ color: "#7b7fa3" }}>Beneficiário: <span className="text-white font-semibold">{result.merchantName}</span></p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "#7b7fa3" }}>
+                    Beneficiário: <span className="text-white">{result.merchantName}</span>
+                  </p>
                 )}
               </div>
-              <div className="flex justify-center">
-                <div className="p-3 rounded-xl inline-block" style={{ background: "white" }}>
-                  <img src={`data:image/png;base64,${result.qrCodeBase64}`} alt="QR Code PIX" className="w-48 h-48" />
-                </div>
-              </div>
-              <p className="text-xs text-center" style={{ color: "#7b7fa3" }}>Escaneie com o app do banco para testar</p>
-              <button onClick={copy}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                {copied ? <><Check className="w-4 h-4" style={{ color: "#22d3a0" }} /><span style={{ color: "#22d3a0" }}>Copiado!</span></> : <><Copy className="w-4 h-4" /> Copiar código PIX</>}
+              <button onClick={() => setResult(null)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                <X className="w-4 h-4" style={{ color: "#7b7fa3" }} />
               </button>
-              <p className="text-xs text-center" style={{ color: "#7b7fa3" }}>Este PIX é apenas para teste — não cria pedido</p>
+            </div>
+
+            <div className="p-5 space-y-3 overflow-y-auto" style={{ maxHeight: "calc(90dvh - 65px)" }}>
+              {/* Amount */}
+              <p className="text-3xl font-black text-white text-center">R$&nbsp;5,50</p>
+
+              {/* COPY BUTTON — prominent, first */}
+              <button
+                onClick={copy}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-black transition-all active:scale-[0.98]"
+                style={
+                  copied
+                    ? { background: "rgba(34,211,160,0.15)", border: "1px solid rgba(34,211,160,0.4)", color: "#22d3a0" }
+                    : { background: "linear-gradient(135deg, #4c37e8, #6c52ff)", color: "white" }
+                }
+              >
+                {copied
+                  ? <><Check className="w-4 h-4" /> Copiado! Cole no app do banco</>
+                  : <><Copy className="w-4 h-4" /> Copiar código PIX</>
+                }
+              </button>
+
+              {/* PIX code preview (truncated) */}
+              <div
+                className="px-3 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                onClick={copy}
+              >
+                <span className="text-[10px] flex-1 truncate font-mono" style={{ color: "#7b7fa3" }}>
+                  {result.qrCode.slice(0, 60)}…
+                </span>
+                <Copy className="w-3 h-3 flex-shrink-0" style={{ color: "#7b7fa3" }} />
+              </div>
+
+              {/* QR Code — collapsible */}
+              <button
+                onClick={() => setShowQr((v) => !v)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-opacity hover:opacity-80"
+                style={{ color: "#7b7fa3" }}
+              >
+                {showQr ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {showQr ? "Ocultar QR Code" : "Mostrar QR Code"}
+              </button>
+
+              {showQr && (
+                <div className="flex justify-center pb-1">
+                  <div className="p-3 rounded-xl inline-block" style={{ background: "white" }}>
+                    <img
+                      src={`data:image/png;base64,${result.qrCodeBase64}`}
+                      alt="QR Code PIX"
+                      className="w-44 h-44"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[10px] text-center pb-1" style={{ color: "#4a4870" }}>
+                Este PIX é apenas para teste — não cria pedido
+              </p>
             </div>
           </div>
         </div>
