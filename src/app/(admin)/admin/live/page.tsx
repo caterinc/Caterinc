@@ -10,18 +10,13 @@ interface LiveStats {
   onCart: number;
   onCheckout: number;
   activeCarts: number;
-  ordersToday: number;
-  orders24h: number;
-  orders7d: number;
-  orders30d: number;
-  purchasedToday: number;
-  revenueToday: number;
-  revenue24h: number;
-  revenue7d: number;
-  revenue30d: number;
+  sessionsToday: number;
   totalOrders: number;
   totalRevenue: number;
-  sessionsToday: number;
+  paidToday: number; pendingToday: number; revenueToday: number;
+  paid24h: number; pending24h: number; revenue24h: number;
+  paid7d: number; pending7d: number; revenue7d: number;
+  paid30d: number; pending30d: number; revenue30d: number;
 }
 
 const CARD: React.CSSProperties = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
@@ -184,8 +179,8 @@ export default function LivePage() {
             {/* Mini totais */}
             <div className="grid grid-cols-2 gap-2 mt-1">
               <div className="rounded-xl p-3 text-center" style={{ background: "rgba(34,211,160,0.08)" }}>
-                <p className="text-lg font-black" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.purchasedToday) : "—"}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>Compraram hoje</p>
+                <p className="text-lg font-black" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.paidToday) : "—"}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>Pagos hoje</p>
               </div>
               <div className="rounded-xl p-3 text-center" style={{ background: "rgba(108,82,255,0.08)" }}>
                 <p className="text-lg font-black" style={{ color: "#a78bfa" }}>{stats ? fmt(stats.activeCarts) : "—"}</p>
@@ -204,29 +199,46 @@ export default function LivePage() {
         <MetricCard label="Cliques hoje" value={stats?.sessionsToday ?? "—"} icon={Eye}
           iconBg="rgba(96,165,250,0.15)" iconColor="#60a5fa" sub="sessões únicas" />
         <MetricCard label="Carrinhos" value={stats?.activeCarts ?? "—"} icon={ShoppingCart}
-          iconBg="rgba(251,146,60,0.15)" iconColor="#fb923c" sub="tempo real" />
+          iconBg="rgba(52,211,153,0.15)" iconColor="#34d399" sub="tempo real" />
         <MetricCard label="Checkout" value={stats?.onCheckout ?? "—"} icon={CreditCard}
-          iconBg="rgba(108,82,255,0.15)" iconColor="#a78bfa" sub="tempo real" />
+          iconBg="rgba(52,211,153,0.12)" iconColor="#6ee7b7" sub="tempo real" />
         <MetricCard label="Receita hoje" value={stats ? fmtMoney(stats.revenueToday) : "—"} icon={TrendingUp}
           iconBg="rgba(34,211,160,0.15)" iconColor="#22d3a0" />
       </div>
 
       {/* Orders by period */}
-      <div className="rounded-2xl p-4" style={CARD}>
+      <div className="rounded-2xl p-5" style={CARD}>
         <p className="text-sm font-bold text-white mb-1">Pedidos por período</p>
-        <p className="text-xs mb-4" style={{ color: "#7b7fa3" }}>Quantidade e receita por janela de tempo</p>
+        <p className="text-xs mb-4" style={{ color: "#7b7fa3" }}>Pagos e pendentes por janela de tempo</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Hoje", orders: stats?.ordersToday ?? 0, revenue: stats?.revenueToday ?? 0, color: "#60a5fa", bg: "rgba(96,165,250,0.08)" },
-            { label: "Últimas 24h", orders: stats?.orders24h ?? 0, revenue: stats?.revenue24h ?? 0, color: "#a78bfa", bg: "rgba(108,82,255,0.08)" },
-            { label: "7 dias", orders: stats?.orders7d ?? 0, revenue: stats?.revenue7d ?? 0, color: "#22d3a0", bg: "rgba(34,211,160,0.08)" },
-            { label: "30 dias", orders: stats?.orders30d ?? 0, revenue: stats?.revenue30d ?? 0, color: "#fb923c", bg: "rgba(251,146,60,0.08)" },
+            { label: "Hoje", paid: stats?.paidToday ?? 0, pending: stats?.pendingToday ?? 0, revenue: stats?.revenueToday ?? 0, color: "#60a5fa", bg: "rgba(96,165,250,0.07)" },
+            { label: "Últimas 24h", paid: stats?.paid24h ?? 0, pending: stats?.pending24h ?? 0, revenue: stats?.revenue24h ?? 0, color: "#a78bfa", bg: "rgba(108,82,255,0.07)" },
+            { label: "7 dias", paid: stats?.paid7d ?? 0, pending: stats?.pending7d ?? 0, revenue: stats?.revenue7d ?? 0, color: "#34d399", bg: "rgba(52,211,153,0.07)" },
+            { label: "30 dias", paid: stats?.paid30d ?? 0, pending: stats?.pending30d ?? 0, revenue: stats?.revenue30d ?? 0, color: "#22d3a0", bg: "rgba(34,211,160,0.07)" },
           ].map((p) => (
-            <div key={p.label} className="rounded-xl p-3" style={{ background: p.bg, border: `1px solid ${p.color}22` }}>
-              <p className="text-xs font-semibold mb-2" style={{ color: p.color }}>{p.label}</p>
-              <p className="text-xl font-black text-white">{fmt(p.orders)}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>pedidos</p>
-              <p className="text-xs font-bold mt-2" style={{ color: p.color }}>{fmtMoney(p.revenue)}</p>
+            <div key={p.label} className="rounded-xl p-4" style={{ background: p.bg, border: `1px solid ${p.color}20` }}>
+              <p className="text-xs font-semibold mb-3" style={{ color: p.color }}>{p.label}</p>
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    <span className="text-xs" style={{ color: "#7b7fa3" }}>Pagos</span>
+                  </div>
+                  <span className="text-sm font-black text-white">{fmt(p.paid)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                    <span className="text-xs" style={{ color: "#7b7fa3" }}>Pendentes</span>
+                  </div>
+                  <span className="text-sm font-black text-white">{fmt(p.pending)}</span>
+                </div>
+              </div>
+              <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="text-xs font-bold" style={{ color: p.color }}>{fmtMoney(p.revenue)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>receita paga</p>
+              </div>
             </div>
           ))}
         </div>
@@ -247,8 +259,8 @@ export default function LivePage() {
             {[
               { label: "Total de pedidos", value: stats ? fmt(stats.totalOrders) : "—", icon: ShoppingBag, color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
               { label: "Receita total", value: stats ? fmtMoney(stats.totalRevenue) : "—", icon: TrendingUp, color: "#22d3a0", bg: "rgba(34,211,160,0.1)" },
-              { label: "Pedidos hoje", value: stats ? fmt(stats.ordersToday) : "—", icon: ShoppingCart, color: "#fb923c", bg: "rgba(251,146,60,0.1)" },
-              { label: "Compraram hoje", value: stats ? fmt(stats.purchasedToday) : "—", icon: CreditCard, color: "#a78bfa", bg: "rgba(108,82,255,0.1)" },
+              { label: "Pedidos hoje", value: stats ? fmt((stats.paidToday ?? 0) + (stats.pendingToday ?? 0)) : "—", icon: ShoppingCart, color: "#fb923c", bg: "rgba(251,146,60,0.1)" },
+              { label: "Pagos hoje", value: stats ? fmt(stats.paidToday ?? 0) : "—", icon: CreditCard, color: "#a78bfa", bg: "rgba(108,82,255,0.1)" },
             ].map((row) => (
               <div key={row.label} className="flex items-center justify-between py-2.5 px-3 rounded-xl"
                 style={{ background: "rgba(255,255,255,0.03)" }}>

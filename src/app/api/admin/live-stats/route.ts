@@ -12,36 +12,42 @@ export async function GET() {
     const d7ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const d30ago = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    const paid = "PAID";
+    const pending = "PENDING";
+
     const [
-      presences,
-      activeCarts,
-      ordersToday,
-      orders24h,
-      orders7d,
-      orders30d,
-      revenueToday,
-      revenue24h,
-      revenue7d,
-      revenue30d,
-      totalOrders,
-      totalRevenue,
-      sessionsToday,
-      purchasedToday,
+      presences, activeCarts, sessionsToday,
+      totalOrders, totalRevenue,
+      // Today
+      paidToday, pendingToday, revenueToday,
+      // 24h
+      paid24h, pending24h, revenue24h,
+      // 7d
+      paid7d, pending7d, revenue7d,
+      // 30d
+      paid30d, pending30d, revenue30d,
     ] = await Promise.all([
       prisma.presence.findMany({ where: { updatedAt: { gte: activeWindow } }, select: { page: true } }),
       prisma.cart.count({ where: { updatedAt: { gte: activeWindow }, items: { some: {} } } }),
-      prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
-      prisma.order.count({ where: { createdAt: { gte: h24ago } } }),
-      prisma.order.count({ where: { createdAt: { gte: d7ago } } }),
-      prisma.order.count({ where: { createdAt: { gte: d30ago } } }),
-      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: todayStart } } }),
-      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: h24ago } } }),
-      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: d7ago } } }),
-      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: d30ago } } }),
-      prisma.order.count(),
-      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID" } }),
       prisma.presence.count({ where: { updatedAt: { gte: todayStart } } }),
-      prisma.order.count({ where: { paymentStatus: "PAID", createdAt: { gte: todayStart } } }),
+      prisma.order.count(),
+      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid } }),
+      // today
+      prisma.order.count({ where: { paymentStatus: paid, createdAt: { gte: todayStart } } }),
+      prisma.order.count({ where: { paymentStatus: pending, createdAt: { gte: todayStart } } }),
+      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid, createdAt: { gte: todayStart } } }),
+      // 24h
+      prisma.order.count({ where: { paymentStatus: paid, createdAt: { gte: h24ago } } }),
+      prisma.order.count({ where: { paymentStatus: pending, createdAt: { gte: h24ago } } }),
+      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid, createdAt: { gte: h24ago } } }),
+      // 7d
+      prisma.order.count({ where: { paymentStatus: paid, createdAt: { gte: d7ago } } }),
+      prisma.order.count({ where: { paymentStatus: pending, createdAt: { gte: d7ago } } }),
+      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid, createdAt: { gte: d7ago } } }),
+      // 30d
+      prisma.order.count({ where: { paymentStatus: paid, createdAt: { gte: d30ago } } }),
+      prisma.order.count({ where: { paymentStatus: pending, createdAt: { gte: d30ago } } }),
+      prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid, createdAt: { gte: d30ago } } }),
     ]);
 
     const visitorsNow = presences.length;
@@ -53,18 +59,21 @@ export async function GET() {
       onCart: presences.filter((p) => p.page === "cart").length,
       onCheckout: presences.filter((p) => p.page === "checkout").length,
       activeCarts,
-      ordersToday,
-      orders24h,
-      orders7d,
-      orders30d,
-      purchasedToday,
-      revenueToday: Number(revenueToday._sum.total || 0),
-      revenue24h: Number(revenue24h._sum.total || 0),
-      revenue7d: Number(revenue7d._sum.total || 0),
-      revenue30d: Number(revenue30d._sum.total || 0),
+      sessionsToday,
       totalOrders,
       totalRevenue: Number(totalRevenue._sum.total || 0),
-      sessionsToday,
+      // today
+      paidToday, pendingToday,
+      revenueToday: Number(revenueToday._sum.total || 0),
+      // 24h
+      paid24h, pending24h,
+      revenue24h: Number(revenue24h._sum.total || 0),
+      // 7d
+      paid7d, pending7d,
+      revenue7d: Number(revenue7d._sum.total || 0),
+      // 30d
+      paid30d, pending30d,
+      revenue30d: Number(revenue30d._sum.total || 0),
     });
   } catch {
     return NextResponse.json({ error: true }, { status: 500 });
