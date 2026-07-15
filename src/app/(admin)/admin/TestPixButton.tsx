@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, X, Copy, Check, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, X, Copy, Check, Zap, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 
 interface PixResult {
   qrCode: string;
   qrCodeBase64: string;
   merchantName: string;
+  orderNumber: string;
   amount: number;
 }
 
@@ -16,12 +17,15 @@ export default function TestPixButton() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checkResult, setCheckResult] = useState<string | null>(null);
 
   async function generate() {
     setLoading(true);
     setError("");
     setResult(null);
     setShowQr(false);
+    setCheckResult(null);
     try {
       const res = await fetch("/api/admin/test-pix", { method: "POST" });
       const data = await res.json();
@@ -31,6 +35,24 @@ export default function TestPixButton() {
       setError(e instanceof Error ? e.message : "Erro desconhecido");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function checkPayment() {
+    setChecking(true);
+    setCheckResult(null);
+    try {
+      const res = await fetch("/api/cron/check-payments");
+      const data = await res.json();
+      if (data.confirmed > 0) {
+        setCheckResult(`✅ ${data.confirmed} pagamento(s) confirmado(s)! Recarregue o dashboard.`);
+      } else {
+        setCheckResult(`Nenhum pagamento confirmado ainda (${data.checked} pendente(s) verificado(s)).`);
+      }
+    } catch {
+      setCheckResult("Erro ao verificar. Tente novamente.");
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -70,14 +92,13 @@ export default function TestPixButton() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <div>
                 <p className="font-black text-white text-sm">Código PIX gerado</p>
-                {result.merchantName && (
-                  <p className="text-[11px] mt-0.5" style={{ color: "#7b7fa3" }}>
-                    Beneficiário: <span className="text-white">{result.merchantName}</span>
-                  </p>
-                )}
+                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>
+                  Pedido: <span className="font-mono text-white">{result.orderNumber}</span>
+                </p>
               </div>
               <button onClick={() => setResult(null)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
                 <X className="w-4 h-4" style={{ color: "#7b7fa3" }} />
@@ -88,7 +109,7 @@ export default function TestPixButton() {
               {/* Amount */}
               <p className="text-3xl font-black text-white text-center">R$&nbsp;5,50</p>
 
-              {/* COPY BUTTON — prominent, first */}
+              {/* COPY — first and prominent */}
               <button
                 onClick={copy}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-black transition-all active:scale-[0.98]"
@@ -104,7 +125,7 @@ export default function TestPixButton() {
                 }
               </button>
 
-              {/* PIX code preview (truncated) */}
+              {/* PIX code preview */}
               <div
                 className="px-3 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
@@ -114,6 +135,33 @@ export default function TestPixButton() {
                   {result.qrCode.slice(0, 60)}…
                 </span>
                 <Copy className="w-3 h-3 flex-shrink-0" style={{ color: "#7b7fa3" }} />
+              </div>
+
+              {/* Check payment button */}
+              <div className="space-y-1.5">
+                <button
+                  onClick={checkPayment}
+                  disabled={checking}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  style={{
+                    background: "rgba(34,211,160,0.1)",
+                    border: "1px solid rgba(34,211,160,0.25)",
+                    color: "#22d3a0",
+                  }}
+                >
+                  {checking
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <RefreshCw className="w-3.5 h-3.5" />
+                  }
+                  {checking ? "Verificando..." : "Verificar se foi pago"}
+                </button>
+                {checkResult && (
+                  <p className="text-[11px] text-center px-2" style={{
+                    color: checkResult.startsWith("✅") ? "#22d3a0" : "#7b7fa3"
+                  }}>
+                    {checkResult}
+                  </p>
+                )}
               </div>
 
               {/* QR Code — collapsible */}
@@ -139,7 +187,7 @@ export default function TestPixButton() {
               )}
 
               <p className="text-[10px] text-center pb-1" style={{ color: "#4a4870" }}>
-                Este PIX é apenas para teste — não cria pedido
+                Este PIX cria um pedido de teste no sistema
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
 import { vezionConfigured, vezionCreatePix } from "@/lib/vezion";
 
@@ -20,16 +21,57 @@ export async function POST(req: NextRequest) {
     || req.headers.get("x-real-ip")
     || "177.54.146.0";
 
+  const orderNumber = `TESTE-${Date.now()}`;
+
   try {
     const v = await vezionCreatePix({
       amount: 5.50,
-      orderNumber: `TESTE-${Date.now()}`,
+      orderNumber,
       name: "Admin Teste",
       email: "admin@teste.com",
       cpf: "52998224725",
       phone: "11999999999",
       itemName: "Teste Vezion PIX",
       ip,
+    });
+
+    // Create a real order in the DB so the webhook can find and confirm it
+    await prisma.order.create({
+      data: {
+        orderNumber,
+        email: "admin@teste.com",
+        status: "PENDING",
+        paymentStatus: "PENDING",
+        paymentMethod: "pix",
+        mpPaymentId: v.id,
+        subtotal: 5.50,
+        shipping: 0,
+        total: 5.50,
+        shippingAddress: {
+          name: "Admin Teste",
+          phone: "11999999999",
+          street: "Rua Teste",
+          number: "1",
+          complement: "",
+          district: "Centro",
+          city: "São Paulo",
+          state: "SP",
+          zipCode: "01001000",
+        },
+        items: {
+          create: [{
+            name: "Teste Adquirente PIX",
+            image: "",
+            size: "-",
+            color: "-",
+            quantity: 1,
+            price: 5.50,
+          }],
+        },
+        statusHistory: {
+          create: [{ status: "PENDING", note: "PIX de teste gerado pelo admin" }],
+        },
+      },
     });
 
     let qrCodeBase64 = "";
@@ -42,6 +84,7 @@ export async function POST(req: NextRequest) {
       qrCode: v.pixPayload,
       qrCodeBase64,
       merchantName: v.merchantName,
+      orderNumber,
       amount: 5.50,
       gateway: "Vezion",
     });
