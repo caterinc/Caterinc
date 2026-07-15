@@ -1,125 +1,245 @@
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingBag, Users, Package, AlertTriangle, TrendingUp, Plus, FileDown, Palette } from "lucide-react";
+import { TrendingUp, ShoppingBag, Users, Package, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import TestPixButton from "./TestPixButton";
 
+function Sparkline({ points, color }: { points: string; color: string }) {
+  return (
+    <svg viewBox="0 0 100 40" className="w-full h-10" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`g-${color}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const CARD = "rounded-2xl p-5 flex flex-col gap-3";
+const CARD_BG = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
+
+const statusLabel: Record<string, string> = {
+  PENDING: "Pendente", CONFIRMED: "Confirmado", PROCESSING: "Processando",
+  SHIPPED: "Enviado", DELIVERED: "Entregue", CANCELLED: "Cancelado", REFUNDED: "Reembolsado",
+};
+
+const statusColor: Record<string, string> = {
+  PENDING: "#f59e0b", CONFIRMED: "#3b82f6", PROCESSING: "#8b5cf6",
+  SHIPPED: "#06b6d4", DELIVERED: "#22c55e", CANCELLED: "#ef4444", REFUNDED: "#6b7280",
+};
+
 export default async function AdminDashboard() {
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7); weekStart.setHours(0,0,0,0);
+  const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(weekStart.getDate() - 7);
+
   const [
-    totalOrders,
-    totalCustomers,
-    totalProducts,
-    lowStockCount,
-    recentOrders,
-    revenue,
+    totalOrders, totalCustomers, totalProducts, lowStockCount, recentOrders,
+    revenue, ordersThisWeek, ordersPrevWeek, revenueThisWeek, revenuePrevWeek,
+    customersThisWeek, customersPrevWeek,
   ] = await Promise.all([
     prisma.order.count(),
     prisma.user.count({ where: { role: "CUSTOMER" } }),
     prisma.product.count({ where: { isActive: true } }),
     prisma.productVariant.count({ where: { stock: { lt: 5 } } }),
     prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
+      take: 5, orderBy: { createdAt: "desc" },
       include: { user: { select: { name: true } }, items: true },
     }),
-    prisma.order.aggregate({
-      _sum: { total: true },
-      where: { paymentStatus: "PAID" },
-    }),
+    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID" } }),
+    prisma.order.count({ where: { createdAt: { gte: weekStart } } }),
+    prisma.order.count({ where: { createdAt: { gte: prevWeekStart, lt: weekStart } } }),
+    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: weekStart } } }),
+    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: prevWeekStart, lt: weekStart } } }),
+    prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: weekStart } } }),
+    prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: prevWeekStart, lt: weekStart } } }),
   ]);
 
+  function pct(curr: number, prev: number) {
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  }
+
+  const revCurr = Number(revenueThisWeek._sum.total || 0);
+  const revPrev = Number(revenuePrevWeek._sum.total || 0);
+
   const stats = [
-    { label: "Receita", value: formatPrice(Number(revenue._sum.total || 0)), icon: TrendingUp, color: "bg-green-500", href: "/admin/pedidos" },
-    { label: "Pedidos", value: totalOrders.toString(), icon: ShoppingBag, color: "bg-blue-500", href: "/admin/pedidos" },
-    { label: "Clientes", value: totalCustomers.toString(), icon: Users, color: "bg-purple-500", href: "/admin/clientes" },
-    { label: "Produtos", value: totalProducts.toString(), icon: Package, color: "bg-cat-black", href: "/admin/produtos" },
+    {
+      label: "Receita", value: formatPrice(Number(revenue._sum.total || 0)),
+      change: pct(revCurr, revPrev), href: "/admin/pedidos",
+      icon: TrendingUp, iconBg: "#1a3a2e", iconColor: "#22d3a0",
+      sparkColor: "#22d3a0",
+      points: "0,35 10,30 20,32 30,24 40,27 50,18 60,22 70,13 80,16 90,8 100,6",
+    },
+    {
+      label: "Pedidos", value: totalOrders.toLocaleString("pt-BR"),
+      change: pct(ordersThisWeek, ordersPrevWeek), href: "/admin/pedidos",
+      icon: ShoppingBag, iconBg: "#1a2a3e", iconColor: "#60a5fa",
+      sparkColor: "#60a5fa",
+      points: "0,28 10,22 20,30 30,20 40,16 50,24 60,12 70,20 80,10 90,18 100,14",
+    },
+    {
+      label: "Clientes", value: totalCustomers.toLocaleString("pt-BR"),
+      change: pct(customersThisWeek, customersPrevWeek), href: "/admin/clientes",
+      icon: Users, iconBg: "#2a1a3e", iconColor: "#c084fc",
+      sparkColor: "#c084fc",
+      points: "0,30 10,28 20,32 30,24 40,26 50,20 60,22 70,16 80,18 90,14 100,16",
+    },
+    {
+      label: "Produtos", value: totalProducts.toLocaleString("pt-BR"),
+      change: 0, href: "/admin/produtos",
+      icon: Package, iconBg: "#2e1e12", iconColor: "#fb923c",
+      sparkColor: "#fb923c",
+      points: "0,24 10,22 20,26 30,23 40,20 50,24 60,21 70,25 80,20 90,22 100,21",
+    },
   ];
 
-  const statusLabel: Record<string, string> = {
-    PENDING: "Pendente", CONFIRMED: "Confirmado", PROCESSING: "Processando",
-    SHIPPED: "Enviado", DELIVERED: "Entregue", CANCELLED: "Cancelado",
-  };
-
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-black text-cat-black">Dashboard</h1>
+    <div className="space-y-4 max-w-7xl">
+      <div>
+        <h1 className="text-2xl font-black text-white">Dashboard</h1>
+        <p className="text-sm mt-0.5" style={{ color: "#7b7fa3" }}>Bem-vindo de volta, Dropper! 👋</p>
+      </div>
 
-      {/* Stats — 2x2 on mobile, 4 columns on lg */}
+      {/* Low stock */}
+      {lowStockCount > 0 && (
+        <Link href="/admin/estoque?lowStock=true"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 transition-opacity hover:opacity-90"
+          style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)" }}>
+          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <p className="text-sm text-red-300 font-medium">
+            {lowStockCount} variante{lowStockCount !== 1 ? "s" : ""} com estoque baixo
+          </p>
+          <ChevronRight className="w-4 h-4 text-red-400 ml-auto" />
+        </Link>
+      )}
+
+      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map((stat) => (
-          <Link key={stat.label} href={stat.href}
-            className="bg-white rounded-xl border p-4 hover:shadow-md transition-shadow active:scale-[0.98]">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
-              <div className={`${stat.color} p-1.5 rounded-lg`}>
-                <stat.icon className="w-3.5 h-3.5 text-white" />
+        {stats.map((s) => (
+          <Link key={s.label} href={s.href}
+            className={`${CARD} hover:opacity-90 transition-opacity active:scale-[0.98]`}
+            style={CARD_BG}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium mb-1" style={{ color: "#7b7fa3" }}>{s.label}</p>
+                <p className="text-xl lg:text-2xl font-black text-white">{s.value}</p>
+              </div>
+              <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: s.iconBg }}>
+                <s.icon className="w-4 h-4" style={{ color: s.iconColor }} />
               </div>
             </div>
-            <p className="text-xl font-black text-cat-black">{stat.value}</p>
+            <div className="-mx-1">
+              <Sparkline points={s.points} color={s.sparkColor} />
+            </div>
+            <p className="text-xs font-semibold" style={{ color: s.change >= 0 ? "#22d3a0" : "#f87171" }}>
+              {s.change >= 0 ? "↗" : "↘"} {Math.abs(s.change)}% vs último período
+            </p>
           </Link>
         ))}
       </div>
 
-      {/* Low stock alert */}
-      {lowStockCount > 0 && (
-        <Link href="/admin/estoque?lowStock=true"
-          className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 hover:bg-red-100 transition-colors">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-700 font-semibold">
-            {lowStockCount} variante{lowStockCount !== 1 ? "s" : ""} com estoque baixo
-          </p>
-        </Link>
-      )}
-
-      {/* Quick actions + Test PIX — side by side on mobile */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-cat-yellow rounded-xl p-4">
-          <p className="font-bold text-cat-black text-sm mb-3">Ações rápidas</p>
-          <div className="space-y-2.5">
-            <Link href="/admin/produtos/novo" className="flex items-center gap-2 text-sm font-medium text-cat-black hover:underline">
-              <Plus className="w-4 h-4 flex-shrink-0" /> Novo produto
-            </Link>
-            <Link href="/admin/importar" className="flex items-center gap-2 text-sm font-medium text-cat-black hover:underline">
-              <FileDown className="w-4 h-4 flex-shrink-0" /> Importar CSV
-            </Link>
-            <Link href="/admin/visual/editor" className="flex items-center gap-2 text-sm font-medium text-cat-black hover:underline">
-              <Palette className="w-4 h-4 flex-shrink-0" /> Editor visual
-            </Link>
+      {/* Middle row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Quick actions */}
+        <div className={CARD} style={CARD_BG}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(108,82,255,0.2)" }}>
+              <span className="text-sm">🚀</span>
+            </div>
+            <h2 className="text-sm font-bold text-white">Ações rápidas</h2>
+          </div>
+          <div className="space-y-1">
+            {[
+              { label: "Novo produto", href: "/admin/produtos/novo", icon: Plus },
+              { label: "Importar CSV", href: "/admin/importar", icon: FileDown },
+              { label: "Editor visual", href: "/admin/visual/editor", icon: Palette },
+            ].map((a) => (
+              <Link key={a.href} href={a.href}
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors group"
+                style={{ background: "rgba(255,255,255,0.04)" }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <a.icon className="w-4 h-4" style={{ color: "#7b7fa3" }} />
+                  <span className="text-sm text-white/80 group-hover:text-white transition-colors">{a.label}</span>
+                </div>
+                <ChevronRight className="w-4 h-4" style={{ color: "#7b7fa3" }} />
+              </Link>
+            ))}
           </div>
         </div>
 
-        <div className="bg-white border rounded-xl p-4">
-          <p className="font-bold text-cat-black text-sm mb-1">Testar adquirente</p>
-          <p className="text-xs text-gray-500 mb-3">Gera PIX R$5,50 para ver o beneficiário ativo.</p>
+        {/* Test PIX */}
+        <div className={CARD} style={CARD_BG}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,211,160,0.15)" }}>
+              <span className="text-sm">⚡</span>
+            </div>
+            <h2 className="text-sm font-bold text-white">Testar adquirente</h2>
+          </div>
+          <p className="text-xs mb-3" style={{ color: "#7b7fa3" }}>
+            Gere um PIX de teste de R$5,50 para verificar o beneficiário ativo.
+          </p>
           <TestPixButton />
+        </div>
+
+        {/* Recent orders — on mobile this goes full width */}
+        <div className={`${CARD} sm:col-span-2 lg:col-span-1`} style={CARD_BG}>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-sm font-bold text-white">Pedidos recentes</h2>
+            <Link href="/admin/pedidos" className="text-xs font-medium transition-colors" style={{ color: "#6c52ff" }}>
+              Ver todos →
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {recentOrders.length === 0 && (
+              <p className="text-center text-sm py-4" style={{ color: "#7b7fa3" }}>Nenhum pedido ainda</p>
+            )}
+            {recentOrders.map((order) => (
+              <Link key={order.id} href={`/admin/pedidos/${order.id}`}
+                className="flex items-center justify-between py-2 rounded-lg px-2 transition-colors hover:bg-white/5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white truncate">{order.orderNumber}</p>
+                  <p className="text-xs truncate mt-0.5" style={{ color: "#7b7fa3" }}>{order.user?.name || order.email}</p>
+                </div>
+                <div className="text-right flex-shrink-0 ml-2">
+                  <p className="text-xs font-bold text-white">{formatPrice(Number(order.total))}</p>
+                  <span className="text-xs px-1.5 py-0.5 rounded-md font-medium mt-0.5 inline-block"
+                    style={{ background: `${statusColor[order.status] || "#6b7280"}22`, color: statusColor[order.status] || "#9ca3af" }}>
+                    {statusLabel[order.status] || order.status}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Recent orders */}
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h2 className="font-bold text-sm">Pedidos Recentes</h2>
-          <Link href="/admin/pedidos" className="text-xs text-cat-black font-medium hover:underline">Ver todos</Link>
+      {/* Welcome banner */}
+      <div className="rounded-2xl p-5 lg:p-6 flex items-center justify-between overflow-hidden relative"
+        style={{ background: "linear-gradient(135deg, #1a1350 0%, #2a1a6e 50%, #0f1a3e 100%)", border: "1px solid rgba(108,82,255,0.3)" }}>
+        <div className="relative z-10">
+          <p className="text-lg font-black text-white mb-1">Bem-vindo de volta, Dropper! 👋</p>
+          <p className="text-sm" style={{ color: "#a78bfa" }}>Acompanhe o desempenho da sua loja em tempo real.</p>
+          <Link href="/admin/live"
+            className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+            style={{ background: "#6c52ff" }}>
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            Ver Live View
+          </Link>
         </div>
-        <div className="divide-y">
-          {recentOrders.map((order) => (
-            <Link key={order.id} href={`/admin/pedidos/${order.id}`}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-cat-black truncate">{order.orderNumber}</p>
-                <p className="text-xs text-gray-500 truncate">{order.user?.name || order.email}</p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold">{formatPrice(Number(order.total))}</p>
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                  {statusLabel[order.status] || order.status}
-                </span>
-              </div>
-            </Link>
-          ))}
-          {recentOrders.length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-8">Nenhum pedido ainda</p>
-          )}
+        <div className="absolute right-0 top-0 bottom-0 w-40 lg:w-64 flex items-center justify-center opacity-20 pointer-events-none select-none" aria-hidden>
+          <span className="text-8xl lg:text-9xl">🪐</span>
         </div>
       </div>
     </div>

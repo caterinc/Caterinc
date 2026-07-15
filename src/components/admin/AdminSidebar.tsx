@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, Users,
-  BarChart3, FileDown, Palette, Star, ChevronLeft, ChevronRight, Plug, Truck, X, Radio
+  BarChart3, FileDown, Palette, Star, Plug, Truck, X, Radio,
+  ExternalLink, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -12,15 +13,15 @@ import { useState } from "react";
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Live View", href: "/admin/live", icon: Radio },
+  { label: "Pedidos", href: "/admin/pedidos", icon: ShoppingBag },
   { label: "Produtos", href: "/admin/produtos", icon: Package },
   { label: "Coleções", href: "/admin/colecoes", icon: FolderOpen },
-  { label: "Pedidos", href: "/admin/pedidos", icon: ShoppingBag },
   { label: "Clientes", href: "/admin/clientes", icon: Users },
   { label: "Estoque", href: "/admin/estoque", icon: BarChart3 },
   { label: "Avaliações", href: "/admin/avaliacoes", icon: Star },
   { label: "Frete", href: "/admin/frete", icon: Truck },
   { label: "Importar/Exportar", href: "/admin/importar", icon: FileDown },
-  { label: "Integração", href: "/admin/integracao", icon: Plug },
+  { label: "Integrações", href: "/admin/integracao", icon: Plug },
   { label: "Editor Visual", href: "/admin/visual/editor", icon: Palette },
 ];
 
@@ -29,45 +30,45 @@ interface AdminSidebarProps {
   onMobileClose?: () => void;
 }
 
+function PlanetIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <circle cx="14" cy="14" r="8" fill="#6c52ff" />
+      <ellipse cx="14" cy="14" rx="13" ry="5" stroke="#a78bfa" strokeWidth="1.5" fill="none" opacity="0.7" />
+      <circle cx="11" cy="11" r="2" fill="#a78bfa" opacity="0.5" />
+    </svg>
+  );
+}
+
 export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={cn(
-      "bg-cat-black text-white flex flex-col flex-shrink-0 transition-all duration-300",
-      // Mobile: fixed drawer, slides in/out
-      "fixed inset-y-0 left-0 z-30 lg:relative lg:translate-x-0",
-      mobileOpen ? "translate-x-0" : "-translate-x-full",
-      // Desktop: collapsible
-      collapsed ? "lg:w-16" : "lg:w-60",
-      // Mobile always full width sidebar
-      "w-72"
-    )}>
+    <aside
+      className={cn(
+        "flex flex-col flex-shrink-0 transition-transform duration-300 z-30",
+        "fixed inset-y-0 left-0 w-64 lg:relative lg:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full",
+      )}
+      style={{ background: "#0f0c24", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+    >
       {/* Logo */}
-      <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="bg-cat-yellow text-cat-black font-black text-sm px-2 py-0.5 tracking-widest rounded">dropfy</div>
-          {!collapsed && <span className="font-bold text-sm text-gray-300 hidden lg:block">Admin</span>}
+      <div className="flex items-center justify-between px-5 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-2.5">
+          <PlanetIcon />
+          <span className="text-white font-black text-lg tracking-tight">dropfy</span>
         </div>
-        <div className="flex items-center gap-1">
-          {/* Mobile close */}
-          <button onClick={onMobileClose} className="text-gray-400 hover:text-white transition-colors lg:hidden">
-            <X className="w-5 h-5" />
-          </button>
-          {/* Desktop collapse */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-400 hover:text-white transition-colors hidden lg:block"
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </div>
+        <button
+          onClick={onMobileClose}
+          className="lg:hidden text-white/40 hover:text-white/80 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 overflow-y-auto">
-        <ul className="space-y-1 px-2">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3">
+        <ul className="space-y-0.5">
           {navItems.map((item) => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             return (
@@ -75,16 +76,21 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
                 <Link
                   href={item.href}
                   onClick={onMobileClose}
-                  title={collapsed ? item.label : undefined}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
                     active
-                      ? "bg-cat-yellow text-cat-black"
-                      : "text-gray-400 hover:text-white hover:bg-gray-800"
+                      ? "text-white shadow-lg"
+                      : "text-white/50 hover:text-white/80 hover:bg-white/5"
                   )}
+                  style={active ? { background: "linear-gradient(135deg, #4c37e8, #6c52ff)" } : {}}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <item.icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "")} />
+                  <span>{item.label}</span>
+                  {item.label === "Live View" && (
+                    <span className="ml-auto flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -92,11 +98,26 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-800">
-        <Link href="/" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
-          ← Ver loja
+      {/* Pro plan */}
+      <div className="px-3 pb-3">
+        <div className="rounded-xl p-3.5 mb-2" style={{ background: "linear-gradient(135deg, #1a1350, #2a1a6e)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <span className="text-white text-xs font-bold">Plano Pro</span>
+          </div>
+          <p className="text-white/50 text-xs mb-2.5">Mais recursos para escalar seu negócio.</p>
+          <button className="w-full text-xs font-bold py-1.5 rounded-lg transition-all" style={{ background: "#6c52ff", color: "white" }}>
+            Upgrade
+          </button>
+        </div>
+        <Link
+          href="/"
+          className="flex items-center gap-2 px-3 py-2 text-white/40 hover:text-white/70 text-xs transition-colors rounded-lg hover:bg-white/5"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Ver loja
         </Link>
       </div>
-    </div>
+    </aside>
   );
 }

@@ -1,49 +1,78 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { User, LogOut, Bell, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, Menu, LogOut, Search } from "lucide-react";
+import { useState } from "react";
 
 interface AdminHeaderProps {
   user: { name?: string | null; email?: string | null };
   onMenuClick?: () => void;
 }
 
-export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
+function Avatar({ name }: { name?: string | null }) {
+  const initials = (name || "A").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <header className="bg-white border-b px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
-      {/* Mobile hamburger */}
+    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+      style={{ background: "linear-gradient(135deg, #4c37e8, #9333ea)" }}>
+      {initials}
+    </div>
+  );
+}
+
+export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
+  const [searching, setSearching] = useState(false);
+
+  return (
+    <header
+      className="flex items-center gap-3 px-4 lg:px-6 py-3 flex-shrink-0"
+      style={{ background: "#0f0c24", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+    >
+      {/* Mobile menu button */}
       <button
         onClick={onMenuClick}
-        className="text-gray-500 hover:text-gray-800 transition-colors lg:hidden flex-shrink-0"
-        aria-label="Abrir menu"
+        className="lg:hidden text-white/50 hover:text-white transition-colors flex-shrink-0"
       >
-        <Menu className="w-6 h-6" />
+        <Menu className="w-5 h-5" />
       </button>
+
+      {/* Search bar */}
+      <div className="flex-1 max-w-xs hidden sm:block">
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-white/40"
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <Search className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm">Buscar...</span>
+          <span className="ml-auto text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.08)" }}>⌘K</span>
+        </div>
+      </div>
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-3">
-        <button className="text-gray-400 hover:text-gray-600 relative">
-          <Bell className="w-5 h-5" />
+      <div className="flex items-center gap-2">
+        {/* Bell */}
+        <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white/50 hover:text-white transition-colors"
+          style={{ background: "rgba(255,255,255,0.06)" }}>
+          <Bell className="w-4 h-4" />
         </button>
+
+        {/* Avatar + name */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-cat-black rounded-full flex items-center justify-center flex-shrink-0">
-            <User className="w-4 h-4 text-cat-yellow" />
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium text-gray-800 leading-none">{user.name || "Admin"}</p>
-            <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[180px]">{user.email}</p>
+          <Avatar name={user.name} />
+          <div className="hidden md:block">
+            <p className="text-white text-sm font-semibold leading-none">{user.name || "Admin"}</p>
+            <p className="text-white/40 text-xs mt-0.5 truncate max-w-[140px]">{user.email}</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
+
+        {/* Logout */}
+        <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="text-gray-500 hover:text-red-500"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-white/40 hover:text-red-400 transition-colors"
+          style={{ background: "rgba(255,255,255,0.06)" }}
         >
           <LogOut className="w-4 h-4" />
-        </Button>
+        </button>
       </div>
     </header>
   );
