@@ -1,18 +1,92 @@
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
-import { TrendingUp, ShoppingBag, Users, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
+import { TrendingUp, ShoppingBag, Users, Clock, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import TestPixButton from "./TestPixButton";
+import DashboardFilter from "./DashboardFilter";
+import { Suspense } from "react";
 
-function Sparkline({ points, color }: { points: string; color: string }) {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getDateRange(period: string, from?: string, to?: string) {
+  const now = new Date();
+  switch (period) {
+    case "yesterday": {
+      const s = new Date(now); s.setDate(now.getDate() - 1); s.setHours(0, 0, 0, 0);
+      const e = new Date(s); e.setHours(23, 59, 59, 999);
+      return { start: s, end: e, label: "Ontem" };
+    }
+    case "7d": {
+      const s = new Date(now); s.setDate(now.getDate() - 6); s.setHours(0, 0, 0, 0);
+      return { start: s, end: now, label: "Últimos 7 dias" };
+    }
+    case "month": {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start: s, end: now, label: "Este mês" };
+    }
+    case "lastmonth": {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { start: s, end: e, label: "Mês passado" };
+    }
+    case "custom": {
+      const s = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = to ? new Date(to + "T23:59:59") : now;
+      return { start: s, end: e, label: "Personalizado" };
+    }
+    default: {
+      const s = new Date(now); s.setHours(0, 0, 0, 0);
+      return { start: s, end: now, label: "Hoje" };
+    }
+  }
+}
+
+function buildSparkPoints(
+  orders: { total: number; createdAt: Date }[],
+  start: Date,
+  end: Date,
+  buckets = 28
+): string {
+  const duration = end.getTime() - start.getTime();
+  if (duration <= 0 || orders.length === 0) {
+    return Array.from({ length: buckets }, (_, i) => `${(i / (buckets - 1) * 100).toFixed(1)},38`).join(" ");
+  }
+
+  const bucketMs = duration / buckets;
+  const data = Array(buckets).fill(0);
+  for (const o of orders) {
+    const idx = Math.min(Math.floor((o.createdAt.getTime() - start.getTime()) / bucketMs), buckets - 1);
+    if (idx >= 0) data[idx] += o.total;
+  }
+
+  let cum = 0;
+  const cumulative = data.map((v) => { cum += v; return cum; });
+  const max = Math.max(...cumulative, 0.01);
+
+  return cumulative
+    .map((v, i) => {
+      const x = (i / (buckets - 1)) * 100;
+      const y = 38 - (v / max) * 34;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
+function TradingSparkline({ points, color }: { points: string; color: string }) {
+  const pts = points.split(" ");
+  const firstX = pts[0].split(",")[0];
+  const lastX = pts[pts.length - 1].split(",")[0];
+  const fillPoints = `${firstX},40 ${points} ${lastX},40`;
+  const id = `sp-${color.replace("#", "")}`;
   return (
-    <svg viewBox="0 0 100 40" className="w-full h-10" preserveAspectRatio="none">
+    <svg viewBox="0 0 100 40" className="w-full h-14" preserveAspectRatio="none">
       <defs>
-        <linearGradient id={`g-${color}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
+      <polygon points={fillPoints} fill={`url(#${id})`} />
       <polyline
         points={points}
         fill="none"
@@ -32,75 +106,67 @@ const statusLabel: Record<string, string> = {
   PENDING: "Pendente", CONFIRMED: "Confirmado", PROCESSING: "Processando",
   SHIPPED: "Enviado", DELIVERED: "Entregue", CANCELLED: "Cancelado", REFUNDED: "Reembolsado",
 };
-
 const statusColor: Record<string, string> = {
   PENDING: "#f59e0b", CONFIRMED: "#3b82f6", PROCESSING: "#8b5cf6",
   SHIPPED: "#06b6d4", DELIVERED: "#22c55e", CANCELLED: "#ef4444", REFUNDED: "#6b7280",
 };
 
-export default async function AdminDashboard() {
-  const now = new Date();
-  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7); weekStart.setHours(0,0,0,0);
-  const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(weekStart.getDate() - 7);
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: { period?: string; from?: string; to?: string };
+}) {
+  const { period = "today", from, to } = searchParams;
+  const { start, end, label } = getDateRange(period, from, to);
 
   const [
-    totalOrders, totalCustomers, lowStockCount, recentOrders,
-    revenue, ordersThisWeek, ordersPrevWeek, revenueThisWeek, revenuePrevWeek,
-    customersThisWeek, customersPrevWeek,
+    lowStockCount,
+    totalCustomers,
+    recentOrders,
+    paidOrders,
+    pendingAgg,
+    periodOrders,
   ] = await Promise.all([
-    prisma.order.count(),
-    prisma.user.count({ where: { role: "CUSTOMER" } }),
     prisma.productVariant.count({ where: { stock: { lt: 5 } } }),
+    prisma.user.count({ where: { role: "CUSTOMER" } }),
     prisma.order.findMany({
       take: 5, orderBy: { createdAt: "desc" },
       include: { user: { select: { name: true } }, items: true },
     }),
-    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID" } }),
-    prisma.order.count({ where: { createdAt: { gte: weekStart } } }),
-    prisma.order.count({ where: { createdAt: { gte: prevWeekStart, lt: weekStart } } }),
-    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: weekStart } } }),
-    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID", createdAt: { gte: prevWeekStart, lt: weekStart } } }),
-    prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: weekStart } } }),
-    prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: prevWeekStart, lt: weekStart } } }),
+    prisma.order.findMany({
+      where: { paymentStatus: "PAID", createdAt: { gte: start, lte: end } },
+      select: { total: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { paymentStatus: "PENDING", createdAt: { gte: start, lte: end } },
+    }),
+    prisma.order.count({ where: { createdAt: { gte: start, lte: end } } }),
   ]);
 
-  function pct(curr: number, prev: number) {
-    if (prev === 0) return curr > 0 ? 100 : 0;
-    return Math.round(((curr - prev) / prev) * 100);
-  }
-
-  const revCurr = Number(revenueThisWeek._sum.total || 0);
-  const revPrev = Number(revenuePrevWeek._sum.total || 0);
-
-  const stats = [
-    {
-      label: "Receita", value: formatPrice(Number(revenue._sum.total || 0)),
-      change: pct(revCurr, revPrev), href: "/admin/pedidos",
-      icon: TrendingUp, iconBg: "#1a3a2e", iconColor: "#22d3a0",
-      sparkColor: "#22d3a0",
-      points: "0,35 10,30 20,32 30,24 40,27 50,18 60,22 70,13 80,16 90,8 100,6",
-    },
-    {
-      label: "Pedidos", value: totalOrders.toLocaleString("pt-BR"),
-      change: pct(ordersThisWeek, ordersPrevWeek), href: "/admin/pedidos",
-      icon: ShoppingBag, iconBg: "#1a2a3e", iconColor: "#60a5fa",
-      sparkColor: "#60a5fa",
-      points: "0,28 10,22 20,30 30,20 40,16 50,24 60,12 70,20 80,10 90,18 100,14",
-    },
-    {
-      label: "Clientes", value: totalCustomers.toLocaleString("pt-BR"),
-      change: pct(customersThisWeek, customersPrevWeek), href: "/admin/clientes",
-      icon: Users, iconBg: "#2a1a3e", iconColor: "#c084fc",
-      sparkColor: "#c084fc",
-      points: "0,30 10,28 20,32 30,24 40,26 50,20 60,22 70,16 80,18 90,14 100,16",
-    },
-  ];
+  const paidTotal = paidOrders.reduce((s, o) => s + Number(o.total), 0);
+  const pendingTotal = Number(pendingAgg._sum.total || 0);
+  const sparkPoints = buildSparkPoints(
+    paidOrders.map((o) => ({ total: Number(o.total), createdAt: o.createdAt })),
+    start,
+    end
+  );
 
   return (
     <div className="space-y-4 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-black text-white">Dashboard</h1>
-        <p className="text-sm mt-0.5" style={{ color: "#7b7fa3" }}>Bem-vindo de volta, Dropper! 👋</p>
+
+      {/* Header + Filter */}
+      <div className="flex flex-col gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-white">Dashboard</h1>
+          <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Bem-vindo de volta, Dropper!</p>
+        </div>
+        <Suspense fallback={null}>
+          <DashboardFilter />
+        </Suspense>
       </div>
 
       {/* Low stock */}
@@ -116,29 +182,71 @@ export default async function AdminDashboard() {
         </Link>
       )}
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map((s, i) => (
-          <Link key={s.label} href={s.href}
-            className={`${CARD} hover:opacity-90 transition-opacity active:scale-[0.98]${i === 0 ? " col-span-2" : ""}`}
-            style={CARD_BG}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium mb-1" style={{ color: "#7b7fa3" }}>{s.label}</p>
-                <p className="text-xl lg:text-2xl font-black text-white">{s.value}</p>
-              </div>
-              <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: s.iconBg }}>
-                <s.icon className="w-4 h-4" style={{ color: s.iconColor }} />
-              </div>
-            </div>
-            <div className="-mx-1">
-              <Sparkline points={s.points} color={s.sparkColor} />
-            </div>
-            <p className="text-xs font-semibold" style={{ color: s.change >= 0 ? "#22d3a0" : "#f87171" }}>
-              {s.change >= 0 ? "↗" : "↘"} {Math.abs(s.change)}% vs último período
+      {/* Pagos — full width with real sparkline */}
+      <Link href="/admin/pedidos"
+        className="block rounded-2xl p-5 hover:opacity-90 transition-opacity active:scale-[0.99]"
+        style={CARD_BG}>
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7b7fa3" }}>
+              Pagos — {label}
             </p>
-          </Link>
-        ))}
+            <p className="text-3xl lg:text-4xl font-black text-white mt-1">
+              {formatPrice(paidTotal)}
+            </p>
+          </div>
+          <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: "#1a3a2e" }}>
+            <TrendingUp className="w-4 h-4" style={{ color: "#22d3a0" }} />
+          </div>
+        </div>
+        <div className="-mx-1 mt-1">
+          <TradingSparkline points={sparkPoints} color="#22d3a0" />
+        </div>
+      </Link>
+
+      {/* Small cards: Pendente + Pedidos + Clientes */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Pendente */}
+        <div className={CARD} style={CARD_BG}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7b7fa3" }}>Pendente</p>
+              <p className="text-xl font-black mt-1" style={{ color: "#fbbf24" }}>{formatPrice(pendingTotal)}</p>
+            </div>
+            <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: "rgba(251,191,36,0.1)" }}>
+              <Clock className="w-4 h-4" style={{ color: "#fbbf24" }} />
+            </div>
+          </div>
+          <p className="text-xs" style={{ color: "#7b7fa3" }}>Aguardando pagamento</p>
+        </div>
+
+        {/* Pedidos */}
+        <Link href="/admin/pedidos" className={`${CARD} hover:opacity-90 transition-opacity`} style={CARD_BG}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7b7fa3" }}>Pedidos</p>
+              <p className="text-xl font-black text-white mt-1">{periodOrders.toLocaleString("pt-BR")}</p>
+            </div>
+            <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: "#1a2a3e" }}>
+              <ShoppingBag className="w-4 h-4" style={{ color: "#60a5fa" }} />
+            </div>
+          </div>
+          <p className="text-xs" style={{ color: "#7b7fa3" }}>{label}</p>
+        </Link>
+
+        {/* Clientes — full width on mobile (col-span-2), half on desktop */}
+        <Link href="/admin/clientes" className={`${CARD} col-span-2 sm:col-span-1 hover:opacity-90 transition-opacity`} style={CARD_BG}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7b7fa3" }}>Clientes</p>
+              <p className="text-xl font-black text-white mt-1">{totalCustomers.toLocaleString("pt-BR")}</p>
+            </div>
+            <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: "#2a1a3e" }}>
+              <Users className="w-4 h-4" style={{ color: "#c084fc" }} />
+            </div>
+          </div>
+          <p className="text-xs" style={{ color: "#7b7fa3" }}>Total cadastrados</p>
+        </Link>
       </div>
 
       {/* Middle row */}
@@ -159,8 +267,7 @@ export default async function AdminDashboard() {
             ].map((a) => (
               <Link key={a.href} href={a.href}
                 className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors group"
-                style={{ background: "rgba(255,255,255,0.04)" }}
-              >
+                style={{ background: "rgba(255,255,255,0.04)" }}>
                 <div className="flex items-center gap-2.5">
                   <a.icon className="w-4 h-4" style={{ color: "#7b7fa3" }} />
                   <span className="text-sm text-white/80 group-hover:text-white transition-colors">{a.label}</span>
@@ -185,7 +292,7 @@ export default async function AdminDashboard() {
           <TestPixButton />
         </div>
 
-        {/* Recent orders — on mobile this goes full width */}
+        {/* Recent orders */}
         <div className={`${CARD} sm:col-span-2 lg:col-span-1`} style={CARD_BG}>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-sm font-bold text-white">Pedidos recentes</h2>
@@ -217,11 +324,11 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      {/* Welcome banner */}
+      {/* Live View banner */}
       <div className="rounded-2xl p-5 lg:p-6 flex items-center justify-between overflow-hidden relative"
         style={{ background: "linear-gradient(135deg, #1a1350 0%, #2a1a6e 50%, #0f1a3e 100%)", border: "1px solid rgba(108,82,255,0.3)" }}>
         <div className="relative z-10">
-          <p className="text-lg font-black text-white mb-1">Bem-vindo de volta, Dropper! 👋</p>
+          <p className="text-lg font-black text-white mb-1">Bem-vindo de volta, Dropper!</p>
           <p className="text-sm" style={{ color: "#a78bfa" }}>Acompanhe o desempenho da sua loja em tempo real.</p>
           <Link href="/admin/live"
             className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
