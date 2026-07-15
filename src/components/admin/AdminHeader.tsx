@@ -1,8 +1,8 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { Bell, Menu, LogOut, Search, MousePointer2 } from "lucide-react";
-import { useState } from "react";
+import { Bell, Menu, LogOut, Search, MousePointer2, Users } from "lucide-react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface AdminHeaderProps {
@@ -20,12 +20,60 @@ function Avatar({ name }: { name?: string | null }) {
   );
 }
 
-export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
-  const [searching, setSearching] = useState(false);
+function VisitorsWidget() {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    async function poll() {
+      try {
+        const res = await fetch("/api/admin/live-stats", { cache: "no-store" });
+        if (res.ok) {
+          const d = await res.json();
+          if (alive) setCount(d.visitorsNow ?? 0);
+        }
+      } catch {}
+    }
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  const hasVisitors = (count ?? 0) > 0;
 
   return (
+    <Link
+      href="/admin/live"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all hover:opacity-90"
+      style={{
+        background: hasVisitors ? "rgba(34,211,160,0.12)" : "rgba(255,255,255,0.05)",
+        border: `1px solid ${hasVisitors ? "rgba(34,211,160,0.35)" : "rgba(255,255,255,0.08)"}`,
+      }}
+    >
+      {hasVisitors && (
+        <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#22d3a0" }} />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "#22d3a0" }} />
+        </span>
+      )}
+      <Users className="w-3 h-3 flex-shrink-0" style={{ color: hasVisitors ? "#22d3a0" : "#7b7fa3" }} />
+      <span
+        className="text-[10px] font-black tabular-nums"
+        style={{ color: hasVisitors ? "#22d3a0" : "#7b7fa3" }}
+      >
+        {count ?? "—"}
+      </span>
+      <span className="text-[10px] hidden sm:inline" style={{ color: hasVisitors ? "#6ee7b7" : "#7b7fa3" }}>
+        agora
+      </span>
+    </Link>
+  );
+}
+
+export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
+  return (
     <header
-      className="flex items-center gap-3 px-4 lg:px-6 py-3 flex-shrink-0"
+      className="flex items-center gap-2 px-4 lg:px-6 py-3 flex-shrink-0"
       style={{ background: "#0f0c24", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
     >
       {/* Mobile menu button */}
@@ -51,6 +99,9 @@ export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
+        {/* Visitors now — links to Live View */}
+        <VisitorsWidget />
+
         {/* Sessions shortcut */}
         <Link
           href="/admin/sessoes"
@@ -60,10 +111,6 @@ export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
             border: "1px solid rgba(108,82,255,0.3)",
           }}
         >
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#22d3a0" }} />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "#22d3a0" }} />
-          </span>
           <MousePointer2 className="w-3 h-3" style={{ color: "#a78bfa" }} />
           <span className="text-[10px] font-bold hidden sm:inline" style={{ color: "#a78bfa" }}>Sessões</span>
         </Link>
