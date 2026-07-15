@@ -233,6 +233,17 @@ export function ProductForm({ categories, initialData }: Props) {
 
   // ── Color group helpers ───────────────────────────────────────────────────────
 
+  const handlePriceChange = (value: string) => {
+    setForm((f) => ({
+      ...f,
+      price: value,
+      colorGroups: f.colorGroups.map((g) => ({
+        ...g,
+        sizes: g.sizes.map((sv) => ({ ...sv, price: value })),
+      })),
+    }));
+  };
+
   const updateGroup = (gi: number, fn: (g: ColorGroup) => ColorGroup) => {
     setForm((f) => ({ ...f, colorGroups: f.colorGroups.map((g, i) => i === gi ? fn(g) : g) }));
   };
@@ -371,7 +382,7 @@ export function ProductForm({ categories, initialData }: Props) {
           </div>
           <div>
             <Label htmlFor="price">Preço *</Label>
-            <Input id="price" required type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" />
+            <Input id="price" required type="number" step="0.01" min="0" value={form.price} onChange={(e) => handlePriceChange(e.target.value)} placeholder="0.00" />
           </div>
           <div>
             <Label htmlFor="comparePrice">Preço Original (riscado)</Label>

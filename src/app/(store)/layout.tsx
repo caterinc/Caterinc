@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { MetaPageView } from "@/components/store/MetaPageView";
 import { PresenceTracker } from "@/components/store/PresenceTracker";
 import { SessionRecorder } from "@/components/store/SessionRecorder";
+import { MirrorReceiver } from "@/components/store/MirrorReceiver";
 
 export const revalidate = 60;
 
@@ -58,6 +59,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <MetaPageView />
       <PresenceTracker />
       <SessionRecorder />
+      <MirrorReceiver />
 <Header
         menuItems={headerMenu?.items || []}
         storeName={sm.storeName as string}

@@ -102,10 +102,11 @@ function TradingSparkline({ points, color }: { points: string; color: string }) 
 
 const CARD = "rounded-2xl p-5 flex flex-col gap-3";
 const CARD_BG = {
-  background: "rgba(22,19,46,0.72)",
+  background: "rgba(22,19,46,0.9)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.09)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
 };
 
 const statusLabel: Record<string, string> = {

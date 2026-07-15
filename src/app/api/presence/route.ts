@@ -6,9 +6,10 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, page, source, returning: ret } = body as {
+    const { sessionId, page, path, source, returning: ret } = body as {
       sessionId?: string;
       page?: string;
+      path?: string;
       source?: string;
       returning?: boolean;
     };
@@ -16,8 +17,8 @@ export async function POST(req: NextRequest) {
 
     await prisma.presence.upsert({
       where: { sessionId },
-      update: { page, source: source ?? "direct", returning: ret ?? false },
-      create: { sessionId, page, source: source ?? "direct", returning: ret ?? false },
+      update: { page, path: path ?? null, source: source ?? "direct", returning: ret ?? false },
+      create: { sessionId, page, path: path ?? null, source: source ?? "direct", returning: ret ?? false },
     });
 
     return NextResponse.json({ ok: true });

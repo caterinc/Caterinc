@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 interface RawEvent {
   type: string;
   page: string;
+  path?: string;
   label?: string;
   scrollPct?: number;
+  meta?: Record<string, unknown>;
 }
 
 export async function POST(req: NextRequest) {
@@ -29,8 +32,10 @@ export async function POST(req: NextRequest) {
         sessionId,
         type: e.type ?? "unknown",
         page: e.page ?? "other",
+        path: e.path ?? null,
         label: e.label ?? null,
         scrollPct: e.scrollPct ?? null,
+        meta: e.meta as Prisma.InputJsonValue | undefined,
       })),
     });
 

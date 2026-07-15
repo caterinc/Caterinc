@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 function getSessionId(): string {
   try { return localStorage.getItem("_sid") || ""; } catch { return ""; }
@@ -53,9 +53,12 @@ function getClickLabel(target: HTMLElement): string | null {
 
 export function SessionRecorder() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isMirror = searchParams.get("__mirror") === "1";
   const queueRef = useRef<object[]>([]);
   const scrolledRef = useRef<Set<number>>(new Set());
   const pageRef = useRef<string>("");
+  const pathRef = useRef<string>("");
   const lastInteractionRef = useRef<number>(Date.now());
   const idleTimerRef = useRef<ReturnType<typeof setInterval>>();
   const reviewsObserverRef = useRef<IntersectionObserver | null>(null);
@@ -66,6 +69,7 @@ export function SessionRecorder() {
   }
 
   function flush() {
+    if (isMirror) return;
     const sid = getSessionId();
     if (!sid || queueRef.current.length === 0) return;
     const events = queueRef.current.splice(0);
@@ -78,8 +82,10 @@ export function SessionRecorder() {
 
   // Track page views — delayed slightly to let H1 render
   useEffect(() => {
+    if (isMirror) return;
     const page = getPageKey(pathname);
     pageRef.current = page;
+    pathRef.current = pathname;
     scrolledRef.current = new Set();
     reviewsSeenRef.current = false;
 
@@ -87,7 +93,7 @@ export function SessionRecorder() {
     const delay = page === "product" ? 300 : 0;
     const t = setTimeout(() => {
       const label = getPageLabel(page, pathname);
-      enqueue({ type: "pageview", page, label });
+      enqueue({ type: "pageview", page, path: pathname, label });
     }, delay);
 
     return () => clearTimeout(t);
@@ -96,6 +102,8 @@ export function SessionRecorder() {
 
   // Clicks + scroll + idle detection
   useEffect(() => {
+    if (isMirror) return;
+
     function markInteraction() {
       lastInteractionRef.current = Date.now();
     }
@@ -105,7 +113,7 @@ export function SessionRecorder() {
       const target = e.target as HTMLElement;
       const label = getClickLabel(target);
       if (!label) return;
-      enqueue({ type: "click", page: pageRef.current, label });
+      enqueue({ type: "click", page: pageRef.current, path: pathRef.current, label });
     }
 
     function onScroll() {
@@ -117,16 +125,29 @@ export function SessionRecorder() {
       for (const m of [25, 50, 75, 100]) {
         if (pct >= m && !scrolledRef.current.has(m)) {
           scrolledRef.current.add(m);
-          enqueue({ type: "scroll", page: pageRef.current, label: `Rolou ${m}% da página`, scrollPct: m });
+          enqueue({ type: "scroll", page: pageRef.current, path: pathRef.current, label: `Rolou ${m}% da página`, scrollPct: m });
         }
       }
+    }
+
+    function onGallery(e: Event) {
+      markInteraction();
+      const detail = (e as CustomEvent).detail as { index: number; total: number; productName?: string } | undefined;
+      if (!detail) return;
+      enqueue({
+        type: "gallery",
+        page: pageRef.current,
+        path: pathRef.current,
+        label: `Passou a foto (${detail.index + 1}/${detail.total})`,
+        meta: { photoIndex: detail.index, total: detail.total },
+      });
     }
 
     // Idle detection: check every 30s if no interaction in 30s
     idleTimerRef.current = setInterval(() => {
       const idleSec = Math.round((Date.now() - lastInteractionRef.current) / 1000);
       if (idleSec >= 30) {
-        enqueue({ type: "idle", page: pageRef.current, label: `Parado por ${idleSec}s` });
+        enqueue({ type: "idle", page: pageRef.current, path: pathRef.current, label: `Parado por ${idleSec}s` });
         // Reset so we don't spam idle events
         lastInteractionRef.current = Date.now();
       }
@@ -134,6 +155,7 @@ export function SessionRecorder() {
 
     document.addEventListener("click", onClick, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("cs:gallery", onGallery as EventListener);
     document.addEventListener("mousemove", markInteraction, { passive: true });
     document.addEventListener("touchstart", markInteraction, { passive: true });
     document.addEventListener("keydown", markInteraction, { passive: true });
@@ -143,6 +165,7 @@ export function SessionRecorder() {
     return () => {
       document.removeEventListener("click", onClick);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("cs:gallery", onGallery as EventListener);
       document.removeEventListener("mousemove", markInteraction);
       document.removeEventListener("touchstart", markInteraction);
       document.removeEventListener("keydown", markInteraction);
@@ -159,7 +182,7 @@ export function SessionRecorder() {
       reviewsObserverRef.current.disconnect();
       reviewsObserverRef.current = null;
     }
-    if (pageRef.current !== "product") return;
+    if (isMirror || pageRef.current !== "product") return;
 
     // Observe after a short delay to allow page render
     const timer = setTimeout(() => {
@@ -172,7 +195,7 @@ export function SessionRecorder() {
         ([entry]) => {
           if (entry.isIntersecting && !reviewsSeenRef.current) {
             reviewsSeenRef.current = true;
-            enqueue({ type: "section", page: "product", label: "Avaliações do produto" });
+            enqueue({ type: "section", page: "product", path: pathRef.current, label: "Avaliações do produto" });
           }
         },
         { threshold: 0.3 }

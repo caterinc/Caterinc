@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as { role?: string }).role !== "ADMIN") {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
   try {
     // Sessions seen in the last 10 minutes
     const activeWindow = new Date(Date.now() - 10 * 60 * 1000);
@@ -13,12 +20,12 @@ export async function GET() {
     const [presences, recentEvents] = await Promise.all([
       prisma.presence.findMany({
         where: { updatedAt: { gte: activeWindow } },
-        select: { sessionId: true, page: true, source: true, returning: true, updatedAt: true, createdAt: true },
+        select: { sessionId: true, page: true, path: true, source: true, returning: true, updatedAt: true, createdAt: true },
         orderBy: { updatedAt: "desc" },
       }),
       prisma.sessionEvent.findMany({
         where: { createdAt: { gte: eventWindow } },
-        select: { sessionId: true, type: true, page: true, label: true, scrollPct: true, createdAt: true },
+        select: { sessionId: true, type: true, page: true, path: true, label: true, scrollPct: true, meta: true, createdAt: true },
         orderBy: { createdAt: "desc" },
         take: 1000,
       }),
@@ -36,6 +43,7 @@ export async function GET() {
     const sessions = presences.map((p) => ({
       sessionId: p.sessionId,
       page: p.page,
+      path: p.path,
       source: p.source,
       returning: p.returning,
       active: p.updatedAt >= activeThreshold,

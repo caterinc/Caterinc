@@ -62,6 +62,8 @@ export function PresenceTracker() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (searchParams.get("__mirror") === "1") return;
+
     const sessionId = getSessionId();
     const page = getPage(pathname);
 
@@ -72,6 +74,7 @@ export function PresenceTracker() {
         body: JSON.stringify({
           sessionId,
           page,
+          path: pathname,
           source: sourceRef.current,
           returning: returningRef.current,
         }),
@@ -81,6 +84,7 @@ export function PresenceTracker() {
     ping();
     const interval = setInterval(ping, 10_000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   return null;

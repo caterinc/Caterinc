@@ -16,10 +16,11 @@ const DARK_CSS = `
 
   /* Glass card utility */
   .glass-card {
-    background: rgba(22,19,46,0.72) !important;
+    background: rgba(22,19,46,0.9) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255,255,255,0.09) !important;
+    border: 1px solid rgba(255,255,255,0.16) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35) !important;
   }
 
   /* Scrollbar */

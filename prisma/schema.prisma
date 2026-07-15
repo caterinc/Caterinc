@@ -329,8 +329,10 @@ model SessionEvent {
   sessionId String
   type      String
   page      String
+  path      String?
   label     String?
   scrollPct Int?
+  meta      Json?
   createdAt DateTime @default(now())
 
   @@index([sessionId, createdAt])
@@ -341,6 +343,7 @@ model Presence {
   id        String   @id @default(cuid())
   sessionId String   @unique
   page      String
+  path      String?
   source    String   @default("direct")
   returning Boolean  @default(false)
   updatedAt DateTime @updatedAt

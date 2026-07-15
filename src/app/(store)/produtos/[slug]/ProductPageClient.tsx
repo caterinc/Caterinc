@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { ProductGallery } from "./ProductGallery";
 import { ProductPurchase } from "./ProductPurchase";
 
@@ -34,7 +35,11 @@ interface Props {
 export function ProductPageClient({
   product, variants, sizes, discountPct, infoBefore, infoAfter,
 }: Props) {
+  const searchParams = useSearchParams();
+  const isMirror = searchParams.get("__mirror") === "1";
+
   useEffect(() => {
+    if (isMirror) return;
     try {
       const fbc = localStorage.getItem("_fbc") || undefined;
       const fbp = localStorage.getItem("_fbp") || undefined;
@@ -50,6 +55,7 @@ export function ProductPageClient({
         }),
       }).catch(() => {});
     } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id, product.price, product.name]);
 
   // Map color → images array (first variant per color wins)
@@ -92,7 +98,26 @@ export function ProductPageClient({
 
   const handleIndexChange = (i: number) => {
     setActiveIndex(i);
+    if (!isMirror) {
+      try {
+        window.dispatchEvent(new CustomEvent("cs:gallery", {
+          detail: { index: i, total: displayImages.length, productName: product.name },
+        }));
+      } catch {}
+    }
   };
+
+  // Mirror mode: admin's live view can jump the gallery to match the real session
+  useEffect(() => {
+    function onMirrorIndex(e: Event) {
+      const idx = (e as CustomEvent).detail?.index;
+      if (typeof idx === "number" && idx >= 0 && idx < displayImages.length) {
+        setActiveIndex(idx);
+      }
+    }
+    window.addEventListener("cs:mirror-index", onMirrorIndex as EventListener);
+    return () => window.removeEventListener("cs:mirror-index", onMirrorIndex as EventListener);
+  }, [displayImages.length]);
 
   return (
     <>

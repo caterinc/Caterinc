@@ -4,21 +4,25 @@ import { useEffect, useState, useCallback } from "react";
 import {
   MousePointer2, ShoppingCart, CreditCard, Home, Package,
   Truck, User, Navigation, MousePointerClick, ChevronsDown,
-  Coffee, Eye, Star, RefreshCw, X, ArrowLeft, Clock,
+  Coffee, Eye, Star, RefreshCw, X, ArrowLeft, Clock, Images, Radio,
 } from "lucide-react";
+import { LiveMirror } from "@/components/admin/LiveMirror";
 
 interface SessionEvent {
   sessionId: string;
   type: string;
   page: string;
+  path: string | null;
   label: string | null;
   scrollPct: number | null;
+  meta: { photoIndex?: number; total?: number } | null;
   createdAt: string;
 }
 
 interface Session {
   sessionId: string;
   page: string;
+  path: string | null;
   source: string;
   returning: boolean;
   active: boolean;
@@ -48,6 +52,7 @@ const PAGE_DOT: Record<string, string> = {
 
 function eventIcon(type: string, label: string | null) {
   if (type === "pageview") return { Icon: Navigation, color: "#60a5fa", bg: "rgba(96,165,250,0.15)" };
+  if (type === "gallery") return { Icon: Images, color: "#f472b6", bg: "rgba(244,114,182,0.15)" };
   if (type === "scroll") return { Icon: ChevronsDown, color: "#34d399", bg: "rgba(52,211,153,0.15)" };
   if (type === "idle") return { Icon: Coffee, color: "#7b7fa3", bg: "rgba(123,127,163,0.12)" };
   if (type === "section") {
@@ -70,6 +75,9 @@ function formatLabel(event: SessionEvent): string {
   }
   if (type === "scroll") {
     return label || `Rolou ${scrollPct ?? "?"}% da página`;
+  }
+  if (type === "gallery") {
+    return label || "Passou a foto do produto";
   }
   if (type === "pageview") {
     if (label?.startsWith("Produto: ")) return label;
@@ -113,10 +121,11 @@ function timeBetween(a: string, b: string): number {
 }
 
 const GLASS: React.CSSProperties = {
-  background: "rgba(22,19,46,0.75)",
+  background: "rgba(22,19,46,0.9)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -125,6 +134,11 @@ export default function SessoesPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selected, setSelected] = useState<Session | null>(null);
   const [lastUpdate, setLastUpdate] = useState("");
+  const [showMirror, setShowMirror] = useState(false);
+
+  useEffect(() => {
+    setShowMirror(false);
+  }, [selected?.sessionId]);
 
   const fetch_ = useCallback(async () => {
     try {
@@ -267,12 +281,31 @@ export default function SessoesPage() {
                     </p>
                   </div>
                   <button
+                    onClick={() => setShowMirror((v) => !v)}
+                    className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0"
+                    style={
+                      showMirror
+                        ? { background: "rgba(239,68,68,0.18)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }
+                        : { background: "rgba(255,255,255,0.06)", color: "#7b7fa3", border: "1px solid rgba(255,255,255,0.08)" }
+                    }
+                  >
+                    <Radio className="w-3 h-3" />
+                    {showMirror ? "Fechar ao vivo" : "Ver ao vivo"}
+                  </button>
+                  <button
                     onClick={() => setSelected(null)}
                     className="p-1.5 rounded-lg transition-colors hover:bg-white/10 flex-shrink-0"
                   >
                     <X className="w-3.5 h-3.5" style={{ color: "#7b7fa3" }} />
                   </button>
                 </div>
+
+                {/* Live mirror */}
+                {showMirror && (
+                  <div className="mb-5">
+                    <LiveMirror sessionId={selected.sessionId} active={selected.active} />
+                  </div>
+                )}
 
                 {/* Event stats bar */}
                 {selected.events.length > 0 && (
@@ -407,6 +440,7 @@ function EventStats({ events }: { events: SessionEvent[] }) {
       {[
         { type: "pageview", Icon: Navigation, label: "páginas", color: "#60a5fa" },
         { type: "click", Icon: MousePointerClick, label: "cliques", color: "#a78bfa" },
+        { type: "gallery", Icon: Images, label: "fotos", color: "#f472b6" },
         { type: "scroll", Icon: ChevronsDown, label: "rolagens", color: "#34d399" },
         { type: "idle", Icon: Coffee, label: "pausas", color: "#7b7fa3" },
       ].map(({ type, Icon, label, color }) => (
