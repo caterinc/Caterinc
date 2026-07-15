@@ -11,10 +11,17 @@ interface LiveStats {
   onCheckout: number;
   activeCarts: number;
   ordersToday: number;
+  orders24h: number;
+  orders7d: number;
+  orders30d: number;
   purchasedToday: number;
   revenueToday: number;
+  revenue24h: number;
+  revenue7d: number;
+  revenue30d: number;
   totalOrders: number;
   totalRevenue: number;
+  sessionsToday: number;
 }
 
 const CARD = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
@@ -138,14 +145,37 @@ export default function LivePage() {
 
       {/* Metric cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard label="Cliques hoje" value={stats?.sessionsToday ?? "—"} icon={Eye}
+          iconBg="rgba(96,165,250,0.15)" iconColor="#60a5fa" sub="sessões únicas" />
         <MetricCard label="Carrinhos ativos" value={stats?.activeCarts ?? "—"} icon={ShoppingCart}
           iconBg="rgba(251,146,60,0.15)" iconColor="#fb923c" sub="tempo real" />
         <MetricCard label="No checkout" value={stats?.onCheckout ?? "—"} icon={CreditCard}
           iconBg="rgba(108,82,255,0.15)" iconColor="#a78bfa" sub="tempo real" />
-        <MetricCard label="Pedidos hoje" value={stats?.ordersToday ?? "—"} icon={ShoppingBag}
-          iconBg="rgba(96,165,250,0.15)" iconColor="#60a5fa" />
         <MetricCard label="Receita hoje" value={stats ? fmtMoney(stats.revenueToday) : "—"} icon={TrendingUp}
           iconBg="rgba(34,211,160,0.15)" iconColor="#22d3a0" />
+      </div>
+
+      {/* Orders by period */}
+      <div className="rounded-2xl p-5" style={CARD}>
+        <div className="mb-4">
+          <h2 className="text-sm font-bold text-white">Pedidos por período</h2>
+          <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Quantidade e receita por janela de tempo</p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Hoje", orders: stats?.ordersToday ?? 0, revenue: stats?.revenueToday ?? 0, color: "#60a5fa", bg: "rgba(96,165,250,0.08)" },
+            { label: "Últimas 24h", orders: stats?.orders24h ?? 0, revenue: stats?.revenue24h ?? 0, color: "#a78bfa", bg: "rgba(108,82,255,0.08)" },
+            { label: "Últimos 7 dias", orders: stats?.orders7d ?? 0, revenue: stats?.revenue7d ?? 0, color: "#22d3a0", bg: "rgba(34,211,160,0.08)" },
+            { label: "Últimos 30 dias", orders: stats?.orders30d ?? 0, revenue: stats?.revenue30d ?? 0, color: "#fb923c", bg: "rgba(251,146,60,0.08)" },
+          ].map((p) => (
+            <div key={p.label} className="rounded-xl p-4" style={{ background: p.bg, border: `1px solid ${p.color}22` }}>
+              <p className="text-xs font-medium mb-2" style={{ color: p.color }}>{p.label}</p>
+              <p className="text-2xl font-black text-white">{fmt(p.orders)}</p>
+              <p className="text-xs mt-1" style={{ color: "#7b7fa3" }}>pedidos</p>
+              <p className="text-sm font-bold mt-2" style={{ color: p.color }}>{fmtMoney(p.revenue)}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Bottom row */}

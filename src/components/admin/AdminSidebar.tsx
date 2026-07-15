@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, Users,
   BarChart3, FileDown, Palette, Star, Plug, Truck, X, Radio,
-  ExternalLink, Zap,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -98,18 +98,7 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
         </ul>
       </nav>
 
-      {/* Pro plan */}
-      <div className="px-3 pb-3">
-        <div className="rounded-xl p-3.5 mb-2" style={{ background: "linear-gradient(135deg, #1a1350, #2a1a6e)" }}>
-          <div className="flex items-center gap-2 mb-1">
-            <Zap className="w-4 h-4 text-yellow-400" />
-            <span className="text-white text-xs font-bold">Plano Pro</span>
-          </div>
-          <p className="text-white/50 text-xs mb-2.5">Mais recursos para escalar seu negócio.</p>
-          <button className="w-full text-xs font-bold py-1.5 rounded-lg transition-all" style={{ background: "#6c52ff", color: "white" }}>
-            Upgrade
-          </button>
-        </div>
+      <div className="px-3 pb-4">
         <Link
           href="/"
           className="flex items-center gap-2 px-3 py-2 text-white/40 hover:text-white/70 text-xs transition-colors rounded-lg hover:bg-white/5"
