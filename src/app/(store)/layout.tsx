@@ -3,6 +3,7 @@ import { Footer } from "@/components/store/Footer";
 import { prisma } from "@/lib/prisma";
 import { MetaPageView } from "@/components/store/MetaPageView";
 import { PresenceTracker } from "@/components/store/PresenceTracker";
+import { SessionRecorder } from "@/components/store/SessionRecorder";
 
 export const revalidate = 60;
 
@@ -56,6 +57,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];var found=false;keys.forEach(function(k){if(p.get(k)){localStorage.setItem('_utm_'+k,p.get(k));found=true;}});if(found)localStorage.setItem('_utm_ts',Date.now().toString());}catch(e){}})();` }} />
       <MetaPageView />
       <PresenceTracker />
+      <SessionRecorder />
 <Header
         menuItems={headerMenu?.items || []}
         storeName={sm.storeName as string}

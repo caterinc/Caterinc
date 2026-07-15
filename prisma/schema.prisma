@@ -324,6 +324,19 @@ enum PaymentStatus {
   REFUNDED
 }
 
+model SessionEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  type      String
+  page      String
+  label     String?
+  scrollPct Int?
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([createdAt])
+}
+
 model Presence {
   id        String   @id @default(cuid())
   sessionId String   @unique

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, Users,
   BarChart3, FileDown, Palette, Star, Plug, Truck, X, Radio,
-  ExternalLink,
+  ExternalLink, MousePointer2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -13,6 +13,7 @@ import { useState } from "react";
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Live View", href: "/admin/live", icon: Radio },
+  { label: "Sessões", href: "/admin/sessoes", icon: MousePointer2 },
   { label: "Pedidos", href: "/admin/pedidos", icon: ShoppingBag },
   { label: "Produtos", href: "/admin/produtos", icon: Package },
   { label: "Coleções", href: "/admin/colecoes", icon: FolderOpen },
