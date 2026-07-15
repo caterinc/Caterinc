@@ -328,8 +328,11 @@ model Presence {
   id        String   @id @default(cuid())
   sessionId String   @unique
   page      String
+  source    String   @default("direct")
+  returning Boolean  @default(false)
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
   @@index([updatedAt])
+  @@index([source])
 }

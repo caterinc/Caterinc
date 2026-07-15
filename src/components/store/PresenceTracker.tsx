@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 function getPage(pathname: string): string {
   if (pathname === "/" || pathname === "") return "home";
@@ -24,8 +24,41 @@ function getSessionId(): string {
   }
 }
 
+function getSource(searchParams: URLSearchParams): string {
+  try {
+    // If this visit has the ad flag, save it to localStorage
+    if (searchParams.get("_s") === "1") {
+      localStorage.setItem("_src", "meta");
+    }
+    return localStorage.getItem("_src") || "direct";
+  } catch {
+    return "direct";
+  }
+}
+
+function isReturningVisitor(): boolean {
+  try {
+    const been = localStorage.getItem("_vb");
+    if (!been) {
+      localStorage.setItem("_vb", "1");
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function PresenceTracker() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const sourceRef = useRef<string>("direct");
+  const returningRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    sourceRef.current = getSource(new URLSearchParams(searchParams.toString()));
+    returningRef.current = isReturningVisitor();
+  }, [searchParams]);
 
   useEffect(() => {
     const sessionId = getSessionId();
@@ -35,7 +68,12 @@ export function PresenceTracker() {
       fetch("/api/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, page }),
+        body: JSON.stringify({
+          sessionId,
+          page,
+          source: sourceRef.current,
+          returning: returningRef.current,
+        }),
       }).catch(() => {});
     };
 

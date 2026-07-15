@@ -51,9 +51,13 @@ export async function GET() {
     ]);
 
     const visitorsNow = presences.length;
+    const fromMeta = presences.filter((p) => p.source === "meta").length;
+    const returningNow = presences.filter((p) => p.returning).length;
 
     return NextResponse.json({
       visitorsNow,
+      fromMeta,
+      returningNow,
       onHome: presences.filter((p) => p.page === "home").length,
       onProduct: presences.filter((p) => p.page === "product").length,
       onCart: presences.filter((p) => p.page === "cart").length,

@@ -5,6 +5,8 @@ import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Eye } from "l
 
 interface LiveStats {
   visitorsNow: number;
+  fromMeta: number;
+  returningNow: number;
   onHome: number;
   onProduct: number;
   onCart: number;
@@ -125,7 +127,26 @@ export default function LivePage() {
             <p className="text-8xl font-black text-white leading-none">
               {stats ? fmt(stats.visitorsNow) : "—"}
             </p>
-            <div className="flex flex-col gap-1.5 mt-4">
+            {/* Meta + Retornante badges */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{ background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.25)" }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#60a5fa">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                <span className="text-xs font-bold" style={{ color: "#60a5fa" }}>
+                  {stats?.fromMeta ?? 0} do anúncio
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.25)" }}>
+                <span className="text-xs" style={{ color: "#a78bfa" }}>↩</span>
+                <span className="text-xs font-bold" style={{ color: "#a78bfa" }}>
+                  {stats?.returningNow ?? 0} voltaram
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5 mt-3">
               {[
                 { label: "na home", value: stats?.onHome ?? 0, color: "#60a5fa" },
                 { label: "em produto", value: stats?.onProduct ?? 0, color: "#a78bfa" },
