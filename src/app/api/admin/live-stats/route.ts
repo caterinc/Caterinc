@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const now = new Date();
-    const threeMinAgo = new Date(now.getTime() - 3 * 60 * 1000);
-    const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    const threeMinAgo = new Date(now.getTime() - 20 * 1000);
+    const thirtyMinAgo = new Date(now.getTime() - 20 * 1000);
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 

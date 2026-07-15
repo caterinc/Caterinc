@@ -83,7 +83,7 @@ export default function LivePage() {
     const interval = setInterval(() => {
       fetchStats();
       setTick((t) => t + 1);
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 
@@ -116,8 +116,8 @@ export default function LivePage() {
         <>
           {/* Top stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Visitantes agora" value={stats.visitorsNow} icon={Users} color="bg-blue-500" sub="últimos 3 min" />
-            <StatCard label="Carrinhos ativos" value={stats.activeCarts} icon={ShoppingCart} color="bg-orange-500" sub="últimos 30 min" />
+            <StatCard label="Visitantes agora" value={stats.visitorsNow} icon={Users} color="bg-blue-500" sub="tempo real" />
+            <StatCard label="Carrinhos ativos" value={stats.activeCarts} icon={ShoppingCart} color="bg-orange-500" sub="tempo real" />
             <StatCard label="Pedidos hoje" value={stats.ordersToday} icon={ShoppingBag} color="bg-purple-500" />
             <StatCard label="Receita hoje" value={fmtMoney(stats.revenueToday)} icon={TrendingUp} color="bg-green-500" />
           </div>

@@ -40,7 +40,7 @@ export function PresenceTracker() {
     };
 
     ping();
-    const interval = setInterval(ping, 30_000);
+    const interval = setInterval(ping, 10_000);
     return () => clearInterval(interval);
   }, [pathname]);
 
