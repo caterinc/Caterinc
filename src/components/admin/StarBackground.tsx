@@ -26,6 +26,7 @@ export function StarBackground() {
     const parent = canvas.parentElement!;
 
     const c = canvas;
+    const cx = ctx;
     function resize() {
       c.width = parent.offsetWidth;
       c.height = parent.offsetHeight;
@@ -57,7 +58,7 @@ export function StarBackground() {
       const mx = mouseRef.current.x - 0.5;
       const my = mouseRef.current.y - 0.5;
 
-      ctx.clearRect(0, 0, W, H);
+      cx.clearRect(0, 0, W, H);
 
       const pos: [number, number][] = [];
 
@@ -80,14 +81,14 @@ export function StarBackground() {
 
         pos.push([px, py]);
 
-        ctx.beginPath();
-        ctx.arc(px, py, star.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${opacity.toFixed(2)})`;
-        ctx.fill();
+        cx.beginPath();
+        cx.arc(px, py, star.size, 0, Math.PI * 2);
+        cx.fillStyle = `rgba(255,255,255,${opacity.toFixed(2)})`;
+        cx.fill();
       }
 
       // Purple constellation lines
-      ctx.lineWidth = 0.5;
+      cx.lineWidth = 0.5;
       const MAX_DIST = 160;
       for (let i = 0; i < pos.length; i++) {
         for (let j = i + 1; j < pos.length; j++) {
@@ -96,11 +97,11 @@ export function StarBackground() {
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < MAX_DIST) {
             const alpha = ((1 - d / MAX_DIST) * 0.18).toFixed(3);
-            ctx.beginPath();
-            ctx.moveTo(pos[i][0], pos[i][1]);
-            ctx.lineTo(pos[j][0], pos[j][1]);
-            ctx.strokeStyle = `rgba(167,139,250,${alpha})`;
-            ctx.stroke();
+            cx.beginPath();
+            cx.moveTo(pos[i][0], pos[i][1]);
+            cx.lineTo(pos[j][0], pos[j][1]);
+            cx.strokeStyle = `rgba(167,139,250,${alpha})`;
+            cx.stroke();
           }
         }
       }
