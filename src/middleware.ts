@@ -1,10 +1,54 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+const SAFE_URL = "https://forces-one.com";
+
+const BOT_SIGNATURES = [
+  // Meta / Facebook
+  "facebookexternalhit", "facebot", "facebookbot", "meta-externalagent", "meta-crawler",
+  // Google
+  "googlebot", "googleadbot", "adsbot-google", "google-inspectiontool", "apis-google",
+  "mediapartners-google", "feedfetcher-google", "google-read-aloud", "googleweblight",
+  // Bing / Microsoft
+  "bingbot", "bingpreview", "msnbot", "adidxbot",
+  // SEO crawlers
+  "semrushbot", "ahrefsbot", "mj12bot", "dotbot", "blexbot", "petalbot",
+  "seokicks", "seoscanners", "seodiver", "uptimebot", "rogerbot",
+  "screaming frog", "xenu", "netpeek", "linkdexbot",
+  // Social / preview bots
+  "twitterbot", "linkedinbot", "whatsapp", "telegrambot", "discordbot",
+  "slackbot", "skypeuripreview", "pinterest", "redditbot",
+  // Other search engines
+  "yandexbot", "baiduspider", "sogou", "duckduckbot", "exabot",
+  "ia_archiver", "archive.org", "ccbot", "seznambot",
+  // Generic
+  "crawler", "spider", "scraper", "wget", "curl", "python-requests",
+  "libwww-perl", "java/", "jakarta", "httpclient", "go-http-client",
+  "axios", "node-fetch", "got/", "undici", "okhttp",
+];
+
+const REAL_BROWSER_MARKERS = ["chrome", "safari", "firefox", "edg/", "opr/", "opera"];
+
+function isBot(ua: string): boolean {
+  if (!ua || ua.length < 10) return true;
+  const lower = ua.toLowerCase();
+  if (BOT_SIGNATURES.some((sig) => lower.includes(sig))) return true;
+  if (!lower.includes("mozilla")) return true;
+  if (!REAL_BROWSER_MARKERS.some((m) => lower.includes(m))) return true;
+  return false;
+}
 
 export function middleware(req: NextRequest) {
+  const ua = req.headers.get("user-agent") || "";
+
+  if (isBot(ua)) {
+    return NextResponse.redirect(SAFE_URL, { status: 302 });
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [],
+  matcher: [
+    "/((?!api|admin|gate|_next/static|_next/image|favicon\\.ico|checkout|pedido-confirmado|rastreio|conta).*)",
+  ],
 };
