@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Eye } from "lucide-react";
+import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Eye, Home, Package, Truck } from "lucide-react";
 
 interface LiveStats {
   visitorsNow: number;
@@ -24,7 +24,12 @@ interface LiveStats {
   retToday: number; ret24h: number; ret7d: number; ret30d: number;
 }
 
-const CARD: React.CSSProperties = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
+const CARD: React.CSSProperties = {
+  background: "rgba(22,19,46,0.72)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.09)",
+};
 
 function fmt(n: number) { return n.toLocaleString("pt-BR"); }
 function fmtMoney(n: number) {
@@ -172,29 +177,34 @@ export default function LivePage() {
           {/* Funil */}
           <div className="flex-1 flex flex-col justify-center gap-4 min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Jornada do cliente</p>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
-                { label: "Página inicial", value: stats?.onHome ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
-                { label: "Produto", value: stats?.onProduct ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
-                { label: "Carrinho", value: stats?.onCart ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
-                { label: "Checkout", value: stats?.onCheckout ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
-                { label: "Rastreando pedido", value: stats?.onTracking ?? 0, bar: "linear-gradient(90deg, #f97316, #fb923c)" },
+                { label: "Página inicial", value: stats?.onHome ?? 0, bar: "linear-gradient(90deg, #4c37e8, #60a5fa)", Icon: Home, iconBg: "rgba(96,165,250,0.15)", iconColor: "#60a5fa" },
+                { label: "Produto", value: stats?.onProduct ?? 0, bar: "linear-gradient(90deg, #6c52ff, #a78bfa)", Icon: Package, iconBg: "rgba(167,139,250,0.15)", iconColor: "#a78bfa" },
+                { label: "Carrinho", value: stats?.onCart ?? 0, bar: "linear-gradient(90deg, #0ea5e9, #38bdf8)", Icon: ShoppingCart, iconBg: "rgba(56,189,248,0.15)", iconColor: "#38bdf8" },
+                { label: "Checkout", value: stats?.onCheckout ?? 0, bar: "linear-gradient(90deg, #10b981, #22d3a0)", Icon: CreditCard, iconBg: "rgba(34,211,160,0.15)", iconColor: "#22d3a0" },
+                { label: "Rastreando pedido", value: stats?.onTracking ?? 0, bar: "linear-gradient(90deg, #f97316, #fb923c)", Icon: Truck, iconBg: "rgba(249,115,22,0.15)", iconColor: "#f97316" },
               ].map((row) => {
                 const pct = total > 0 ? Math.min((row.value / total) * 100, 100) : 0;
                 const active = row.value > 0;
                 return (
-                  <div key={row.label} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm" style={{ color: active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)" }}>{row.label}</span>
-                      <span className="text-sm font-bold flex-shrink-0" style={{ color: active ? "white" : "rgba(255,255,255,0.2)" }}>{row.value}</span>
+                  <div key={row.label} className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl flex-shrink-0"
+                      style={{ background: active ? row.iconBg : "rgba(255,255,255,0.04)" }}>
+                      <row.Icon className="w-3.5 h-3.5"
+                        style={{ color: active ? row.iconColor : "rgba(255,255,255,0.2)" }} />
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                      {active && (
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: row.bar }}
-                        />
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-xs font-medium" style={{ color: active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)" }}>{row.label}</span>
+                        <span className="text-xs font-bold flex-shrink-0" style={{ color: active ? "white" : "rgba(255,255,255,0.2)" }}>{row.value}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                        {active && (
+                          <div className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${pct}%`, background: row.bar }} />
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -203,13 +213,19 @@ export default function LivePage() {
 
             {/* Mini totais */}
             <div className="grid grid-cols-2 gap-2 mt-1">
-              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(34,211,160,0.08)" }}>
-                <p className="text-lg font-black" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.paidToday) : "—"}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>Pagos hoje</p>
+              <div className="rounded-xl p-3 text-center relative overflow-hidden"
+                style={{ background: "linear-gradient(135deg, rgba(34,211,160,0.18), rgba(16,185,129,0.12))", border: "1px solid rgba(34,211,160,0.3)" }}>
+                <div className="absolute inset-0 opacity-10 pointer-events-none"
+                  style={{ background: "radial-gradient(circle at 70% 30%, #22d3a0, transparent)" }} />
+                <p className="text-xl font-black relative z-10" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.paidToday) : "—"}</p>
+                <p className="text-[10px] mt-0.5 relative z-10" style={{ color: "#6ee7b7" }}>Pagos hoje</p>
               </div>
-              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(108,82,255,0.08)" }}>
-                <p className="text-lg font-black" style={{ color: "#a78bfa" }}>{stats ? fmt(stats.activeCarts) : "—"}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>Carrinhos ativos</p>
+              <div className="rounded-xl p-3 text-center relative overflow-hidden"
+                style={{ background: "linear-gradient(135deg, rgba(108,82,255,0.2), rgba(76,55,232,0.12))", border: "1px solid rgba(108,82,255,0.3)" }}>
+                <div className="absolute inset-0 opacity-10 pointer-events-none"
+                  style={{ background: "radial-gradient(circle at 70% 30%, #6c52ff, transparent)" }} />
+                <p className="text-xl font-black relative z-10" style={{ color: "#c084fc" }}>{stats ? fmt(stats.activeCarts) : "—"}</p>
+                <p className="text-[10px] mt-0.5 relative z-10" style={{ color: "#a78bfa" }}>Carrinhos ativos</p>
               </div>
             </div>
           </div>

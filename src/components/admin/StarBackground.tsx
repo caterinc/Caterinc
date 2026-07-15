@@ -35,12 +35,13 @@ export function StarBackground() {
     const ro = new ResizeObserver(resize);
     ro.observe(parent);
 
-    starsRef.current = Array.from({ length: 130 }, () => ({
+    starsRef.current = Array.from({ length: 180 }, () => ({
       x: Math.random(), y: Math.random(),
-      size: Math.random() * 1.5 + 0.2,
-      baseOpacity: Math.random() * 0.5 + 0.1,
-      driftX: (Math.random() - 0.5) * 5,
-      driftY: (Math.random() - 0.5) * 5,
+      size: Math.random() * 1.8 + 0.3,
+      baseOpacity: Math.random() * 0.65 + 0.2,
+      // 3× faster drift than before
+      driftX: (Math.random() - 0.5) * 16,
+      driftY: (Math.random() - 0.5) * 16,
       twinkleOffset: Math.random() * Math.PI * 2,
     }));
 
@@ -48,8 +49,8 @@ export function StarBackground() {
       const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05);
       lastTimeRef.current = now;
 
-      // Smooth mouse interpolation
-      const lerp = 0.045;
+      // Faster mouse interpolation
+      const lerp = 0.08;
       mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * lerp;
       mouseRef.current.y += (targetMouseRef.current.y - mouseRef.current.y) * lerp;
 
@@ -63,7 +64,7 @@ export function StarBackground() {
       const pos: [number, number][] = [];
 
       for (const star of starsRef.current) {
-        // Slow drift
+        // Faster drift
         star.x += (star.driftX * dt) / W;
         star.y += (star.driftY * dt) / H;
         if (star.x < 0) star.x += 1;
@@ -71,15 +72,26 @@ export function StarBackground() {
         if (star.y < 0) star.y += 1;
         if (star.y > 1) star.y -= 1;
 
-        // Subtle twinkle
-        const twinkle = Math.sin(now * 0.0008 + star.twinkleOffset) * 0.1;
+        // Faster twinkle
+        const twinkle = Math.sin(now * 0.0018 + star.twinkleOffset) * 0.18;
         const opacity = Math.max(0, star.baseOpacity + twinkle);
 
-        // Parallax — larger stars feel closer, move more
-        const px = star.x * W + mx * star.size * 14;
-        const py = star.y * H + my * star.size * 10;
+        // Stronger parallax
+        const px = star.x * W + mx * star.size * 28;
+        const py = star.y * H + my * star.size * 20;
 
         pos.push([px, py]);
+
+        // Core glow for bigger stars
+        if (star.size > 1.2) {
+          const grd = cx.createRadialGradient(px, py, 0, px, py, star.size * 3);
+          grd.addColorStop(0, `rgba(167,139,250,${(opacity * 0.4).toFixed(2)})`);
+          grd.addColorStop(1, "rgba(167,139,250,0)");
+          cx.beginPath();
+          cx.arc(px, py, star.size * 3, 0, Math.PI * 2);
+          cx.fillStyle = grd;
+          cx.fill();
+        }
 
         cx.beginPath();
         cx.arc(px, py, star.size, 0, Math.PI * 2);
@@ -87,16 +99,16 @@ export function StarBackground() {
         cx.fill();
       }
 
-      // Purple constellation lines
-      cx.lineWidth = 0.5;
-      const MAX_DIST = 160;
+      // Brighter constellation lines with wider range
+      cx.lineWidth = 0.6;
+      const MAX_DIST = 190;
       for (let i = 0; i < pos.length; i++) {
         for (let j = i + 1; j < pos.length; j++) {
           const dx = pos[i][0] - pos[j][0];
           const dy = pos[i][1] - pos[j][1];
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < MAX_DIST) {
-            const alpha = ((1 - d / MAX_DIST) * 0.18).toFixed(3);
+            const alpha = ((1 - d / MAX_DIST) * 0.28).toFixed(3);
             cx.beginPath();
             cx.moveTo(pos[i][0], pos[i][1]);
             cx.lineTo(pos[j][0], pos[j][1]);

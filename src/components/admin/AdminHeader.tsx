@@ -1,8 +1,9 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { Bell, Menu, LogOut, Search } from "lucide-react";
+import { Bell, Menu, LogOut, Search, MousePointer2 } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 interface AdminHeaderProps {
   user: { name?: string | null; email?: string | null };
@@ -50,6 +51,23 @@ export function AdminHeader({ user, onMenuClick }: AdminHeaderProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
+        {/* Sessions shortcut */}
+        <Link
+          href="/admin/sessoes"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all hover:opacity-90"
+          style={{
+            background: "rgba(108,82,255,0.14)",
+            border: "1px solid rgba(108,82,255,0.3)",
+          }}
+        >
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#22d3a0" }} />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "#22d3a0" }} />
+          </span>
+          <MousePointer2 className="w-3 h-3" style={{ color: "#a78bfa" }} />
+          <span className="text-[10px] font-bold hidden sm:inline" style={{ color: "#a78bfa" }}>Sessões</span>
+        </Link>
+
         {/* Bell */}
         <button className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white/50 hover:text-white transition-colors"
           style={{ background: "rgba(255,255,255,0.06)" }}>

@@ -4,6 +4,7 @@ import { TrendingUp, ShoppingBag, Users, Clock, Plus, FileDown, Palette, AlertTr
 import Link from "next/link";
 import TestPixButton from "./TestPixButton";
 import DashboardFilter from "./DashboardFilter";
+import { FunnelCard } from "@/components/admin/FunnelCard";
 import { Suspense } from "react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -100,7 +101,12 @@ function TradingSparkline({ points, color }: { points: string; color: string }) 
 }
 
 const CARD = "rounded-2xl p-5 flex flex-col gap-3";
-const CARD_BG = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
+const CARD_BG = {
+  background: "rgba(22,19,46,0.72)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.09)",
+};
 
 const statusLabel: Record<string, string> = {
   PENDING: "Pendente", CONFIRMED: "Confirmado", PROCESSING: "Processando",
@@ -323,6 +329,9 @@ export default async function AdminDashboard({
           </div>
         </div>
       </div>
+
+      {/* Conversion Funnel */}
+      <FunnelCard />
 
       {/* Live View banner */}
       <div className="rounded-2xl p-5 lg:p-6 flex items-center justify-between overflow-hidden relative"

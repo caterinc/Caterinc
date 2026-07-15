@@ -14,6 +14,14 @@ const DARK_CSS = `
   /* Default text color for all admin content */
   .adm { color: rgba(255,255,255,0.85); }
 
+  /* Glass card utility */
+  .glass-card {
+    background: rgba(22,19,46,0.72) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255,255,255,0.09) !important;
+  }
+
   /* Scrollbar */
   .adm::-webkit-scrollbar { width: 5px; height: 5px; }
   .adm::-webkit-scrollbar-track { background: transparent; }
