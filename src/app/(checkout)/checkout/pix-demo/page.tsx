@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ShieldCheck, Copy, Check, Loader2 } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, copyToClipboard } from "@/lib/utils";
 
 const FAKE_PIX = "00020126580014br.gov.bcb.pix0136a629534e-7693-4846-852d-1bbff817b5a8520400005303986540510.005802BR5925ZENYX INTERMEDIACOES LTD6009SAO PAULO62070503***6304E2CA";
 const FAKE_TOTAL = 139.90;
@@ -23,10 +23,11 @@ function PixIcon({ size = 20 }: { size?: number }) {
 export default function PixDemoPage() {
   const [copied, setCopied] = useState(false);
 
-  const copy = () => {
-    navigator.clipboard.writeText(FAKE_PIX).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+  const copy = async () => {
+    if (await copyToClipboard(FAKE_PIX)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
   };
 
   return (

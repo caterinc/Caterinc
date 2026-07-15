@@ -6,6 +6,40 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// navigator.clipboard silently fails (or is undefined) in several in-app
+// browsers (Instagram/Facebook WebView), which is where most ad traffic
+// lands — falls back to the legacy execCommand so the PIX copy button
+// always either copies or reports failure, never a false "Copiado!".
+export async function copyToClipboard(text: string): Promise<boolean> {
+  const legacyCopy = () => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.setAttribute("readonly", "");
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    return legacyCopy();
+  } catch {
+    return legacyCopy();
+  }
+}
+
 export function formatPrice(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return "R$ 0,00";
   const num = typeof value === "string" ? parseFloat(value) : value;

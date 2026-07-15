@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Loader2, X, Copy, Check, Zap, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
+import { copyToClipboard } from "@/lib/utils";
 
 interface PixResult {
   qrCode: string;
@@ -60,11 +61,12 @@ export default function TestPixButton() {
     }
   }
 
-  function copy() {
+  async function copy() {
     if (!result) return;
-    navigator.clipboard.writeText(result.qrCode).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    if (await copyToClipboard(result.qrCode)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   }
 
   return (

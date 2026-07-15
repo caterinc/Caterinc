@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Copy, Check, Truck, Package, MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { copyToClipboard } from "@/lib/utils";
 
 export default function PedidoConfirmadoPage() {
   const params = useParams();
@@ -19,10 +20,11 @@ export default function PedidoConfirmadoPage() {
       .catch(() => {});
   }, [orderNumber]);
 
-  const copy = () => {
-    navigator.clipboard.writeText(trackingCode || orderNumber).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+  const copy = async () => {
+    if (await copyToClipboard(trackingCode || orderNumber)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
   };
 
   return (

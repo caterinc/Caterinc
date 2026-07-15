@@ -10,7 +10,7 @@ import {
   Minus, Plus, ArrowLeft,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, copyToClipboard } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
 function PixIcon({ size = 20 }: { size?: number }) {
@@ -362,9 +362,18 @@ export default function CheckoutPage() {
     }
   }, [personal, address, payMethod, items, dispatch, router, selectedShipping]);
 
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopied(true); setTimeout(() => setCopied(false), 3000);
+  const copy = async (text: string) => {
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } else {
+      toast({
+        title: "Não foi possível copiar automaticamente",
+        description: "Toque e segure no código PIX acima para selecionar e copiar manualmente.",
+        variant: "destructive",
+      });
+    }
   };
 
   // ── Guards ──────────────────────────────────────────────────────────────────
@@ -465,7 +474,13 @@ export default function CheckoutPage() {
 
                   {/* Copia e cola */}
                   <div>
-                    <p className="text-[11px] font-mono text-gray-400 break-all mb-3 bg-gray-50 rounded-lg p-3 line-clamp-2">{pixResult.qrCode}</p>
+                    <textarea
+                      readOnly
+                      value={pixResult.qrCode}
+                      onFocus={(e) => e.target.select()}
+                      rows={2}
+                      className="w-full text-[11px] font-mono text-gray-400 break-all mb-3 bg-gray-50 rounded-lg p-3 resize-none border-0 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    />
                     <button onClick={() => copy(pixResult.qrCode)}
                       className="w-full h-12 flex items-center justify-center gap-2 font-black text-sm rounded-xl transition-all active:scale-[0.98]"
                       style={{ backgroundColor: "#16c789", color: "#fff" }}>
