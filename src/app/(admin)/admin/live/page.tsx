@@ -20,6 +20,8 @@ interface LiveStats {
   paid24h: number; pending24h: number; revenue24h: number;
   paid7d: number; pending7d: number; revenue7d: number;
   paid30d: number; pending30d: number; revenue30d: number;
+  metaToday: number; meta24h: number; meta7d: number; meta30d: number;
+  retToday: number; ret24h: number; ret7d: number; ret30d: number;
 }
 
 const CARD: React.CSSProperties = { background: "#16132e", border: "1px solid rgba(255,255,255,0.07)" };
@@ -261,6 +263,40 @@ export default function LivePage() {
               <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <p className="text-xs font-bold" style={{ color: p.color }}>{fmtMoney(p.revenue)}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>receita paga</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Visitantes — Meta + Retornantes por período */}
+      <div className="rounded-2xl p-5" style={CARD}>
+        <p className="text-sm font-bold text-white mb-1">Visitantes por período</p>
+        <p className="text-xs mb-4" style={{ color: "#7b7fa3" }}>Do anúncio (Meta) e visitantes que voltaram</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Hoje",         meta: stats?.metaToday ?? 0, ret: stats?.retToday ?? 0, color: "#60a5fa", bg: "rgba(96,165,250,0.07)" },
+            { label: "Últimas 24h",  meta: stats?.meta24h   ?? 0, ret: stats?.ret24h   ?? 0, color: "#a78bfa", bg: "rgba(108,82,255,0.07)" },
+            { label: "7 dias",       meta: stats?.meta7d    ?? 0, ret: stats?.ret7d    ?? 0, color: "#34d399", bg: "rgba(52,211,153,0.07)" },
+            { label: "30 dias",      meta: stats?.meta30d   ?? 0, ret: stats?.ret30d   ?? 0, color: "#22d3a0", bg: "rgba(34,211,160,0.07)" },
+          ].map((p) => (
+            <div key={p.label} className="rounded-xl p-4" style={{ background: p.bg, border: `1px solid ${p.color}20` }}>
+              <p className="text-xs font-semibold mb-3" style={{ color: p.color }}>{p.label}</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="#60a5fa"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    <span className="text-xs" style={{ color: "#7b7fa3" }}>Anúncio</span>
+                  </div>
+                  <span className="text-sm font-black text-white">{fmt(p.meta)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs" style={{ color: "#a78bfa" }}>↩</span>
+                    <span className="text-xs" style={{ color: "#7b7fa3" }}>Voltaram</span>
+                  </div>
+                  <span className="text-sm font-black text-white">{fmt(p.ret)}</span>
+                </div>
               </div>
             </div>
           ))}
