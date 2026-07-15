@@ -117,32 +117,85 @@ export default function LivePage() {
         </div>
       </div>
 
-      {/* Hero */}
-      <div className="rounded-2xl p-5 relative overflow-hidden" style={CARD}>
-        <div className="flex items-center gap-2 mb-3">
+      {/* Hero + Funnel combinados */}
+      <div className="rounded-2xl p-6 relative overflow-hidden" style={CARD}>
+        <div className="flex items-center gap-2 mb-5">
           <Eye className="w-4 h-4" style={{ color: "#7b7fa3" }} />
           <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Visitantes agora</span>
         </div>
-        <div className="flex items-end gap-4 flex-wrap">
-          <p className="text-6xl font-black text-white leading-none">
-            {stats ? fmt(stats.visitorsNow) : "—"}
-          </p>
-          <div className="mb-1 space-y-1">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#a78bfa" }} />
-              <span className="text-xs" style={{ color: "#7b7fa3" }}>{stats ? fmt(stats.onProduct) : "—"} em produto</span>
+
+        <div className="flex gap-6 lg:gap-10 flex-col sm:flex-row">
+          {/* Número grande */}
+          <div className="flex-shrink-0">
+            <p className="text-8xl font-black text-white leading-none">
+              {stats ? fmt(stats.visitorsNow) : "—"}
+            </p>
+            <div className="flex flex-col gap-1.5 mt-4">
+              {[
+                { label: "na home", value: stats?.onHome ?? 0, color: "#60a5fa" },
+                { label: "em produto", value: stats?.onProduct ?? 0, color: "#a78bfa" },
+                { label: "no carrinho", value: stats?.onCart ?? 0, color: "#fb923c" },
+                { label: "no checkout", value: stats?.onCheckout ?? 0, color: "#22d3a0" },
+              ].map((d) => (
+                <div key={d.label} className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+                  <span className="text-xs" style={{ color: "#7b7fa3" }}>
+                    <span className="text-white font-semibold">{d.value}</span> {d.label}
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#22d3a0" }} />
-              <span className="text-xs" style={{ color: "#7b7fa3" }}>{stats ? fmt(stats.onCheckout) : "—"} no checkout</span>
+          </div>
+
+          {/* Divisor vertical */}
+          <div className="hidden sm:block w-px self-stretch" style={{ background: "rgba(255,255,255,0.07)" }} />
+
+          {/* Funil */}
+          <div className="flex-1 flex flex-col justify-center gap-4 min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Jornada do cliente</p>
+            <div className="space-y-4">
+              {[
+                { label: "Página inicial", value: stats?.onHome ?? 0 },
+                { label: "Produto", value: stats?.onProduct ?? 0 },
+                { label: "Carrinho", value: stats?.onCart ?? 0 },
+                { label: "Checkout", value: stats?.onCheckout ?? 0 },
+              ].map((row) => {
+                const pct = total > 0 ? Math.min((row.value / total) * 100, 100) : 0;
+                const active = row.value > 0;
+                return (
+                  <div key={row.label} className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm" style={{ color: active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)" }}>{row.label}</span>
+                      <span className="text-sm font-bold flex-shrink-0" style={{ color: active ? "white" : "rgba(255,255,255,0.2)" }}>{row.value}</span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      {active && (
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #3b82f6, #60a5fa)" }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#60a5fa" }} />
-              <span className="text-xs" style={{ color: "#7b7fa3" }}>{stats ? fmt(stats.onHome) : "—"} na home</span>
+
+            {/* Mini totais */}
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(34,211,160,0.08)" }}>
+                <p className="text-lg font-black" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.purchasedToday) : "—"}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>Compraram hoje</p>
+              </div>
+              <div className="rounded-xl p-3 text-center" style={{ background: "rgba(108,82,255,0.08)" }}>
+                <p className="text-lg font-black" style={{ color: "#a78bfa" }}>{stats ? fmt(stats.activeCarts) : "—"}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: "#7b7fa3" }}>Carrinhos ativos</p>
+              </div>
             </div>
           </div>
         </div>
-        <div className="absolute right-4 top-4 w-20 h-20 rounded-full opacity-10 pointer-events-none"
+
+        <div className="absolute right-6 top-6 w-28 h-28 rounded-full opacity-[0.07] pointer-events-none"
           style={{ background: "radial-gradient(circle, #6c52ff, transparent)" }} />
       </div>
 
@@ -182,29 +235,7 @@ export default function LivePage() {
       {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Funnel */}
-        <div className="rounded-2xl p-6 space-y-5" style={CARD}>
-          <div>
-            <h2 className="text-base font-bold text-white">Jornada do cliente</h2>
-            <p className="text-xs mt-1" style={{ color: "#7b7fa3" }}>Onde estão os visitantes agora</p>
-          </div>
-          <div className="space-y-5">
-            <FunnelRow label="Página inicial" value={stats?.onHome ?? 0} total={total} />
-            <FunnelRow label="Produto" value={stats?.onProduct ?? 0} total={total} />
-            <FunnelRow label="Carrinho" value={stats?.onCart ?? 0} total={total} />
-            <FunnelRow label="Checkout" value={stats?.onCheckout ?? 0} total={total} />
-          </div>
-          <div className="grid grid-cols-2 gap-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="rounded-xl p-3 text-center" style={{ background: "rgba(34,211,160,0.08)" }}>
-              <p className="text-xl font-black" style={{ color: "#22d3a0" }}>{stats ? fmt(stats.purchasedToday) : "—"}</p>
-              <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Compraram hoje</p>
-            </div>
-            <div className="rounded-xl p-3 text-center" style={{ background: "rgba(108,82,255,0.08)" }}>
-              <p className="text-xl font-black" style={{ color: "#a78bfa" }}>{stats ? fmt(stats.activeCarts) : "—"}</p>
-              <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Carrinhos ativos</p>
-            </div>
-          </div>
-        </div>
+        {/* Totals */}
 
         {/* Totals */}
         <div className="rounded-2xl p-4" style={CARD}>
