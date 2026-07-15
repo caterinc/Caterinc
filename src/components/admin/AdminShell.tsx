@@ -10,6 +10,9 @@ interface AdminShellProps {
 }
 
 const DARK_CSS = `
+  /* Default text color for all admin content */
+  .adm { color: rgba(255,255,255,0.85); }
+
   /* Scrollbar */
   .adm::-webkit-scrollbar { width: 5px; height: 5px; }
   .adm::-webkit-scrollbar-track { background: transparent; }
