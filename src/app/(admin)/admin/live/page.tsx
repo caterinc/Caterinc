@@ -49,20 +49,28 @@ function MetricCard({ label, value, icon: Icon, iconBg, iconColor, sub }: {
   );
 }
 
-function FunnelRow({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+const SHOPIFY_BLUE = "#3b82f6";
+
+function FunnelRow({ label, value, total }: { label: string; value: number; total: number }) {
   const pct = total > 0 ? Math.min((value / total) * 100, 100) : 0;
+  const hasVisitors = value > 0;
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-white/70 truncate">{label}</span>
+        <span className="text-sm font-medium" style={{ color: hasVisitors ? "white" : "rgba(255,255,255,0.35)" }}>{label}</span>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs" style={{ color: "#7b7fa3" }}>{pct.toFixed(0)}%</span>
-          <span className="text-sm font-bold text-white w-5 text-right">{value}</span>
+          {hasVisitors && <span className="text-xs" style={{ color: "#7b7fa3" }}>{pct.toFixed(0)}%</span>}
+          <span className="text-sm font-bold min-w-[1.5rem] text-right" style={{ color: hasVisitors ? "white" : "rgba(255,255,255,0.25)" }}>{value}</span>
         </div>
       </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
-      </div>
+      {hasVisitors && (
+        <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${SHOPIFY_BLUE}, #60a5fa)` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -175,16 +183,16 @@ export default function LivePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Funnel */}
-        <div className="rounded-2xl p-4 space-y-4" style={CARD}>
+        <div className="rounded-2xl p-6 space-y-5" style={CARD}>
           <div>
-            <h2 className="text-sm font-bold text-white">Jornada do cliente</h2>
-            <p className="text-xs mt-0.5" style={{ color: "#7b7fa3" }}>Onde estão os visitantes agora</p>
+            <h2 className="text-base font-bold text-white">Jornada do cliente</h2>
+            <p className="text-xs mt-1" style={{ color: "#7b7fa3" }}>Onde estão os visitantes agora</p>
           </div>
-          <div className="space-y-4">
-            <FunnelRow label="Página inicial" value={stats?.onHome ?? 0} total={total} color="#60a5fa" />
-            <FunnelRow label="Produto" value={stats?.onProduct ?? 0} total={total} color="#a78bfa" />
-            <FunnelRow label="Carrinho" value={stats?.onCart ?? 0} total={total} color="#fb923c" />
-            <FunnelRow label="Checkout" value={stats?.onCheckout ?? 0} total={total} color="#22d3a0" />
+          <div className="space-y-5">
+            <FunnelRow label="Página inicial" value={stats?.onHome ?? 0} total={total} />
+            <FunnelRow label="Produto" value={stats?.onProduct ?? 0} total={total} />
+            <FunnelRow label="Carrinho" value={stats?.onCart ?? 0} total={total} />
+            <FunnelRow label="Checkout" value={stats?.onCheckout ?? 0} total={total} />
           </div>
           <div className="grid grid-cols-2 gap-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <div className="rounded-xl p-3 text-center" style={{ background: "rgba(34,211,160,0.08)" }}>
