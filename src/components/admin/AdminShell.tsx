@@ -13,7 +13,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#0b0a1e" }}>
+    <div className="flex h-screen overflow-hidden w-full" style={{ background: "#0b0a1e" }}>
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-20 lg:hidden backdrop-blur-sm"
@@ -23,9 +23,9 @@ export function AdminShell({ user, children }: AdminShellProps) {
 
       <AdminSidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
 
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 max-w-full">
         <AdminHeader user={user} onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 w-full">{children}</main>
       </div>
     </div>
   );
