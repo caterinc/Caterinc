@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   MousePointer2, ShoppingCart, CreditCard, Home, Package,
   Truck, User, Navigation, MousePointerClick, ChevronsDown,
-  Coffee, Eye, Star, RefreshCw, X, ArrowLeft, Clock, Images, Radio,
+  Coffee, Eye, Star, RefreshCw, X, ArrowLeft, Clock, Images,
 } from "lucide-react";
 import { LiveMirror } from "@/components/admin/LiveMirror";
 
@@ -134,11 +134,6 @@ export default function SessoesPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selected, setSelected] = useState<Session | null>(null);
   const [lastUpdate, setLastUpdate] = useState("");
-  const [showMirror, setShowMirror] = useState(false);
-
-  useEffect(() => {
-    setShowMirror(false);
-  }, [selected?.sessionId]);
 
   const fetch_ = useCallback(async () => {
     try {
@@ -281,18 +276,6 @@ export default function SessoesPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setShowMirror((v) => !v)}
-                    className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0"
-                    style={
-                      showMirror
-                        ? { background: "rgba(239,68,68,0.18)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }
-                        : { background: "rgba(255,255,255,0.06)", color: "#7b7fa3", border: "1px solid rgba(255,255,255,0.08)" }
-                    }
-                  >
-                    <Radio className="w-3 h-3" />
-                    {showMirror ? "Fechar ao vivo" : "Ver ao vivo"}
-                  </button>
-                  <button
                     onClick={() => setSelected(null)}
                     className="p-1.5 rounded-lg transition-colors hover:bg-white/10 flex-shrink-0"
                   >
@@ -300,28 +283,46 @@ export default function SessoesPage() {
                   </button>
                 </div>
 
-                {/* Live mirror */}
-                {showMirror && (
-                  <div className="mb-5">
+                {/* Latest action — mobile only, pinned above the mirror */}
+                {selected.events.length > 0 && (
+                  <div className="lg:hidden mb-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest px-1 mb-1" style={{ color: "#7b7fa3" }}>
+                      Ação mais recente
+                    </p>
+                    <EventRow ev={selected.events[selected.events.length - 1]} />
+                  </div>
+                )}
+
+                <div className="flex flex-col lg:flex-row gap-4">
+                  {/* Live mirror — always open */}
+                  <div className="lg:w-[340px] lg:flex-shrink-0">
                     <LiveMirror sessionId={selected.sessionId} active={selected.active} />
                   </div>
-                )}
 
-                {/* Event stats bar */}
-                {selected.events.length > 0 && (
-                  <EventStats events={selected.events} />
-                )}
+                  {/* Timeline column */}
+                  <div className="flex-1 min-w-0">
+                    {selected.events.length > 0 && (
+                      <EventStats events={selected.events} />
+                    )}
 
-                {/* Events timeline */}
-                {selected.events.length === 0 ? (
-                  <p className="text-sm text-center py-8" style={{ color: "#7b7fa3" }}>
-                    Sem eventos registrados ainda
-                  </p>
-                ) : (
-                  <div className="space-y-0 max-h-[460px] overflow-y-auto pr-1 mt-3">
-                    <EventTimeline events={selected.events} />
+                    {selected.events.length === 0 ? (
+                      <p className="text-sm text-center py-8" style={{ color: "#7b7fa3" }}>
+                        Sem eventos registrados ainda
+                      </p>
+                    ) : (
+                      <div className="space-y-0 max-h-[460px] overflow-y-auto pr-1 mt-3">
+                        {/* Desktop: full timeline beside the mirror */}
+                        <div className="hidden lg:block">
+                          <EventTimeline events={selected.events} />
+                        </div>
+                        {/* Mobile: history below the mirror, excludes the latest shown above */}
+                        <div className="lg:hidden">
+                          <EventTimeline events={selected.events.slice(0, -1)} />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -464,6 +465,53 @@ function EventStats({ events }: { events: SessionEvent[] }) {
   );
 }
 
+function EventRow({ ev }: { ev: SessionEvent }) {
+  const { Icon, color, bg } = eventIcon(ev.type, ev.label);
+  const label = formatLabel(ev);
+  const isIdle = ev.type === "idle";
+
+  return (
+    <div
+      className="flex items-start gap-3 py-2 px-3 rounded-xl transition-colors"
+      style={{
+        background: isIdle ? "transparent" : "rgba(255,255,255,0.02)",
+        opacity: isIdle ? 0.55 : 1,
+      }}
+    >
+      <div
+        className="p-1.5 rounded-lg flex-shrink-0 mt-0.5"
+        style={{ background: bg }}
+      >
+        <Icon className="w-3 h-3" style={{ color }} />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-white leading-snug">{label}</p>
+
+        {/* Scroll progress bar */}
+        {ev.type === "scroll" && ev.scrollPct !== null && (
+          <div
+            className="mt-1.5 h-1 rounded-full overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${ev.scrollPct}%`,
+                background: "linear-gradient(90deg, #34d399, #22d3a0)",
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <span className="text-[10px] flex-shrink-0 mt-0.5" style={{ color: "#7b7fa3" }}>
+        {timeAgo(ev.createdAt)}
+      </span>
+    </div>
+  );
+}
+
 function EventTimeline({ events }: { events: SessionEvent[] }) {
   const reversed = [...events].reverse();
 
@@ -473,10 +521,6 @@ function EventTimeline({ events }: { events: SessionEvent[] }) {
         const prev = reversed[i - 1];
         const gap = prev ? timeBetween(prev.createdAt, ev.createdAt) : 0;
         const showGap = gap >= 30 && i > 0;
-
-        const { Icon, color, bg } = eventIcon(ev.type, ev.label);
-        const label = formatLabel(ev);
-        const isIdle = ev.type === "idle";
 
         return (
           <div key={i}>
@@ -491,45 +535,7 @@ function EventTimeline({ events }: { events: SessionEvent[] }) {
               </div>
             )}
 
-            {/* Event row */}
-            <div
-              className="flex items-start gap-3 py-2 px-3 rounded-xl transition-colors"
-              style={{
-                background: isIdle ? "transparent" : "rgba(255,255,255,0.02)",
-                opacity: isIdle ? 0.55 : 1,
-              }}
-            >
-              <div
-                className="p-1.5 rounded-lg flex-shrink-0 mt-0.5"
-                style={{ background: bg }}
-              >
-                <Icon className="w-3 h-3" style={{ color }} />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white leading-snug">{label}</p>
-
-                {/* Scroll progress bar */}
-                {ev.type === "scroll" && ev.scrollPct !== null && (
-                  <div
-                    className="mt-1.5 h-1 rounded-full overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.06)" }}
-                  >
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${ev.scrollPct}%`,
-                        background: "linear-gradient(90deg, #34d399, #22d3a0)",
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <span className="text-[10px] flex-shrink-0 mt-0.5" style={{ color: "#7b7fa3" }}>
-                {timeAgo(ev.createdAt)}
-              </span>
-            </div>
+            <EventRow ev={ev} />
           </div>
         );
       })}

@@ -15,36 +15,21 @@ export async function GET(req: NextRequest) {
     const sessionId = req.nextUrl.searchParams.get("sessionId");
     if (!sessionId) return NextResponse.json({ ok: false });
 
-    const [presence, lastGallery, lastScroll] = await Promise.all([
-      prisma.presence.findUnique({
-        where: { sessionId },
-        select: { path: true, page: true, updatedAt: true },
-      }),
-      prisma.sessionEvent.findFirst({
-        where: { sessionId, type: "gallery" },
-        orderBy: { createdAt: "desc" },
-        select: { meta: true, createdAt: true },
-      }),
-      prisma.sessionEvent.findFirst({
-        where: { sessionId, type: "scroll" },
-        orderBy: { createdAt: "desc" },
-        select: { scrollPct: true, createdAt: true },
-      }),
-    ]);
+    const presence = await prisma.presence.findUnique({
+      where: { sessionId },
+      select: { path: true, page: true, scrollPct: true, photoIndex: true, typing: true, updatedAt: true },
+    });
 
     if (!presence) return NextResponse.json({ ok: false });
-
-    const galleryMeta = (lastGallery?.meta as { photoIndex?: number } | null) ?? null;
 
     return NextResponse.json({
       ok: true,
       path: presence.path,
       page: presence.page,
+      photoIndex: presence.photoIndex,
+      scrollPct: presence.scrollPct,
+      typing: presence.typing ?? null,
       updatedAt: presence.updatedAt.toISOString(),
-      photoIndex: galleryMeta?.photoIndex ?? null,
-      photoAt: lastGallery?.createdAt.toISOString() ?? null,
-      scrollPct: lastScroll?.scrollPct ?? null,
-      scrollAt: lastScroll?.createdAt.toISOString() ?? null,
     });
   } catch {
     return NextResponse.json({ ok: false });

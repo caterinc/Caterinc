@@ -55,6 +55,9 @@ export function PresenceTracker() {
   const searchParams = useSearchParams();
   const sourceRef = useRef<string>("direct");
   const returningRef = useRef<boolean>(false);
+  const scrollPctRef = useRef<number | null>(null);
+  const photoIndexRef = useRef<number | null>(null);
+  const typingRef = useRef<Record<string, string> | null>(null);
 
   useEffect(() => {
     sourceRef.current = getSource(new URLSearchParams(searchParams.toString()));
@@ -66,6 +69,9 @@ export function PresenceTracker() {
 
     const sessionId = getSessionId();
     const page = getPage(pathname);
+    scrollPctRef.current = null;
+    photoIndexRef.current = null;
+    typingRef.current = null;
 
     const ping = () => {
       fetch("/api/presence", {
@@ -75,15 +81,51 @@ export function PresenceTracker() {
           sessionId,
           page,
           path: pathname,
+          scrollPct: scrollPctRef.current,
+          photoIndex: photoIndexRef.current,
+          typing: typingRef.current ?? undefined,
           source: sourceRef.current,
           returning: returningRef.current,
         }),
       }).catch(() => {});
     };
 
+    // Baseline heartbeat — near real time
     ping();
-    const interval = setInterval(ping, 10_000);
-    return () => clearInterval(interval);
+    const interval = setInterval(ping, 2000);
+
+    // Fire immediately (debounced) on scroll and photo swipes, for the live mirror
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    function onScroll() {
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight - doc.clientHeight;
+      scrollPctRef.current = scrollable > 0 ? Math.round((window.scrollY / scrollable) * 100) : 0;
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(ping, 250);
+    }
+    function onGallery(e: Event) {
+      const idx = (e as CustomEvent).detail?.index;
+      if (typeof idx === "number") {
+        photoIndexRef.current = idx;
+        ping();
+      }
+    }
+    function onTyping(e: Event) {
+      typingRef.current = (e as CustomEvent).detail ?? null;
+      ping();
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("cs:gallery", onGallery as EventListener);
+    window.addEventListener("cs:typing", onTyping as EventListener);
+
+    return () => {
+      clearInterval(interval);
+      if (debounce) clearTimeout(debounce);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("cs:gallery", onGallery as EventListener);
+      window.removeEventListener("cs:typing", onTyping as EventListener);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 

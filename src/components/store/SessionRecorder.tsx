@@ -141,6 +141,7 @@ export function SessionRecorder() {
         label: `Passou a foto (${detail.index + 1}/${detail.total})`,
         meta: { photoIndex: detail.index, total: detail.total },
       });
+      flush();
     }
 
     // Idle detection: check every 30s if no interaction in 30s
@@ -160,7 +161,7 @@ export function SessionRecorder() {
     document.addEventListener("touchstart", markInteraction, { passive: true });
     document.addEventListener("keydown", markInteraction, { passive: true });
 
-    const flushInterval = setInterval(flush, 5000);
+    const flushInterval = setInterval(flush, 2000);
 
     return () => {
       document.removeEventListener("click", onClick);

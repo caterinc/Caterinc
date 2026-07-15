@@ -194,6 +194,26 @@ export default function CheckoutPage() {
   const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "" });
   const [address, setAddress] = useState({ zipCode: "", street: "", number: "", complement: "", district: "", city: "", state: "" });
 
+  // Broadcast what the customer is typing (name/email/phone/address only —
+  // never CPF or payment data) so the admin's live session view can show it.
+  // Debounced: fires ~400ms after the last keystroke, not on every character.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        window.dispatchEvent(new CustomEvent("cs:typing", {
+          detail: {
+            name: personal.name || undefined,
+            email: personal.email || undefined,
+            phone: personal.phone || undefined,
+            address: [address.street, address.number, address.district, address.city, address.state]
+              .filter(Boolean).join(", ") || undefined,
+          },
+        }));
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [personal.name, personal.email, personal.phone, address.street, address.number, address.district, address.city, address.state]);
+
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [selectedShipping, setSelectedShipping] = useState<ShippingMethod | null>(null);
 

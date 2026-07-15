@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Radio, Smartphone } from "lucide-react";
+import { Radio, Smartphone, User, Mail, Phone, MapPin } from "lucide-react";
+
+interface TypingData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
 
 interface MirrorState {
   path: string | null;
   photoIndex: number | null;
   scrollPct: number | null;
+  typing: TypingData | null;
 }
 
 const GLASS: React.CSSProperties = {
@@ -17,9 +25,11 @@ const GLASS: React.CSSProperties = {
   boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
 };
 
+const LIVE_POLL_MS = 1000;
+
 export function LiveMirror({ sessionId, active }: { sessionId: string; active: boolean }) {
-  const [intervalSec, setIntervalSec] = useState(4);
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
+  const [typing, setTyping] = useState<TypingData | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadedPathRef = useRef<string | null>(null);
   const lastPhotoRef = useRef<number | null>(null);
@@ -30,6 +40,7 @@ export function LiveMirror({ sessionId, active }: { sessionId: string; active: b
     lastPhotoRef.current = null;
     lastScrollRef.current = null;
     setIframeSrc(null);
+    setTyping(null);
   }, [sessionId]);
 
   useEffect(() => {
@@ -63,13 +74,16 @@ export function LiveMirror({ sessionId, active }: { sessionId: string; active: b
           lastScrollRef.current = data.scrollPct;
           win.postMessage({ type: "cs-mirror-scroll", pct: data.scrollPct }, window.location.origin);
         }
+
+        setTyping(data.typing ?? null);
       } catch {}
     }
 
     tick();
-    const t = setInterval(tick, intervalSec * 1000);
+    if (!active) return () => { cancelled = true; };
+    const t = setInterval(tick, LIVE_POLL_MS);
     return () => { cancelled = true; clearInterval(t); };
-  }, [sessionId, intervalSec]);
+  }, [sessionId, active]);
 
   return (
     <div className="rounded-2xl p-4" style={GLASS}>
@@ -83,22 +97,6 @@ export function LiveMirror({ sessionId, active }: { sessionId: string; active: b
             <Radio className="w-3.5 h-3.5" style={{ color: active ? "#ef4444" : "#7b7fa3" }} />
             {active ? "Ao vivo — espelho da loja" : "Última posição conhecida (sessão encerrada)"}
           </span>
-        </div>
-        <div className="flex items-center gap-1 rounded-full p-0.5" style={{ background: "rgba(255,255,255,0.06)" }}>
-          {[2, 4, 5].map((s) => (
-            <button
-              key={s}
-              onClick={() => setIntervalSec(s)}
-              className="text-[10px] font-bold px-2 py-1 rounded-full transition-colors"
-              style={
-                intervalSec === s
-                  ? { background: "rgba(108,82,255,0.35)", color: "white" }
-                  : { color: "#7b7fa3" }
-              }
-            >
-              {s}s
-            </button>
-          ))}
         </div>
       </div>
 
@@ -129,8 +127,41 @@ export function LiveMirror({ sessionId, active }: { sessionId: string; active: b
       </div>
 
       <p className="text-[10px] text-center mt-2" style={{ color: "#4a4870" }}>
-        Atualiza a cada {intervalSec}s — reflete a página, foto e rolagem reais da sessão
+        {active ? "Tempo real — reflete a página, foto e rolagem reais da sessão" : "Sessão encerrada — sem atualizações"}
       </p>
+
+      {/* What the customer is typing at checkout (name/email/phone/address — never card data) */}
+      {typing && (typing.name || typing.email || typing.phone || typing.address) && (
+        <div className="mt-3 rounded-xl p-3 space-y-1.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: "#7b7fa3" }}>
+            Digitando no checkout
+          </p>
+          {typing.name && (
+            <div className="flex items-center gap-2">
+              <User className="w-3 h-3 flex-shrink-0" style={{ color: "#a78bfa" }} />
+              <span className="text-xs text-white truncate">{typing.name}</span>
+            </div>
+          )}
+          {typing.email && (
+            <div className="flex items-center gap-2">
+              <Mail className="w-3 h-3 flex-shrink-0" style={{ color: "#60a5fa" }} />
+              <span className="text-xs text-white truncate">{typing.email}</span>
+            </div>
+          )}
+          {typing.phone && (
+            <div className="flex items-center gap-2">
+              <Phone className="w-3 h-3 flex-shrink-0" style={{ color: "#34d399" }} />
+              <span className="text-xs text-white truncate">{typing.phone}</span>
+            </div>
+          )}
+          {typing.address && (
+            <div className="flex items-center gap-2">
+              <MapPin className="w-3 h-3 flex-shrink-0" style={{ color: "#f472b6" }} />
+              <span className="text-xs text-white truncate">{typing.address}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
