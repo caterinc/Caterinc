@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import { goatpayGetTransaction } from "@/lib/goatpay";
+import { vezionGetTransaction } from "@/lib/vezion";
 
 export const dynamic = "force-dynamic";
 
@@ -16,28 +16,27 @@ export async function GET(req: NextRequest) {
   });
 
   if (!order) return NextResponse.json({ paid: false });
-
   if (order.paymentStatus === "PAID") return NextResponse.json({ paid: true, orderNumber: order.orderNumber });
 
   try {
     if (!order.mpPaymentId) return NextResponse.json({ paid: false });
 
-    const status = await goatpayGetTransaction(order.mpPaymentId);
-    if (!status || status !== "paid") return NextResponse.json({ paid: false });
+    const status = await vezionGetTransaction(order.mpPaymentId);
+    if (!status || status !== "AUTHORIZED") return NextResponse.json({ paid: false });
 
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via polling (Goatpay)" },
+      data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via polling (Vezion)" },
     });
 
-    const addr = order.shippingAddress as Record<string, string> | null;
-    const utms = (order as unknown as { utmData: Record<string, string> | null }).utmData;
+    const addr  = order.shippingAddress as Record<string, string> | null;
+    const utms  = (order as unknown as { utmData: Record<string, string> | null }).utmData;
+    const fbc   = utms?.fbc || null;
+    const fbp   = utms?.fbp || null;
     const nameParts = (addr?.name || "Cliente").split(" ");
-    const fbc = utms?.fbc || null;
-    const fbp = utms?.fbp || null;
 
     sendUtmifyEvent(
       order.orderNumber, "paid",
@@ -59,7 +58,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ paid: true, orderNumber: order.orderNumber });
 
   } catch (e) {
-    console.error("[Status] Goatpay check error:", e);
+    console.error("[Status] Vezion check error:", e);
   }
 
   return NextResponse.json({ paid: false });

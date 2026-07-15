@@ -80,10 +80,17 @@ export async function POST(req: NextRequest) {
       qrCodeBase64 = dataUrl.replace("data:image/png;base64,", "");
     } catch { /* ignore */ }
 
+    // Find the created order to get its DB id for polling
+    const created = await prisma.order.findUnique({
+      where: { orderNumber },
+      select: { id: true },
+    });
+
     return NextResponse.json({
       qrCode: v.pixPayload,
       qrCodeBase64,
       merchantName: v.merchantName,
+      orderId: created?.id || null,
       orderNumber,
       amount: 5.50,
       gateway: "Vezion",
