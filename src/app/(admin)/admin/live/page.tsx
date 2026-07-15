@@ -172,11 +172,11 @@ export default function LivePage() {
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Jornada do cliente</p>
             <div className="space-y-4">
               {[
-                { label: "Página inicial", value: stats?.onHome ?? 0 },
-                { label: "Produto", value: stats?.onProduct ?? 0 },
-                { label: "Carrinho", value: stats?.onCart ?? 0 },
-                { label: "Checkout", value: stats?.onCheckout ?? 0 },
-                { label: "Rastreando pedido", value: stats?.onTracking ?? 0 },
+                { label: "Página inicial", value: stats?.onHome ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
+                { label: "Produto", value: stats?.onProduct ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
+                { label: "Carrinho", value: stats?.onCart ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
+                { label: "Checkout", value: stats?.onCheckout ?? 0, bar: "linear-gradient(90deg, #3b82f6, #60a5fa)" },
+                { label: "Rastreando pedido", value: stats?.onTracking ?? 0, bar: "linear-gradient(90deg, #f97316, #fb923c)" },
               ].map((row) => {
                 const pct = total > 0 ? Math.min((row.value / total) * 100, 100) : 0;
                 const active = row.value > 0;
@@ -190,7 +190,7 @@ export default function LivePage() {
                       {active && (
                         <div
                           className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #3b82f6, #60a5fa)" }}
+                          style={{ width: `${pct}%`, background: row.bar }}
                         />
                       )}
                     </div>
