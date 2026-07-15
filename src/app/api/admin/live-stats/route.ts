@@ -27,7 +27,7 @@ export async function GET() {
       // 30d
       paid30d, pending30d, revenue30d,
     ] = await Promise.all([
-      prisma.presence.findMany({ where: { updatedAt: { gte: activeWindow } }, select: { page: true } }),
+      prisma.presence.findMany({ where: { updatedAt: { gte: activeWindow } }, select: { page: true, source: true, returning: true } }),
       prisma.cart.count({ where: { updatedAt: { gte: activeWindow }, items: { some: {} } } }),
       prisma.presence.count({ where: { updatedAt: { gte: todayStart } } }),
       prisma.order.count(),
