@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
+import { StarBackground } from "./StarBackground";
 
 interface AdminShellProps {
   user: { name?: string | null; email?: string | null };
@@ -71,21 +72,29 @@ export function AdminShell({ user, children }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden w-full" style={{ background: "#0b0a1e" }}>
+    <div className="relative flex h-screen overflow-hidden w-full" style={{ background: "#0b0a1e" }}>
       <style dangerouslySetInnerHTML={{ __html: DARK_CSS }} />
 
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-20 lg:hidden backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      {/* Star background */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden style={{ zIndex: 0 }}>
+        <StarBackground />
+      </div>
 
-      <AdminSidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      {/* Content layer */}
+      <div className="relative flex flex-1 h-full overflow-hidden w-full min-w-0" style={{ zIndex: 1 }}>
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 z-20 lg:hidden backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
 
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0 max-w-full">
-        <AdminHeader user={user} onMenuClick={() => setMobileOpen(true)} />
-        <main className="adm flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 w-full">{children}</main>
+        <AdminSidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0 max-w-full">
+          <AdminHeader user={user} onMenuClick={() => setMobileOpen(true)} />
+          <main className="adm flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 w-full">{children}</main>
+        </div>
       </div>
     </div>
   );
