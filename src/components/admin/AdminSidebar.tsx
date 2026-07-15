@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, Users,
-  BarChart3, FileDown, Palette, Star, ChevronLeft, ChevronRight, Plug, Truck, X
+  BarChart3, FileDown, Palette, Star, ChevronLeft, ChevronRight, Plug, Truck, X, Radio
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
+  { label: "Live View", href: "/admin/live", icon: Radio },
   { label: "Produtos", href: "/admin/produtos", icon: Package },
   { label: "Coleções", href: "/admin/colecoes", icon: FolderOpen },
   { label: "Pedidos", href: "/admin/pedidos", icon: ShoppingBag },

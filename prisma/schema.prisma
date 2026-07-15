@@ -323,3 +323,13 @@ enum PaymentStatus {
   FAILED
   REFUNDED
 }
+
+model Presence {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  page      String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([updatedAt])
+}
