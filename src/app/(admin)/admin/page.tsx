@@ -117,10 +117,10 @@ export default async function AdminDashboard() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {stats.map((s) => (
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s, i) => (
           <Link key={s.label} href={s.href}
-            className={`${CARD} hover:opacity-90 transition-opacity active:scale-[0.98]`}
+            className={`${CARD} hover:opacity-90 transition-opacity active:scale-[0.98]${i === 0 ? " col-span-2" : ""}`}
             style={CARD_BG}>
             <div className="flex items-start justify-between">
               <div>
