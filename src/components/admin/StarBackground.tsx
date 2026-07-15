@@ -25,9 +25,10 @@ export function StarBackground() {
     if (!ctx) return;
     const parent = canvas.parentElement!;
 
+    const c = canvas;
     function resize() {
-      canvas.width = parent.offsetWidth;
-      canvas.height = parent.offsetHeight;
+      c.width = parent.offsetWidth;
+      c.height = parent.offsetHeight;
     }
     resize();
     const ro = new ResizeObserver(resize);
@@ -51,8 +52,8 @@ export function StarBackground() {
       mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * lerp;
       mouseRef.current.y += (targetMouseRef.current.y - mouseRef.current.y) * lerp;
 
-      const W = canvas.width;
-      const H = canvas.height;
+      const W = c.width;
+      const H = c.height;
       const mx = mouseRef.current.x - 0.5;
       const my = mouseRef.current.y - 0.5;
 
