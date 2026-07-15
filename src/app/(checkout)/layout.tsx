@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PresenceTracker } from "@/components/store/PresenceTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function CheckoutLayout({ children }: { children: React.Rea
   return (
     <>
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `:root{${css}}` }} />
+      <PresenceTracker />
       {children}
     </>
   );
