@@ -8,6 +8,7 @@ function getPage(pathname: string): string {
   if (pathname.startsWith("/produtos")) return "product";
   if (pathname.startsWith("/carrinho")) return "cart";
   if (pathname.startsWith("/checkout")) return "checkout";
+  if (pathname.startsWith("/rastreio") || pathname.startsWith("/conta/pedidos")) return "tracking";
   return "other";
 }
 

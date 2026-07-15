@@ -62,6 +62,7 @@ export async function GET() {
       onProduct: presences.filter((p) => p.page === "product").length,
       onCart: presences.filter((p) => p.page === "cart").length,
       onCheckout: presences.filter((p) => p.page === "checkout").length,
+      onTracking: presences.filter((p) => p.page === "tracking").length,
       activeCarts,
       sessionsToday,
       totalOrders,

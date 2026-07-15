@@ -11,6 +11,7 @@ interface LiveStats {
   onProduct: number;
   onCart: number;
   onCheckout: number;
+  onTracking: number;
   activeCarts: number;
   sessionsToday: number;
   totalOrders: number;
@@ -150,7 +151,7 @@ export default function LivePage() {
               {[
                 { label: "na home", value: stats?.onHome ?? 0, color: "#60a5fa" },
                 { label: "em produto", value: stats?.onProduct ?? 0, color: "#a78bfa" },
-                { label: "no carrinho", value: stats?.onCart ?? 0, color: "#fb923c" },
+                { label: "no carrinho", value: stats?.onCart ?? 0, color: "#38bdf8" },
                 { label: "no checkout", value: stats?.onCheckout ?? 0, color: "#22d3a0" },
               ].map((d) => (
                 <div key={d.label} className="flex items-center gap-1.5">
@@ -175,6 +176,7 @@ export default function LivePage() {
                 { label: "Produto", value: stats?.onProduct ?? 0 },
                 { label: "Carrinho", value: stats?.onCart ?? 0 },
                 { label: "Checkout", value: stats?.onCheckout ?? 0 },
+                { label: "Rastreando pedido", value: stats?.onTracking ?? 0 },
               ].map((row) => {
                 const pct = total > 0 ? Math.min((row.value / total) * 100, 100) : 0;
                 const active = row.value > 0;
@@ -280,7 +282,7 @@ export default function LivePage() {
             {[
               { label: "Total de pedidos", value: stats ? fmt(stats.totalOrders) : "—", icon: ShoppingBag, color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
               { label: "Receita total", value: stats ? fmtMoney(stats.totalRevenue) : "—", icon: TrendingUp, color: "#22d3a0", bg: "rgba(34,211,160,0.1)" },
-              { label: "Pedidos hoje", value: stats ? fmt((stats.paidToday ?? 0) + (stats.pendingToday ?? 0)) : "—", icon: ShoppingCart, color: "#fb923c", bg: "rgba(251,146,60,0.1)" },
+              { label: "Pedidos hoje", value: stats ? fmt((stats.paidToday ?? 0) + (stats.pendingToday ?? 0)) : "—", icon: ShoppingCart, color: "#38bdf8", bg: "rgba(56,189,248,0.1)" },
               { label: "Pagos hoje", value: stats ? fmt(stats.paidToday ?? 0) : "—", icon: CreditCard, color: "#a78bfa", bg: "rgba(108,82,255,0.1)" },
             ].map((row) => (
               <div key={row.label} className="flex items-center justify-between py-2.5 px-3 rounded-xl"

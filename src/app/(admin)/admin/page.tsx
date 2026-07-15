@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
-import { TrendingUp, ShoppingBag, Users, Package, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
+import { TrendingUp, ShoppingBag, Users, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import TestPixButton from "./TestPixButton";
 
@@ -44,13 +44,12 @@ export default async function AdminDashboard() {
   const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(weekStart.getDate() - 7);
 
   const [
-    totalOrders, totalCustomers, totalProducts, lowStockCount, recentOrders,
+    totalOrders, totalCustomers, lowStockCount, recentOrders,
     revenue, ordersThisWeek, ordersPrevWeek, revenueThisWeek, revenuePrevWeek,
     customersThisWeek, customersPrevWeek,
   ] = await Promise.all([
     prisma.order.count(),
     prisma.user.count({ where: { role: "CUSTOMER" } }),
-    prisma.product.count({ where: { isActive: true } }),
     prisma.productVariant.count({ where: { stock: { lt: 5 } } }),
     prisma.order.findMany({
       take: 5, orderBy: { createdAt: "desc" },
@@ -95,13 +94,6 @@ export default async function AdminDashboard() {
       sparkColor: "#c084fc",
       points: "0,30 10,28 20,32 30,24 40,26 50,20 60,22 70,16 80,18 90,14 100,16",
     },
-    {
-      label: "Produtos", value: totalProducts.toLocaleString("pt-BR"),
-      change: 0, href: "/admin/produtos",
-      icon: Package, iconBg: "#2e1e12", iconColor: "#fb923c",
-      sparkColor: "#fb923c",
-      points: "0,24 10,22 20,26 30,23 40,20 50,24 60,21 70,25 80,20 90,22 100,21",
-    },
   ];
 
   return (
@@ -125,7 +117,7 @@ export default async function AdminDashboard() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {stats.map((s) => (
           <Link key={s.label} href={s.href}
             className={`${CARD} hover:opacity-90 transition-opacity active:scale-[0.98]`}
