@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { formatPrice, brazilDayStart, brazilDayEnd, brazilMonthStart } from "@/lib/utils";
-import { TrendingUp, ShoppingBag, Users, Clock, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ShoppingBag, Users, Clock, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import TestPixButton from "./TestPixButton";
 import DashboardFilter from "./DashboardFilter";
+import AdSpendInput from "./AdSpendInput";
 import { FunnelCard } from "@/components/admin/FunnelCard";
 import { Suspense } from "react";
 
@@ -123,6 +124,7 @@ export default async function AdminDashboard({
     paidOrders,
     pendingAgg,
     periodOrders,
+    adSpendAgg,
   ] = await Promise.all([
     prisma.productVariant.count({ where: { stock: { lt: 5 } } }),
     prisma.user.count({ where: { role: "CUSTOMER" } }),
@@ -140,10 +142,13 @@ export default async function AdminDashboard({
       where: { paymentStatus: "PENDING", createdAt: { gte: start, lte: end } },
     }),
     prisma.order.count({ where: { createdAt: { gte: start, lte: end } } }),
+    prisma.adSpend.aggregate({ _sum: { amount: true }, where: { date: { gte: start, lte: end } } }),
   ]);
 
   const paidTotal = paidOrders.reduce((s, o) => s + Number(o.total), 0);
   const pendingTotal = Number(pendingAgg._sum.total || 0);
+  const adSpendTotal = Number(adSpendAgg._sum.amount || 0);
+  const profitTotal = paidTotal - adSpendTotal;
   const sparkPoints = buildSparkPoints(
     paidOrders.map((o) => ({ total: Number(o.total), createdAt: o.createdAt })),
     start,
@@ -198,6 +203,41 @@ export default async function AdminDashboard({
           <TradingSparkline points={sparkPoints} color="#22d3a0" />
         </div>
       </Link>
+
+      {/* Gasto com anúncio + Lucro */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className={CARD} style={CARD_BG}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7b7fa3" }}>Gasto c/ anúncio</p>
+              <p className="text-xl font-black mt-1" style={{ color: "#f87171" }}>{formatPrice(adSpendTotal)}</p>
+            </div>
+            <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: "rgba(239,68,68,0.1)" }}>
+              <Wallet className="w-4 h-4" style={{ color: "#f87171" }} />
+            </div>
+          </div>
+          <p className="text-xs" style={{ color: "#7b7fa3" }}>Lançado manualmente — {label}</p>
+        </div>
+
+        <div className={CARD} style={CARD_BG}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7b7fa3" }}>Lucro líquido</p>
+              <p className="text-xl font-black mt-1" style={{ color: profitTotal >= 0 ? "#22d3a0" : "#f87171" }}>
+                {formatPrice(profitTotal)}
+              </p>
+            </div>
+            <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: profitTotal >= 0 ? "rgba(34,211,160,0.1)" : "rgba(239,68,68,0.1)" }}>
+              {profitTotal >= 0
+                ? <TrendingUp className="w-4 h-4" style={{ color: "#22d3a0" }} />
+                : <TrendingDown className="w-4 h-4" style={{ color: "#f87171" }} />}
+            </div>
+          </div>
+          <p className="text-xs" style={{ color: "#7b7fa3" }}>Faturamento − gasto de anúncio</p>
+        </div>
+      </div>
+
+      <AdSpendInput />
 
       {/* Small cards: Pendente + Pedidos + Clientes */}
       <div className="grid grid-cols-2 gap-3">

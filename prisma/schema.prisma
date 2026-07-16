@@ -355,3 +355,13 @@ model Presence {
   @@index([updatedAt])
   @@index([source])
 }
+
+// Temporary manual entry for daily ad spend — UTMify only reads costs into
+// its own dashboard, it has no read API to pull them from automatically.
+model AdSpend {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  amount    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
