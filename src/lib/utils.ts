@@ -40,6 +40,47 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+// Vercel's serverless functions always run with TZ=UTC, regardless of the
+// deploy region — so plain `new Date().setHours(0,0,0,0)` on the server zeroes
+// out midnight UTC, not midnight in Brazil (UTC-3). That made "hoje" in the
+// admin dashboard roll over 3h before real Brasília midnight. Brazil has had
+// no DST since 2019, so a fixed -3h offset is safe.
+const BRAZIL_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+// A Date whose UTC-getters (getUTCFullYear/getUTCMonth/getUTCDate/getUTCHours…)
+// read back Brazil's current wall-clock values, independent of server TZ.
+function toBrazilWallClock(date: Date): Date {
+  return new Date(date.getTime() - BRAZIL_OFFSET_MS);
+}
+
+// Reverses toBrazilWallClock: turns a Brazil wall-clock Date back into the
+// real UTC instant it represents (what Prisma/Postgres should compare against).
+function fromBrazilWallClock(wallClock: Date): Date {
+  return new Date(wallClock.getTime() + BRAZIL_OFFSET_MS);
+}
+
+// UTC instant equal to 00:00:00 in Brazil time, `daysAgo` days before today.
+export function brazilDayStart(daysAgo = 0): Date {
+  const wc = toBrazilWallClock(new Date());
+  wc.setUTCDate(wc.getUTCDate() - daysAgo);
+  wc.setUTCHours(0, 0, 0, 0);
+  return fromBrazilWallClock(wc);
+}
+
+// UTC instant equal to 23:59:59.999 in Brazil time, `daysAgo` days before today.
+export function brazilDayEnd(daysAgo = 0): Date {
+  return new Date(brazilDayStart(daysAgo).getTime() + 24 * 60 * 60 * 1000 - 1);
+}
+
+// UTC instant equal to the 1st of the current (or previous, if monthsAgo=1)
+// month at 00:00:00 in Brazil time.
+export function brazilMonthStart(monthsAgo = 0): Date {
+  const wc = toBrazilWallClock(new Date());
+  wc.setUTCMonth(wc.getUTCMonth() - monthsAgo, 1);
+  wc.setUTCHours(0, 0, 0, 0);
+  return fromBrazilWallClock(wc);
+}
+
 export function formatPrice(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return "R$ 0,00";
   const num = typeof value === "string" ? parseFloat(value) : value;

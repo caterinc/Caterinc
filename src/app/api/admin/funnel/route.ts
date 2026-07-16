@@ -1,37 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { brazilDayStart, brazilDayEnd, brazilMonthStart } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 function getRange(period: string, from?: string | null, to?: string | null) {
   const now = new Date();
   switch (period) {
-    case "yesterday": {
-      const s = new Date(now); s.setDate(now.getDate() - 1); s.setHours(0, 0, 0, 0);
-      const e = new Date(s); e.setHours(23, 59, 59, 999);
-      return { start: s, end: e };
-    }
-    case "7d": {
-      const s = new Date(now); s.setDate(now.getDate() - 6); s.setHours(0, 0, 0, 0);
-      return { start: s, end: now };
-    }
-    case "month": {
-      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
-    }
-    case "lastmonth": {
-      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const e = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-      return { start: s, end: e };
-    }
+    case "yesterday":
+      return { start: brazilDayStart(1), end: brazilDayEnd(1) };
+    case "7d":
+      return { start: brazilDayStart(6), end: now };
+    case "month":
+      return { start: brazilMonthStart(0), end: now };
+    case "lastmonth":
+      return { start: brazilMonthStart(1), end: new Date(brazilMonthStart(0).getTime() - 1) };
     case "custom": {
-      const s = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
-      const e = to ? new Date(to + "T23:59:59") : now;
+      const s = from ? new Date(`${from}T00:00:00-03:00`) : brazilMonthStart(0);
+      const e = to ? new Date(`${to}T23:59:59-03:00`) : now;
       return { start: s, end: e };
     }
-    default: {
-      const s = new Date(now); s.setHours(0, 0, 0, 0);
-      return { start: s, end: now };
-    }
+    default:
+      return { start: brazilDayStart(0), end: now };
   }
 }
 

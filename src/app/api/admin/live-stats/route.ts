@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { brazilDayStart } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +8,7 @@ export async function GET() {
   try {
     const now = new Date();
     const activeWindow = new Date(now.getTime() - 20 * 1000);
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+    const todayStart = brazilDayStart(0);
     const h24ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const d7ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const d30ago = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

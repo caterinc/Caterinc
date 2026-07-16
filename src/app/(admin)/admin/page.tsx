@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, brazilDayStart, brazilDayEnd, brazilMonthStart } from "@/lib/utils";
 import { TrendingUp, ShoppingBag, Users, Clock, Plus, FileDown, Palette, AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import TestPixButton from "./TestPixButton";
@@ -12,33 +12,21 @@ import { Suspense } from "react";
 function getDateRange(period: string, from?: string, to?: string) {
   const now = new Date();
   switch (period) {
-    case "yesterday": {
-      const s = new Date(now); s.setDate(now.getDate() - 1); s.setHours(0, 0, 0, 0);
-      const e = new Date(s); e.setHours(23, 59, 59, 999);
-      return { start: s, end: e, label: "Ontem" };
-    }
-    case "7d": {
-      const s = new Date(now); s.setDate(now.getDate() - 6); s.setHours(0, 0, 0, 0);
-      return { start: s, end: now, label: "Últimos 7 dias" };
-    }
-    case "month": {
-      const s = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { start: s, end: now, label: "Este mês" };
-    }
-    case "lastmonth": {
-      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const e = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-      return { start: s, end: e, label: "Mês passado" };
-    }
+    case "yesterday":
+      return { start: brazilDayStart(1), end: brazilDayEnd(1), label: "Ontem" };
+    case "7d":
+      return { start: brazilDayStart(6), end: now, label: "Últimos 7 dias" };
+    case "month":
+      return { start: brazilMonthStart(0), end: now, label: "Este mês" };
+    case "lastmonth":
+      return { start: brazilMonthStart(1), end: new Date(brazilMonthStart(0).getTime() - 1), label: "Mês passado" };
     case "custom": {
-      const s = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
-      const e = to ? new Date(to + "T23:59:59") : now;
+      const s = from ? new Date(`${from}T00:00:00-03:00`) : brazilMonthStart(0);
+      const e = to ? new Date(`${to}T23:59:59-03:00`) : now;
       return { start: s, end: e, label: "Personalizado" };
     }
-    default: {
-      const s = new Date(now); s.setHours(0, 0, 0, 0);
-      return { start: s, end: now, label: "Hoje" };
-    }
+    default:
+      return { start: brazilDayStart(0), end: now, label: "Hoje" };
   }
 }
 
