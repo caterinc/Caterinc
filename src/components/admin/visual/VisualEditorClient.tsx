@@ -734,14 +734,20 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: bool
   );
 }
 
-function FooterEditor({ settings, onChange, onSave, saving, footerItems, onFooterItemsChange, onMenuSave }: {
+function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItems, onFooterItemsChange, onMenuSave }: {
   settings: Record<string, unknown>; onChange: (k: string, v: unknown) => void; onSave: () => void; saving: boolean;
+  onUpload: (f: File) => Promise<string>;
   footerItems: MenuItem[]; onFooterItemsChange: (items: MenuItem[]) => void; onMenuSave: () => void;
 }) {
   const b = (k: string, def = true) => settings[k] !== undefined ? settings[k] === true : def;
 
   return (
     <div className="space-y-3">
+      {/* Logo */}
+      <Field label={'Logo (imagem) — deixe em branco para usar o selo "CAT" padrão'}>
+        <ImageUpload value={(settings.logoImage as string) || ""} onChange={(v) => onChange("logoImage", v)} onUpload={onUpload} />
+      </Field>
+
       {/* Style */}
       <Field label="Cor de Fundo"><ColorInput value={(settings.bgColor as string) || "#000000"} onChange={(v) => onChange("bgColor", v)} /></Field>
       <Field label="Cor do Texto"><ColorInput value={(settings.textColor as string) || "#9CA3AF"} onChange={(v) => onChange("textColor", v)} /></Field>
@@ -1369,6 +1375,7 @@ export function VisualEditorClient({
             onChange={(k, v) => updateFixed("footer", k, v)}
             onSave={() => saveFixed("footer")}
             saving={isSaving}
+            onUpload={uploadImage}
             footerItems={footerItems}
             onFooterItemsChange={setFooterItems}
             onMenuSave={() => saveMenu("footer", footerItems)}

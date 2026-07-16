@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Instagram, Facebook, Phone, Mail, MapPin } from "lucide-react";
 
 interface MenuItem {
@@ -13,6 +14,7 @@ export interface FooterProps {
   bgColor?: string;
   textColor?: string;
   // Description / brand block
+  logoImage?: string;
   description?: string;
   showDescription?: boolean;
   // Social links
@@ -37,6 +39,7 @@ export function Footer({
   storeName = "CAT Store",
   bgColor = "#000000",
   textColor = "#9CA3AF",
+  logoImage,
   description,
   showDescription = true,
   instagram,
@@ -79,9 +82,15 @@ export function Footer({
         {/* Brand / description */}
         {showDescription && (
           <div className={cols >= 3 ? "col-span-1 md:col-span-2" : ""}>
-            <div className="bg-cat-yellow text-cat-black font-black text-2xl px-3 py-1 tracking-widest inline-block mb-4">
-              CAT
-            </div>
+            {logoImage ? (
+              <div className="relative h-10 w-32 mb-4">
+                <Image src={logoImage} alt={storeName} fill className="object-contain object-left" />
+              </div>
+            ) : (
+              <div className="bg-cat-yellow text-cat-black font-black text-2xl px-3 py-1 tracking-widest inline-block mb-4">
+                CAT
+              </div>
+            )}
             <p className="text-sm leading-relaxed mb-4">
               {description || "Calçados robustos e duráveis para quem não para. Qualidade industrial para o seu dia a dia."}
             </p>

@@ -7,18 +7,19 @@ import { formatPrice } from "@/lib/utils";
 
 interface Entry { date: string; amount: number }
 
-function todayInputValue(): string {
-  // Brazil "today" as YYYY-MM-DD, independent of the browser's own TZ.
+function brazilInputValue(daysAgo = 0): string {
+  // Brazil calendar day as YYYY-MM-DD, independent of the browser's own TZ.
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000));
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 export default function AdSpendInput({ todayRevenue }: { todayRevenue: number }) {
   const router = useRouter();
-  const today = todayInputValue();
+  const today = brazilInputValue(0);
+  const yesterday = brazilInputValue(1);
   const [mode, setMode] = useState<"view" | "save">("view");
   const [date, setDate] = useState(today);
   const [amount, setAmount] = useState("");
@@ -73,7 +74,7 @@ export default function AdSpendInput({ todayRevenue }: { todayRevenue: number })
           <div>
             <p className="text-sm font-bold text-white">Gasto com anúncio</p>
             <p className="text-[11px]" style={{ color: "#7b7fa3" }}>
-              {mode === "view" ? "Só uma prévia — nada é salvo" : "Lançamento oficial do dia"}
+              {mode === "view" ? "Só uma prévia — nada é salvo" : "Passou da meia-noite? Escolha o dia certo abaixo, nada se perde"}
             </p>
           </div>
         </div>
@@ -99,11 +100,29 @@ export default function AdSpendInput({ todayRevenue }: { todayRevenue: number })
 
       <div className="flex flex-wrap items-center gap-2">
         {mode === "save" && (
-          <input
-            type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            className="text-xs px-2.5 py-2 rounded-lg outline-none"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "white" }}
-          />
+          <>
+            <div className="flex items-center gap-1 rounded-lg p-0.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <button
+                onClick={() => setDate(today)}
+                className="text-[11px] font-bold px-2 py-1.5 rounded-md transition-colors"
+                style={date === today ? { background: "rgba(108,82,255,0.35)", color: "white" } : { color: "#7b7fa3" }}
+              >
+                Hoje
+              </button>
+              <button
+                onClick={() => setDate(yesterday)}
+                className="text-[11px] font-bold px-2 py-1.5 rounded-md transition-colors"
+                style={date === yesterday ? { background: "rgba(108,82,255,0.35)", color: "white" } : { color: "#7b7fa3" }}
+              >
+                Ontem
+              </button>
+            </div>
+            <input
+              type="date" value={date} onChange={(e) => setDate(e.target.value)}
+              className="text-xs px-2.5 py-2 rounded-lg outline-none"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "white" }}
+            />
+          </>
         )}
         <input
           type="text" inputMode="decimal" value={amount}

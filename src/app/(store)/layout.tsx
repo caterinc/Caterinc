@@ -78,6 +78,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         storeName={sm.storeName as string}
         bgColor={(vf.bgColor as string) || undefined}
         textColor={(vf.textColor as string) || undefined}
+        logoImage={(vf.logoImage as string) || undefined}
         description={(vf.description as string) || undefined}
         showDescription={bool(vf.showDescription)}
         instagram={(vf.instagram as string) || undefined}
