@@ -31,7 +31,9 @@ export async function GET(req: Request) {
     const { start, end } = getRange(p.get("period") || "today", p.get("from"), p.get("to"));
 
     const [sessions, productRows, cartRows, checkoutRows, paid] = await Promise.all([
-      prisma.presence.count({ where: { createdAt: { gte: start, lte: end } } }),
+      // Presence rows are upserted per sessionId and reused on return visits, so a
+      // returning session's createdAt predates the period — filter by updatedAt.
+      prisma.presence.count({ where: { updatedAt: { gte: start, lte: end } } }),
 
       prisma.sessionEvent.findMany({
         where: { type: "pageview", page: "product", createdAt: { gte: start, lte: end } },

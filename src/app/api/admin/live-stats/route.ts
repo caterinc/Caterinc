@@ -30,7 +30,10 @@ export async function GET() {
     ] = await Promise.all([
       prisma.presence.findMany({ where: { updatedAt: { gte: activeWindow } }, select: { page: true, source: true, returning: true } }),
       prisma.cart.count({ where: { updatedAt: { gte: activeWindow }, items: { some: {} } } }),
-      prisma.presence.count({ where: { createdAt: { gte: todayStart } } }),
+      // Presence rows are upserted per sessionId and reused across future visits,
+      // so a returning session's createdAt is from whenever it was first ever seen —
+      // filtering "today" activity must use updatedAt (last activity), not createdAt.
+      prisma.presence.count({ where: { updatedAt: { gte: todayStart } } }),
       prisma.order.count(),
       prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid } }),
       prisma.order.count({ where: { paymentStatus: paid, createdAt: { gte: todayStart } } }),
@@ -46,15 +49,15 @@ export async function GET() {
       prisma.order.count({ where: { paymentStatus: pending, createdAt: { gte: d30ago } } }),
       prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: paid, createdAt: { gte: d30ago } } }),
       // Meta
-      prisma.presence.count({ where: { source: "meta", createdAt: { gte: todayStart } } }),
-      prisma.presence.count({ where: { source: "meta", createdAt: { gte: h24ago } } }),
-      prisma.presence.count({ where: { source: "meta", createdAt: { gte: d7ago } } }),
-      prisma.presence.count({ where: { source: "meta", createdAt: { gte: d30ago } } }),
+      prisma.presence.count({ where: { source: "meta", updatedAt: { gte: todayStart } } }),
+      prisma.presence.count({ where: { source: "meta", updatedAt: { gte: h24ago } } }),
+      prisma.presence.count({ where: { source: "meta", updatedAt: { gte: d7ago } } }),
+      prisma.presence.count({ where: { source: "meta", updatedAt: { gte: d30ago } } }),
       // Returning
-      prisma.presence.count({ where: { returning: true, createdAt: { gte: todayStart } } }),
-      prisma.presence.count({ where: { returning: true, createdAt: { gte: h24ago } } }),
-      prisma.presence.count({ where: { returning: true, createdAt: { gte: d7ago } } }),
-      prisma.presence.count({ where: { returning: true, createdAt: { gte: d30ago } } }),
+      prisma.presence.count({ where: { returning: true, updatedAt: { gte: todayStart } } }),
+      prisma.presence.count({ where: { returning: true, updatedAt: { gte: h24ago } } }),
+      prisma.presence.count({ where: { returning: true, updatedAt: { gte: d7ago } } }),
+      prisma.presence.count({ where: { returning: true, updatedAt: { gte: d30ago } } }),
     ]);
 
     const visitorsNow = presences.length;
