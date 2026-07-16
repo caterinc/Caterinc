@@ -125,6 +125,7 @@ export default async function AdminDashboard({
     pendingAgg,
     periodOrders,
     adSpendAgg,
+    todayRevenueAgg,
   ] = await Promise.all([
     prisma.productVariant.count({ where: { stock: { lt: 5 } } }),
     prisma.user.count({ where: { role: "CUSTOMER" } }),
@@ -143,12 +144,17 @@ export default async function AdminDashboard({
     }),
     prisma.order.count({ where: { createdAt: { gte: start, lte: end } } }),
     prisma.adSpend.aggregate({ _sum: { amount: true }, where: { date: { gte: start, lte: end } } }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { paymentStatus: "PAID", createdAt: { gte: brazilDayStart(0) } },
+    }),
   ]);
 
   const paidTotal = paidOrders.reduce((s, o) => s + Number(o.total), 0);
   const pendingTotal = Number(pendingAgg._sum.total || 0);
   const adSpendTotal = Number(adSpendAgg._sum.amount || 0);
   const profitTotal = paidTotal - adSpendTotal;
+  const todayRevenue = Number(todayRevenueAgg._sum.total || 0);
   const sparkPoints = buildSparkPoints(
     paidOrders.map((o) => ({ total: Number(o.total), createdAt: o.createdAt })),
     start,
@@ -237,7 +243,7 @@ export default async function AdminDashboard({
         </div>
       </div>
 
-      <AdSpendInput />
+      <AdSpendInput todayRevenue={todayRevenue} />
 
       {/* Small cards: Pendente + Pedidos + Clientes */}
       <div className="grid grid-cols-2 gap-3">
