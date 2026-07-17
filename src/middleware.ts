@@ -37,14 +37,32 @@ function isBot(ua: string): boolean {
   return false;
 }
 
+const VSL_GATE_COOKIE = "_vslok";
+
 export function middleware(req: NextRequest) {
   const ua = req.headers.get("user-agent") || "";
 
+  // Bots: always bounced to the VSL, same as before.
   if (isBot(ua)) {
     return NextResponse.redirect(SAFE_URL, { status: 302 });
   }
 
-  return NextResponse.next();
+  // Humans: must pass through the VSL first. Real navigation from the VSL's
+  // own button carries a forces-one.com Referer; once that happens we drop a
+  // cookie so the rest of the visit doesn't get bounced on every click.
+  const referer = req.headers.get("referer") || "";
+  const cameFromVSL = referer.includes("forces-one.com");
+  const hasGateCookie = req.cookies.get(VSL_GATE_COOKIE)?.value === "1";
+
+  if (!cameFromVSL && !hasGateCookie) {
+    return NextResponse.redirect(SAFE_URL, { status: 302 });
+  }
+
+  const res = NextResponse.next();
+  if (!hasGateCookie) {
+    res.cookies.set(VSL_GATE_COOKIE, "1", { maxAge: 60 * 60 * 24 * 30, path: "/" });
+  }
+  return res;
 }
 
 export const config = {
