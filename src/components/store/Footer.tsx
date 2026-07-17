@@ -1,20 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram, Facebook, Phone, Mail, MapPin, ShieldCheck, Lock } from "lucide-react";
+import { Instagram, Facebook, Phone, Mail, MapPin } from "lucide-react";
 import { groupMenuItems } from "@/lib/menu";
 
 interface MenuItem {
   id: string;
   label: string;
   url: string;
-}
-
-export interface TrustSeal {
-  id: string;
-  label: string;
-  type: "image" | "site-seguro";
-  imageUrl?: string;
-  enabled: boolean;
 }
 
 export interface FooterProps {
@@ -42,34 +34,15 @@ export interface FooterProps {
   // Legal info (CNPJ, empresa, etc.)
   legalText?: string;
   showLegalText?: boolean;
-  // Bottom logo (between CNPJ and copyright)
-  bottomLogoImage?: string;
-  // Trust seals
-  trustSeals?: TrustSeal[];
-  showTrustSeals?: boolean;
+  // Seal/logo above copyright (centered)
+  sealAbove?: string;
   // Copyright bar
   showCopyright?: boolean;
   copyrightText?: string;
+  // Seals below copyright (left and right)
+  sealBottomLeft?: string;
+  sealBottomRight?: string;
 }
-
-function SiteSeguroBadge() {
-  return (
-    <div className="flex items-center gap-2 border border-green-500 rounded-lg px-4 py-2 bg-green-500/10">
-      <ShieldCheck className="w-6 h-6 text-green-400" />
-      <div>
-        <p className="text-green-400 font-bold text-sm leading-none">Site Seguro</p>
-        <p className="text-green-500/70 text-[10px] leading-none mt-0.5">Compra 100% protegida</p>
-      </div>
-      <Lock className="w-4 h-4 text-green-400" />
-    </div>
-  );
-}
-
-const DEFAULT_SEALS: TrustSeal[] = [
-  { id: "cat", label: "CAT Licensed", type: "image", imageUrl: "/selo-cat.png", enabled: true },
-  { id: "site-seguro", label: "Site Seguro", type: "site-seguro", enabled: true },
-  { id: "reclameaqui", label: "ReclameAQUI", type: "image", imageUrl: "", enabled: false },
-];
 
 export function Footer({
   menuItems = [],
@@ -91,17 +64,17 @@ export function Footer({
   showMenu = true,
   legalText,
   showLegalText = false,
-  bottomLogoImage,
-  trustSeals = DEFAULT_SEALS,
-  showTrustSeals = true,
+  sealAbove,
   showCopyright = true,
   copyrightText,
+  sealBottomLeft,
+  sealBottomRight,
 }: FooterProps) {
   const hasContact = !!(phone || email || address);
   const hasSocial = !!(instagram || facebook);
   const hasMenu = menuItems.length > 0;
   const menuGroups = groupMenuItems(menuItems);
-  const activeSeals = (trustSeals || DEFAULT_SEALS).filter((s) => s.enabled);
+  const hasBottomSeals = !!(sealBottomLeft || sealBottomRight);
 
   const cols = [
     showDescription,
@@ -206,37 +179,16 @@ export function Footer({
         )}
       </div>
 
-      {/* Legal info (CNPJ, empresa) + bottom logo */}
-      {(showLegalText && legalText) || bottomLogoImage ? (
+      {/* CNPJ + Seal above copyright */}
+      {((showLegalText && legalText) || sealAbove) && (
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col items-center gap-3 text-center text-xs leading-relaxed" style={{ color: textColor }}>
-            {showLegalText && legalText && <p>{legalText}</p>}
-            {bottomLogoImage && (
-              <img src={bottomLogoImage} alt={storeName} className="h-12 w-auto object-contain mx-auto" />
+          <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col items-center gap-4 text-center">
+            {showLegalText && legalText && (
+              <p className="text-xs leading-relaxed" style={{ color: textColor }}>{legalText}</p>
             )}
-          </div>
-        </div>
-      ) : null}
-
-      {/* Trust seals */}
-      {showTrustSeals && activeSeals.length > 0 && (
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <div className="max-w-7xl mx-auto px-4 py-6 flex flex-wrap justify-center items-center gap-8">
-            {activeSeals.map((seal) => {
-              if (seal.type === "site-seguro") return <SiteSeguroBadge key={seal.id} />;
-              if (seal.imageUrl) {
-                return (
-                  <div key={seal.id} className="overflow-hidden flex-shrink-0" style={{ maxHeight: 72 }}>
-                    <img
-                      src={seal.imageUrl}
-                      alt={seal.label}
-                      className="h-16 w-auto object-top object-cover"
-                    />
-                  </div>
-                );
-              }
-              return null;
-            })}
+            {sealAbove && (
+              <img src={sealAbove} alt="Selo" className="h-20 w-auto object-contain mx-auto" />
+            )}
           </div>
         </div>
       )}
@@ -244,8 +196,27 @@ export function Footer({
       {/* Copyright */}
       {showCopyright && (
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
-            <p>{copyrightText || `© ${new Date().getFullYear()} ${storeName}. Todos os direitos reservados.`}</p>
+          <div className="max-w-7xl mx-auto px-4 py-4 text-center text-xs leading-relaxed" style={{ color: textColor }}>
+            {copyrightText || `© ${new Date().getFullYear()} ${storeName}. Todos os direitos reservados.`}
+          </div>
+        </div>
+      )}
+
+      {/* Seals below copyright — left and right, same size */}
+      {hasBottomSeals && (
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+            <div className="w-1/3 flex justify-start">
+              {sealBottomLeft && (
+                <img src={sealBottomLeft} alt="Selo esquerdo" className="h-14 w-auto object-contain" />
+              )}
+            </div>
+            <div className="w-1/3" />
+            <div className="w-1/3 flex justify-end">
+              {sealBottomRight && (
+                <img src={sealBottomRight} alt="Selo direito" className="h-14 w-auto object-contain" />
+              )}
+            </div>
           </div>
         </div>
       )}

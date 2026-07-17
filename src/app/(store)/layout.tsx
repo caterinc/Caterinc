@@ -93,11 +93,11 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         showMenu={bool(vf.showMenu)}
         legalText={(vf.legalText as string) || undefined}
         showLegalText={bool(vf.showLegalText, false)}
-        bottomLogoImage={(vf.bottomLogoImage as string) || undefined}
-        trustSeals={Array.isArray(vf.trustSeals) ? (vf.trustSeals as import("@/components/store/Footer").TrustSeal[]) : undefined}
-        showTrustSeals={vf.showTrustSeals !== undefined ? bool(vf.showTrustSeals) : true}
+        sealAbove={(vf.sealAbove as string) || undefined}
         showCopyright={bool(vf.showCopyright)}
         copyrightText={(vf.copyrightText as string) || undefined}
+        sealBottomLeft={(vf.sealBottomLeft as string) || undefined}
+        sealBottomRight={(vf.sealBottomRight as string) || undefined}
       />
     </div>
   );
