@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { groupMenuItems } from "@/lib/menu";
 import { SacForm } from "@/components/store/SacForm";
 import { FormattedText } from "@/components/store/FormattedText";
+import { BackButton } from "@/components/store/BackButton";
 
 export default async function ContentPage({ params }: { params: { slug: string } }) {
   const [page, footerMenu] = await Promise.all([
@@ -22,9 +22,7 @@ export default async function ContentPage({ params }: { params: { slug: string }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6">
-        <ArrowLeft className="w-4 h-4" /> Voltar
-      </Link>
+      <BackButton />
 
       {groups.length > 0 && (
         <details className="mb-8 rounded-xl border border-gray-200 overflow-hidden">
