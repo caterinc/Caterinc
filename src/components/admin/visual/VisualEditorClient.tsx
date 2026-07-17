@@ -790,6 +790,9 @@ function PageContentEditor({ slug, title }: { slug: string; title: string }) {
             placeholder="Escreva aqui o texto que vai aparecer nesta página, como num caderno..."
             className="w-full px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
           />
+          <p className="text-[10px] text-gray-400">
+            Dica: coloque <span className="font-mono">*asteriscos*</span> no início e no fim de um trecho pra deixar em <strong>negrito</strong>.
+          </p>
           <button
             onClick={save}
             disabled={saving}

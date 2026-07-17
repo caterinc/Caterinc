@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { groupMenuItems } from "@/lib/menu";
 import { SacForm } from "@/components/store/SacForm";
+import { FormattedText } from "@/components/store/FormattedText";
 
 export default async function ContentPage({ params }: { params: { slug: string } }) {
   const [page, footerMenu] = await Promise.all([
@@ -61,9 +62,10 @@ export default async function ContentPage({ params }: { params: { slug: string }
       <h1 className="text-2xl font-black uppercase mb-4" style={{ color: "#FFCD11" }}>
         {page.title}
       </h1>
-      <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
-        {page.content || "Conteúdo em breve."}
-      </div>
+      <FormattedText
+        text={page.content || "Conteúdo em breve."}
+        className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed"
+      />
 
       {page.slug === "fale-conosco" && <SacForm />}
     </div>
