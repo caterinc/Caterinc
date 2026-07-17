@@ -253,6 +253,17 @@ model MenuItem {
   children MenuItem[] @relation("MenuItemChildren")
 }
 
+// Simple editable content pages (Quem Somos, Trocas, Garantia, etc.) —
+// rendered at /paginas/[slug] and linked from footer menu items.
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 
 model Review {

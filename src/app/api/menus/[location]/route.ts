@@ -19,8 +19,11 @@ export async function PUT(req: NextRequest, { params }: { params: { location: st
 
   const { items }: { items: Array<{ id?: string; label: string; url: string; order: number }> } = await req.json();
 
-  const menu = await prisma.menu.findUnique({ where: { location: params.location } });
-  if (!menu) return NextResponse.json({ error: "Menu not found" }, { status: 404 });
+  const menu = await prisma.menu.upsert({
+    where: { location: params.location },
+    update: {},
+    create: { name: params.location, location: params.location },
+  });
 
   // Replace all items
   await prisma.menuItem.deleteMany({ where: { menuId: menu.id } });

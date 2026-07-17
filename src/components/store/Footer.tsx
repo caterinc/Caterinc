@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Instagram, Facebook, Phone, Mail, MapPin } from "lucide-react";
+import { groupMenuItems } from "@/lib/menu";
 
 interface MenuItem {
   id: string;
@@ -57,6 +58,7 @@ export function Footer({
   const hasContact = !!(phone || email || address);
   const hasSocial = !!(instagram || facebook);
   const hasMenu = menuItems.length > 0;
+  const menuGroups = groupMenuItems(menuItems);
 
   // Count active columns to set grid width
   const cols = [
@@ -111,21 +113,25 @@ export function Footer({
           </div>
         )}
 
-        {/* Links menu */}
+        {/* Links menu — grouped: items with no URL act as a group heading */}
         {showMenu && hasMenu && (
-          <div>
-            {menuTitle && (
-              <h4 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">{menuTitle}</h4>
-            )}
-            <ul className="space-y-2">
-              {menuItems.map((item) => (
-                <li key={item.id}>
-                  <Link href={item.url} className="text-sm hover:text-cat-yellow transition-colors">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-6">
+            {menuGroups.map((group, gi) => (
+              <div key={gi}>
+                <h4 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">
+                  {group.header?.label || menuTitle}
+                </h4>
+                <ul className="space-y-2">
+                  {group.items.map((item) => (
+                    <li key={item.id}>
+                      <Link href={item.url} className="text-sm hover:text-cat-yellow transition-colors">
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         )}
 
