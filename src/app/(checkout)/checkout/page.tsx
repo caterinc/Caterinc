@@ -12,7 +12,7 @@ import {
 import { useCart } from "@/lib/cart-context";
 import { formatPrice, copyToClipboard } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { UpsellProducts } from "@/components/store/UpsellProducts";
+import { CartReviews } from "@/components/store/CartReviews";
 
 function PixIcon({ size = 20 }: { size?: number }) {
   return (
@@ -912,7 +912,7 @@ export default function CheckoutPage() {
       {/* Upsell — shown only on stages before pix */}
       {stage !== "pix" && (
         <div className="max-w-lg mx-auto px-4 pb-10">
-          <UpsellProducts />
+          <CartReviews />
         </div>
       )}
     </div>

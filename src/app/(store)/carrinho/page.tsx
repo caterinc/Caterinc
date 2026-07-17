@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { UpsellProducts } from "@/components/store/UpsellProducts";
+import { CartReviews } from "@/components/store/CartReviews";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -149,7 +149,7 @@ export default function CarrinhoPage() {
         Continuar comprando
       </Link>
 
-      <UpsellProducts />
+      <CartReviews />
     </div>
   );
 }
