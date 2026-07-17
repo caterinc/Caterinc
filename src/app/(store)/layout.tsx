@@ -1,5 +1,6 @@
 import { Header } from "@/components/store/Header";
 import { Footer } from "@/components/store/Footer";
+import { NewsletterBanner } from "@/components/store/NewsletterBanner";
 import { prisma } from "@/lib/prisma";
 import { MetaPageView } from "@/components/store/MetaPageView";
 import { PresenceTracker } from "@/components/store/PresenceTracker";
@@ -73,6 +74,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         announcementTextColor={(va.textColor as string) || undefined}
       />
       <main className="flex-1">{children}</main>
+      <NewsletterBanner />
       <Footer
         menuItems={footerMenu?.items || []}
         storeName={sm.storeName as string}
