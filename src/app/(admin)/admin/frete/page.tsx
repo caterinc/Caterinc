@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Pencil, Trash2, Loader2, Truck, CheckCircle, XCircle, GripVertical } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
@@ -28,6 +28,9 @@ export default function FretePage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<ShippingMethod>(empty);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const dragIdx = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -104,6 +107,38 @@ export default function FretePage() {
     });
     load();
   };
+
+  const handleDragStart = (i: number) => { dragIdx.current = i; };
+  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOver(i); };
+  const handleDrop = async (i: number) => {
+    if (dragIdx.current === null || dragIdx.current === i) { setDragOver(null); return; }
+    const next = [...methods];
+    const [moved] = next.splice(dragIdx.current, 1);
+    next.splice(i, 0, moved);
+    const reordered = next.map((m, idx) => ({ ...m, order: idx }));
+    setMethods(reordered);
+    dragIdx.current = null;
+    setDragOver(null);
+    setReordering(true);
+    try {
+      await Promise.all(
+        reordered.map((m) =>
+          fetch(`/api/shipping/${m.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: m.name, description: m.description || null, price: Number(m.price), minDays: m.minDays || null, maxDays: m.maxDays || null, freeAbove: m.freeAbove || null, isActive: m.isActive, order: m.order }),
+          })
+        )
+      );
+      toast({ title: "Ordem atualizada!" });
+    } catch {
+      toast({ title: "Erro ao reordenar", variant: "destructive" });
+      load();
+    } finally {
+      setReordering(false);
+    }
+  };
+  const handleDragEnd = () => { dragIdx.current = null; setDragOver(null); };
 
   const daysLabel = (min: number | null | undefined, max: number | null | undefined) => {
     if (!min && !max) return null;
@@ -247,9 +282,22 @@ export default function FretePage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {methods.map((m) => (
-            <div key={m.id} className={`bg-white rounded-2xl border p-4 flex items-start gap-4 transition-opacity ${!m.isActive ? "opacity-60" : ""}`}>
-              <div className="text-gray-300 mt-0.5 flex-shrink-0">
+          {reordering && (
+            <div className="flex items-center gap-2 text-xs text-gray-400 px-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Salvando ordem...
+            </div>
+          )}
+          {methods.map((m, i) => (
+            <div
+              key={m.id}
+              draggable
+              onDragStart={() => handleDragStart(i)}
+              onDragOver={(e) => handleDragOver(e, i)}
+              onDrop={() => handleDrop(i)}
+              onDragEnd={handleDragEnd}
+              className={`bg-white rounded-2xl border p-4 flex items-start gap-4 transition-all ${!m.isActive ? "opacity-60" : ""} ${dragOver === i ? "border-cat-yellow shadow-md" : ""}`}
+            >
+              <div className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing">
                 <GripVertical className="w-5 h-5" />
               </div>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${m.isActive ? "bg-cat-yellow" : "bg-gray-100"}`}>
