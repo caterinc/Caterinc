@@ -946,11 +946,12 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
         )}
       </div>
 
-      {/* Legal info */}
+      {/* Legal info + bottom logo */}
       <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
-        <Toggle value={b("showLegalText", false)} onChange={(v) => onChange("showLegalText", v)} label="Mostrar informações legais (CNPJ)" />
+        <p className="text-[11px] text-white/70 font-bold uppercase tracking-wider">Área inferior (CNPJ + Logo)</p>
+        <Toggle value={b("showLegalText", false)} onChange={(v) => onChange("showLegalText", v)} label="Mostrar texto do CNPJ" />
         {b("showLegalText", false) && (
-          <Field label="Texto legal (CNPJ, razão social, etc.)">
+          <Field label="CNPJ / razão social / endereço">
             <TextInput
               value={(settings.legalText as string) || ""}
               onChange={(v) => onChange("legalText", v)}
@@ -959,6 +960,9 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
             />
           </Field>
         )}
+        <Field label="Logo centralizada (entre CNPJ e copyright)">
+          <ImageUpload value={(settings.bottomLogoImage as string) || ""} onChange={(v) => onChange("bottomLogoImage", v)} onUpload={onUpload} />
+        </Field>
       </div>
 
       {/* Trust seals */}

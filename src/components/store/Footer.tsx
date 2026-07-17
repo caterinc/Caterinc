@@ -42,6 +42,8 @@ export interface FooterProps {
   // Legal info (CNPJ, empresa, etc.)
   legalText?: string;
   showLegalText?: boolean;
+  // Bottom logo (between CNPJ and copyright)
+  bottomLogoImage?: string;
   // Trust seals
   trustSeals?: TrustSeal[];
   showTrustSeals?: boolean;
@@ -89,6 +91,7 @@ export function Footer({
   showMenu = true,
   legalText,
   showLegalText = false,
+  bottomLogoImage,
   trustSeals = DEFAULT_SEALS,
   showTrustSeals = true,
   showCopyright = true,
@@ -203,14 +206,17 @@ export function Footer({
         )}
       </div>
 
-      {/* Legal info (CNPJ, empresa) */}
-      {showLegalText && legalText && (
+      {/* Legal info (CNPJ, empresa) + bottom logo */}
+      {(showLegalText && legalText) || bottomLogoImage ? (
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <div className="max-w-7xl mx-auto px-4 py-4 text-center text-xs leading-relaxed" style={{ color: textColor }}>
-            {legalText}
+          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col items-center gap-3 text-center text-xs leading-relaxed" style={{ color: textColor }}>
+            {showLegalText && legalText && <p>{legalText}</p>}
+            {bottomLogoImage && (
+              <img src={bottomLogoImage} alt={storeName} className="h-12 w-auto object-contain mx-auto" />
+            )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Trust seals */}
       {showTrustSeals && activeSeals.length > 0 && (
