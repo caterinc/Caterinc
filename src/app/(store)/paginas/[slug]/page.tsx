@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { groupMenuItems } from "@/lib/menu";
+import { SacForm } from "@/components/store/SacForm";
 
 export default async function ContentPage({ params }: { params: { slug: string } }) {
   const [page, footerMenu] = await Promise.all([
@@ -63,6 +64,8 @@ export default async function ContentPage({ params }: { params: { slug: string }
       <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
         {page.content || "Conteúdo em breve."}
       </div>
+
+      {page.slug === "fale-conosco" && <SacForm />}
     </div>
   );
 }

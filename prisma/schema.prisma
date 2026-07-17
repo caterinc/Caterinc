@@ -264,6 +264,20 @@ model Page {
   updatedAt DateTime @updatedAt
 }
 
+// Fale Conosco submissions (SAC). orderNumber is a best-effort match by
+// email against existing orders — null if the person never ordered.
+model SacRequest {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  cpf         String?
+  phone       String?
+  subject     String
+  description String
+  orderNumber String?
+  createdAt   DateTime @default(now())
+}
+
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 
 model Review {

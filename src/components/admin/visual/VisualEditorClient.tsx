@@ -1502,7 +1502,7 @@ export function VisualEditorClient({
   return (
     <div className="-m-6 flex" style={{ height: "calc(100vh - 57px)", overflow: "hidden" }}>
       {/* ─── SIDEBAR ─── */}
-      <aside className="w-72 bg-white border-r flex flex-col flex-shrink-0 overflow-hidden">
+      <aside className="ve-light-panel w-72 bg-white border-r flex flex-col flex-shrink-0 overflow-hidden">
         {/* Header */}
         <div className="px-4 py-3 border-b bg-cat-black text-white flex-shrink-0 flex items-center justify-between">
           {view === "editor" ? (
