@@ -91,6 +91,10 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         showContact={bool(vf.showContact)}
         menuTitle={(vf.menuTitle as string) || "Informações"}
         showMenu={bool(vf.showMenu)}
+        legalText={(vf.legalText as string) || undefined}
+        showLegalText={bool(vf.showLegalText, false)}
+        trustSeals={Array.isArray(vf.trustSeals) ? (vf.trustSeals as import("@/components/store/Footer").TrustSeal[]) : undefined}
+        showTrustSeals={vf.showTrustSeals !== undefined ? bool(vf.showTrustSeals) : true}
         showCopyright={bool(vf.showCopyright)}
         copyrightText={(vf.copyrightText as string) || undefined}
       />

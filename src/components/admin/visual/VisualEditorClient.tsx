@@ -807,12 +807,47 @@ function PageContentEditor({ slug, title }: { slug: string; title: string }) {
   );
 }
 
+interface TrustSealItem {
+  id: string;
+  label: string;
+  type: "image" | "site-seguro";
+  imageUrl?: string;
+  enabled: boolean;
+}
+
+const DEFAULT_TRUST_SEALS: TrustSealItem[] = [
+  { id: "cat", label: "Selo CAT", type: "image", imageUrl: "/selo-cat.png", enabled: true },
+  { id: "site-seguro", label: "Site Seguro", type: "site-seguro", enabled: true },
+  { id: "reclameaqui", label: "ReclameAQUI", type: "image", imageUrl: "", enabled: false },
+];
+
 function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItems, onFooterItemsChange, onMenuSave }: {
   settings: Record<string, unknown>; onChange: (k: string, v: unknown) => void; onSave: () => void; saving: boolean;
   onUpload: (f: File) => Promise<string>;
   footerItems: MenuItem[]; onFooterItemsChange: (items: MenuItem[]) => void; onMenuSave: () => void;
 }) {
   const b = (k: string, def = true) => settings[k] !== undefined ? settings[k] === true : def;
+
+  const trustSeals: TrustSealItem[] = Array.isArray(settings.trustSeals)
+    ? (settings.trustSeals as TrustSealItem[])
+    : DEFAULT_TRUST_SEALS;
+
+  const [sealDragSrc, setSealDragSrc] = useState<number | null>(null);
+  const [sealDragOver, setSealDragOver] = useState<number | null>(null);
+
+  const updateSeals = (seals: TrustSealItem[]) => onChange("trustSeals", seals);
+
+  const onSealDragStart = (i: number) => setSealDragSrc(i);
+  const onSealDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setSealDragOver(i); };
+  const onSealDrop = (targetIdx: number) => {
+    if (sealDragSrc === null || sealDragSrc === targetIdx) { setSealDragSrc(null); setSealDragOver(null); return; }
+    const next = [...trustSeals];
+    const [removed] = next.splice(sealDragSrc, 1);
+    next.splice(targetIdx, 0, removed);
+    updateSeals(next);
+    setSealDragSrc(null);
+    setSealDragOver(null);
+  };
 
   return (
     <div className="space-y-3">
@@ -911,6 +946,94 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
         )}
       </div>
 
+      {/* Legal info */}
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
+        <Toggle value={b("showLegalText", false)} onChange={(v) => onChange("showLegalText", v)} label="Mostrar informações legais (CNPJ)" />
+        {b("showLegalText", false) && (
+          <Field label="Texto legal (CNPJ, razão social, etc.)">
+            <TextInput
+              value={(settings.legalText as string) || ""}
+              onChange={(v) => onChange("legalText", v)}
+              multiline
+              placeholder="Empresa Ltda. — CNPJ 00.000.000/0001-00 — Av. Exemplo, 123, SP"
+            />
+          </Field>
+        )}
+      </div>
+
+      {/* Trust seals */}
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
+        <Toggle value={b("showTrustSeals")} onChange={(v) => onChange("showTrustSeals", v)} label="Mostrar selos de confiança" />
+        {b("showTrustSeals") && (
+          <div className="space-y-2 pt-1">
+            <p className="text-[10px] text-white/40 uppercase tracking-wider">Arraste para reordenar</p>
+            {trustSeals.map((seal, i) => (
+              <div
+                key={seal.id}
+                draggable
+                onDragStart={() => onSealDragStart(i)}
+                onDragOver={(e) => onSealDragOver(e, i)}
+                onDrop={() => onSealDrop(i)}
+                onDragEnd={() => { setSealDragSrc(null); setSealDragOver(null); }}
+                className={`border rounded-lg p-2 space-y-1.5 transition-all ${
+                  sealDragOver === i ? "border-cat-yellow bg-cat-yellow/10 scale-[1.01]" : "border-white/20 bg-white/5"
+                } ${sealDragSrc === i ? "opacity-40" : ""}`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="cursor-grab text-white/30 hover:text-cat-yellow flex-shrink-0" title="Arrastar">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                  <span className="flex-1 text-xs font-semibold text-white truncate">{seal.label}</span>
+                  <button
+                    onClick={() => updateSeals(trustSeals.map((s, idx) => idx === i ? { ...s, enabled: !s.enabled } : s))}
+                    className={`p-1 rounded text-xs flex-shrink-0 ${seal.enabled ? "text-green-400" : "text-white/30"}`}
+                    title={seal.enabled ? "Ocultar" : "Mostrar"}
+                  >
+                    {seal.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={() => updateSeals(trustSeals.filter((_, idx) => idx !== i))}
+                    className="p-1 text-white/30 hover:text-red-400 flex-shrink-0"
+                    title="Remover"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                {seal.type === "image" && (
+                  <div className="flex gap-1 items-center">
+                    <span className="text-[10px] text-white/40 w-8 flex-shrink-0">URL</span>
+                    <input
+                      type="text"
+                      value={seal.imageUrl || ""}
+                      placeholder="/selo-cat.png ou https://..."
+                      onChange={(e) => updateSeals(trustSeals.map((s, idx) => idx === i ? { ...s, imageUrl: e.target.value } : s))}
+                      className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white placeholder-white/30"
+                    />
+                  </div>
+                )}
+                {seal.type === "site-seguro" && (
+                  <p className="text-[10px] text-white/30 pl-6">Badge "Site Seguro" automático</p>
+                )}
+              </div>
+            ))}
+            <div className="flex gap-1 pt-1">
+              <button
+                onClick={() => updateSeals([...trustSeals, { id: `custom-${Date.now()}`, label: "Novo Selo", type: "image", imageUrl: "", enabled: true }])}
+                className="flex-1 py-1.5 border-2 border-dashed border-white/20 rounded text-xs text-white/50 hover:border-cat-yellow hover:text-white flex items-center justify-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> Imagem
+              </button>
+              <button
+                onClick={() => updateSeals([...trustSeals, { id: `ss-${Date.now()}`, label: "Site Seguro", type: "site-seguro", enabled: true }])}
+                className="flex-1 py-1.5 border-2 border-dashed border-white/20 rounded text-xs text-white/50 hover:border-cat-yellow hover:text-white flex items-center justify-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> Site Seguro
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Copyright */}
       <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
         <Toggle value={b("showCopyright")} onChange={(v) => onChange("showCopyright", v)} label="Mostrar barra de copyright" />
@@ -924,7 +1047,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       <div className="flex gap-2 pt-1">
         <SaveBtn saving={saving} onClick={onSave} label="Salvar Rodapé" />
       </div>
-      <button onClick={onMenuSave} className="w-full py-2 bg-gray-800 text-white text-xs font-bold rounded hover:bg-gray-700 flex items-center justify-center gap-1.5 transition-colors">
+      <button onClick={onMenuSave} className="w-full py-2 bg-white/10 text-white text-xs font-bold rounded hover:bg-white/20 border border-white/20 flex items-center justify-center gap-1.5 transition-colors">
         <Save className="w-3.5 h-3.5" /> Salvar Links do Menu
       </button>
     </div>

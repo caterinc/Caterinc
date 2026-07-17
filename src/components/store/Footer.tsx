@@ -1,12 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram, Facebook, Phone, Mail, MapPin } from "lucide-react";
+import { Instagram, Facebook, Phone, Mail, MapPin, ShieldCheck, Lock } from "lucide-react";
 import { groupMenuItems } from "@/lib/menu";
 
 interface MenuItem {
   id: string;
   label: string;
   url: string;
+}
+
+export interface TrustSeal {
+  id: string;
+  label: string;
+  type: "image" | "site-seguro";
+  imageUrl?: string;
+  enabled: boolean;
 }
 
 export interface FooterProps {
@@ -31,10 +39,35 @@ export interface FooterProps {
   // Links menu
   menuTitle?: string;
   showMenu?: boolean;
+  // Legal info (CNPJ, empresa, etc.)
+  legalText?: string;
+  showLegalText?: boolean;
+  // Trust seals
+  trustSeals?: TrustSeal[];
+  showTrustSeals?: boolean;
   // Copyright bar
   showCopyright?: boolean;
   copyrightText?: string;
 }
+
+function SiteSeguroBadge() {
+  return (
+    <div className="flex items-center gap-2 border border-green-500 rounded-lg px-4 py-2 bg-green-500/10">
+      <ShieldCheck className="w-6 h-6 text-green-400" />
+      <div>
+        <p className="text-green-400 font-bold text-sm leading-none">Site Seguro</p>
+        <p className="text-green-500/70 text-[10px] leading-none mt-0.5">Compra 100% protegida</p>
+      </div>
+      <Lock className="w-4 h-4 text-green-400" />
+    </div>
+  );
+}
+
+const DEFAULT_SEALS: TrustSeal[] = [
+  { id: "cat", label: "CAT Licensed", type: "image", imageUrl: "/selo-cat.png", enabled: true },
+  { id: "site-seguro", label: "Site Seguro", type: "site-seguro", enabled: true },
+  { id: "reclameaqui", label: "ReclameAQUI", type: "image", imageUrl: "", enabled: false },
+];
 
 export function Footer({
   menuItems = [],
@@ -54,6 +87,10 @@ export function Footer({
   showContact = true,
   menuTitle = "Informações",
   showMenu = true,
+  legalText,
+  showLegalText = false,
+  trustSeals = DEFAULT_SEALS,
+  showTrustSeals = true,
   showCopyright = true,
   copyrightText,
 }: FooterProps) {
@@ -61,8 +98,8 @@ export function Footer({
   const hasSocial = !!(instagram || facebook);
   const hasMenu = menuItems.length > 0;
   const menuGroups = groupMenuItems(menuItems);
+  const activeSeals = (trustSeals || DEFAULT_SEALS).filter((s) => s.enabled);
 
-  // Count active columns to set grid width
   const cols = [
     showDescription,
     showMenu && hasMenu,
@@ -82,6 +119,7 @@ export function Footer({
       className="mt-16"
       style={{ backgroundColor: bgColor, color: textColor }}
     >
+      {/* Main content */}
       <div className={`max-w-7xl mx-auto px-4 py-12 grid ${colClass} gap-8`}>
         {/* Brand / description */}
         {showDescription && (
@@ -115,7 +153,7 @@ export function Footer({
           </div>
         )}
 
-        {/* Links menu — grouped: items with no URL act as a group heading */}
+        {/* Links menu */}
         {showMenu && hasMenu && (
           <div className="space-y-6">
             {menuGroups.map((group, gi) => (
@@ -165,8 +203,41 @@ export function Footer({
         )}
       </div>
 
+      {/* Legal info (CNPJ, empresa) */}
+      {showLegalText && legalText && (
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="max-w-7xl mx-auto px-4 py-4 text-center text-xs leading-relaxed" style={{ color: textColor }}>
+            {legalText}
+          </div>
+        </div>
+      )}
+
+      {/* Trust seals */}
+      {showTrustSeals && activeSeals.length > 0 && (
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="max-w-7xl mx-auto px-4 py-6 flex flex-wrap justify-center items-center gap-8">
+            {activeSeals.map((seal) => {
+              if (seal.type === "site-seguro") return <SiteSeguroBadge key={seal.id} />;
+              if (seal.imageUrl) {
+                return (
+                  <div key={seal.id} className="overflow-hidden flex-shrink-0" style={{ maxHeight: 72 }}>
+                    <img
+                      src={seal.imageUrl}
+                      alt={seal.label}
+                      className="h-16 w-auto object-top object-cover"
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Copyright */}
       {showCopyright && (
-        <div className="border-t border-gray-700">
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
           <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
             <p>{copyrightText || `© ${new Date().getFullYear()} ${storeName}. Todos os direitos reservados.`}</p>
           </div>
