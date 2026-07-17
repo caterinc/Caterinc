@@ -174,7 +174,7 @@ function buildPreviewCSS(
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-semibold text-gray-700">{label}</label>
+      <label className="text-xs font-semibold text-white">{label}</label>
       {children}
     </div>
   );
@@ -183,7 +183,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function TextInput({ value, onChange, placeholder, multiline }: {
   value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
 }) {
-  const cls = "w-full px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white";
+  const cls = "w-full px-2 py-1.5 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white placeholder-white/30";
   return multiline
     ? <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className={cls} />
     : <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={cls} />;
@@ -196,13 +196,13 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
         type="color"
         value={/^#[0-9A-Fa-f]{6}$/.test(value) ? value : "#000000"}
         onChange={(e) => onChange(e.target.value)}
-        className="w-9 h-9 rounded-lg border-2 border-gray-200 cursor-pointer p-0.5 flex-shrink-0"
+        className="w-9 h-9 rounded-lg border-2 border-white/30 cursor-pointer p-0.5 flex-shrink-0"
       />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="flex-1 px-2 py-1.5 border rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-cat-yellow"
+        className="flex-1 px-2 py-1.5 border border-white/20 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
         maxLength={7}
         placeholder="#000000"
       />
@@ -233,7 +233,7 @@ function SelectInput({ value, onChange, options }: {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+      className="w-full px-2 py-1.5 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
     >
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -269,20 +269,20 @@ function ImageUpload({ value, onChange }: {
         <input
           type="text" value={value} onChange={(e) => onChange(e.target.value)}
           placeholder="URL da imagem"
-          className="flex-1 px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+          className="flex-1 px-2 py-1.5 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
         />
         <button
           type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-          className="px-2.5 py-1.5 border rounded bg-white hover:bg-gray-100 disabled:opacity-50 transition-colors"
+          className="px-2.5 py-1.5 border border-white/20 rounded bg-white/10 hover:bg-white/20 disabled:opacity-50 transition-colors"
           title="Upload"
         >
-          <Upload className="w-3.5 h-3.5 text-gray-500" />
+          <Upload className="w-3.5 h-3.5 text-white/50" />
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
-      {uploading && <p className="text-xs text-gray-400">Enviando...</p>}
+      {uploading && <p className="text-xs text-white/40">Enviando...</p>}
       {value && (
-        <div className="h-16 rounded overflow-hidden border bg-gray-100">
+        <div className="h-16 rounded overflow-hidden border border-white/20 bg-white/10">
           <img src={value} alt="" className="w-full h-full object-cover" />
         </div>
       )}
@@ -361,21 +361,21 @@ function HeaderEditor({ settings, onChange, onSave, saving, onUpload, headerItem
       <SaveBtn saving={saving} onClick={onSave} label="Salvar Cabeçalho" />
 
       <div className="border-t pt-3 mt-4">
-        <p className="text-xs font-bold text-gray-700 mb-2">Itens do Menu</p>
+        <p className="text-xs font-bold text-white mb-2">Itens do Menu</p>
         {headerItems.map((item, i) => (
-          <div key={i} className="border rounded p-2 mb-1.5 space-y-1 bg-gray-50">
+          <div key={i} className="border border-white/20 rounded p-2 mb-1.5 space-y-1 bg-white/5">
             <input
               type="text" value={item.label} placeholder="Rótulo"
               onChange={(e) => onHeaderItemsChange(headerItems.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))}
-              className="w-full px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+              className="w-full px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
             />
             <div className="flex gap-1">
               <input
                 type="text" value={item.url} placeholder="/url"
                 onChange={(e) => onHeaderItemsChange(headerItems.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))}
-                className="flex-1 px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+                className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
               />
-              <button onClick={() => onHeaderItemsChange(headerItems.filter((_, idx) => idx !== i))} className="text-gray-400 hover:text-red-500 p-1">
+              <button onClick={() => onHeaderItemsChange(headerItems.filter((_, idx) => idx !== i))} className="text-white/40 hover:text-red-500 p-1">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -383,7 +383,7 @@ function HeaderEditor({ settings, onChange, onSave, saving, onUpload, headerItem
         ))}
         <div className="flex gap-2">
           <button onClick={() => onHeaderItemsChange([...headerItems, { label: "", url: "", order: headerItems.length }])}
-            className="flex-1 py-1.5 border-2 border-dashed rounded text-xs text-gray-500 hover:border-cat-yellow hover:text-cat-black flex items-center justify-center gap-1">
+            className="flex-1 py-1.5 border-2 border-dashed rounded text-xs text-white/50 hover:border-cat-yellow hover:text-cat-black flex items-center justify-center gap-1">
             <Plus className="w-3 h-3" /> Adicionar
           </button>
           <button onClick={onMenuSave} className="flex-1 py-1.5 bg-cat-black text-white text-xs font-bold rounded hover:bg-gray-800 flex items-center justify-center gap-1">
@@ -423,17 +423,17 @@ function HeroBannerEditor({ settings, onChange, onSave, saving, banners, onToggl
       <SaveBtn saving={saving} onClick={onSave} label="Salvar Configurações" />
 
       <div className="border-t pt-3">
-        <p className="text-xs font-bold text-gray-700 mb-2">Banners ({banners.filter(b => b.isActive).length} ativos)</p>
+        <p className="text-xs font-bold text-white mb-2">Banners ({banners.filter(b => b.isActive).length} ativos)</p>
         {banners.map((b) => (
           <div key={b.id} className={`border rounded-lg overflow-hidden mb-1.5 ${!b.isActive ? "opacity-50" : ""}`}>
-            {b.image && <div className="h-12 bg-gray-100"><img src={b.image} alt={b.title} className="w-full h-full object-cover" /></div>}
+            {b.image && <div className="h-12 bg-white/10"><img src={b.image} alt={b.title} className="w-full h-full object-cover" /></div>}
             <div className="p-2 flex items-center gap-1">
               <p className="flex-1 text-xs font-medium truncate">{b.title || "(sem título)"}</p>
-              <button onClick={() => onToggle(b)} className={`p-1 rounded ${b.isActive ? "text-green-500" : "text-gray-400"}`}>
+              <button onClick={() => onToggle(b)} className={`p-1 rounded ${b.isActive ? "text-green-500" : "text-white/40"}`}>
                 {b.isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
               </button>
-              <button onClick={() => setEditing({ ...b })} className="p-1 text-xs text-gray-400 hover:text-blue-500">✏️</button>
-              <button onClick={() => { if (confirm("Excluir?")) onBannerDelete(b.id); }} className="p-1 text-gray-400 hover:text-red-500">
+              <button onClick={() => setEditing({ ...b })} className="p-1 text-xs text-white/40 hover:text-blue-500">✏️</button>
+              <button onClick={() => { if (confirm("Excluir?")) onBannerDelete(b.id); }} className="p-1 text-white/40 hover:text-red-500">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -441,20 +441,20 @@ function HeroBannerEditor({ settings, onChange, onSave, saving, banners, onToggl
         ))}
 
         {editing && (
-          <div className="border-2 border-cat-yellow rounded-lg p-3 space-y-2 bg-yellow-50 mt-2">
+          <div className="border-2 border-cat-yellow rounded-lg p-3 space-y-2 bg-white/5 mt-2">
             <p className="text-xs font-bold">{editing.id ? "✏️ Editar" : "➕ Novo"} Banner</p>
             {(["title", "subtitle", "link"] as const).map((field) => (
               <div key={field}>
-                <label className="text-xs text-gray-600">{field === "title" ? "Título" : field === "subtitle" ? "Subtítulo" : "Link"}</label>
+                <label className="text-xs text-white/70">{field === "title" ? "Título" : field === "subtitle" ? "Subtítulo" : "Link"}</label>
                 <input
                   type="text" value={(editing[field] as string) || ""} placeholder={field === "link" ? "/produtos" : ""}
                   onChange={(e) => setEditing((p) => (p ? { ...p, [field]: e.target.value } : p))}
-                  className="w-full mt-0.5 px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+                  className="w-full mt-0.5 px-2 py-1.5 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
                 />
               </div>
             ))}
             <div>
-              <label className="text-xs text-gray-600">Imagem</label>
+              <label className="text-xs text-white/70">Imagem</label>
               <ImageUpload
                 value={editing.image || ""} onUpload={onUpload}
                 onChange={(v) => setEditing((p) => (p ? { ...p, image: v } : p))}
@@ -464,14 +464,14 @@ function HeroBannerEditor({ settings, onChange, onSave, saving, banners, onToggl
               <button onClick={async () => { await onBannerSave(editing); setEditing(null); }} className="flex-1 py-2 bg-cat-black text-white text-xs font-bold rounded hover:bg-gray-800 flex items-center justify-center gap-1">
                 <Save className="w-3 h-3" /> Salvar
               </button>
-              <button onClick={() => setEditing(null)} className="px-3 py-2 border rounded text-xs hover:bg-gray-100">Cancelar</button>
+              <button onClick={() => setEditing(null)} className="px-3 py-2 border border-white/20 rounded text-xs text-white hover:bg-white/10">Cancelar</button>
             </div>
           </div>
         )}
         {!editing && (
           <button
             onClick={() => setEditing({ title: "", subtitle: "", image: "", link: "", isActive: true, order: banners.length })}
-            className="w-full py-2.5 border-2 border-dashed rounded-lg text-xs text-gray-500 hover:border-cat-yellow hover:text-cat-black flex items-center justify-center gap-1 transition-colors mt-2"
+            className="w-full py-2.5 border-2 border-dashed rounded-lg text-xs text-white/50 hover:border-cat-yellow hover:text-cat-black flex items-center justify-center gap-1 transition-colors mt-2"
           >
             <Plus className="w-3.5 h-3.5" /> Adicionar Banner
           </button>
@@ -560,7 +560,7 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
                 key={mode}
                 onClick={() => onChange("displayMode", mode)}
                 className={`py-2 rounded-lg border-2 text-xs font-bold transition-colors ${
-                  active ? "border-cat-yellow bg-yellow-50 text-cat-black" : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  active ? "border-cat-yellow bg-cat-yellow/10 text-white" : "border-white/20 text-white/50 hover:border-white/40"
                 }`}
               >
                 {mode === "carrossel" ? "🛍️ Vitrine" : "⊞ Grade"}
@@ -568,7 +568,7 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
             );
           })}
         </div>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-white/40 mt-1">
           {(settings.displayMode as string || "carrossel") === "carrossel"
             ? "Cards ricos com badge de desconto, preço parcelado e botão de carrinho"
             : "Grade simples no estilo catálogo"}
@@ -629,8 +629,8 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
         <TextInput value={(settings.viewMoreUrl as string) || "/produtos"} onChange={(v) => onChange("viewMoreUrl", v)} placeholder="/produtos?categoria=tenis" />
       </Field>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Adicionar Rápido</p>
-      <p className="text-xs text-gray-400">Botão circular nos cards desta vitrine (sobrescreve global)</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Botão Adicionar Rápido</p>
+      <p className="text-xs text-white/40">Botão circular nos cards desta vitrine (sobrescreve global)</p>
       <div className="space-y-3">
         <Field label="Cor de Fundo">
           <ColorInput value={(settings.quickaddBg as string) || "#16c789"} onChange={(v) => onChange("quickaddBg", v)} />
@@ -648,13 +648,13 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
       {/* Product order panel */}
       {categorySlug && (
         <div className="pt-2 border-t space-y-2">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ordem dos Produtos</p>
-          <p className="text-xs text-gray-400">Arraste para definir a ordem de exibição na vitrine.</p>
+          <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Ordem dos Produtos</p>
+          <p className="text-xs text-white/40">Arraste para definir a ordem de exibição na vitrine.</p>
 
           {loadingProds ? (
-            <p className="text-xs text-gray-400 py-2">Carregando produtos...</p>
+            <p className="text-xs text-white/40 py-2">Carregando produtos...</p>
           ) : products.length === 0 ? (
-            <p className="text-xs text-gray-400 py-2">Nenhum produto nesta coleção.</p>
+            <p className="text-xs text-white/40 py-2">Nenhum produto nesta coleção.</p>
           ) : (
             <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
               {products.map((p, i) => (
@@ -666,15 +666,15 @@ function CollectionEditor({ settings, onChange, onSave, saving, categories }: {
                   onDrop={() => onProdDrop(i)}
                   onDragEnd={() => { dragProdIdx.current = null; setDragOverProdIdx(null); }}
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border bg-white cursor-grab active:cursor-grabbing transition-all ${
-                    dragOverProdIdx === i ? "border-cat-yellow bg-yellow-50 scale-[1.02]" : "border-gray-100"
+                    dragOverProdIdx === i ? "border-cat-yellow bg-cat-yellow/10 scale-[1.02]" : "border-white/20"
                   } ${dragProdIdx.current === i ? "opacity-40" : ""}`}
                 >
-                  <GripVertical className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-                  <span className="text-[10px] font-bold text-gray-300 w-4 text-right flex-shrink-0">{i + 1}</span>
+                  <GripVertical className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+                  <span className="text-[10px] font-bold text-white/30 w-4 text-right flex-shrink-0">{i + 1}</span>
                   {p.images[0] && (
-                    <img src={p.images[0]} alt="" className="w-8 h-8 rounded object-contain bg-gray-50 flex-shrink-0 border" />
+                    <img src={p.images[0]} alt="" className="w-8 h-8 rounded object-contain bg-white/10 flex-shrink-0 border border-white/20" />
                   )}
-                  <span className="text-xs text-gray-700 font-medium truncate flex-1">{p.name}</span>
+                  <span className="text-xs text-white font-medium truncate flex-1">{p.name}</span>
                 </div>
               ))}
             </div>
@@ -724,7 +724,7 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: bool
       type="button"
       onClick={() => onChange(!value)}
       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg border-2 text-xs font-semibold transition-colors text-left ${
-        value ? "border-cat-yellow bg-yellow-50 text-cat-black" : "border-gray-200 text-gray-400 bg-gray-50"
+        value ? "border-cat-yellow bg-yellow-900/20 text-white" : "border-white/20 text-white bg-white/5"
       }`}
     >
       <span className={`w-8 h-4 rounded-full transition-colors flex items-center flex-shrink-0 ${value ? "bg-cat-yellow" : "bg-gray-300"}`}>
@@ -788,9 +788,9 @@ function PageContentEditor({ slug, title }: { slug: string; title: string }) {
             onChange={(e) => setContent(e.target.value)}
             rows={6}
             placeholder="Escreva aqui o texto que vai aparecer nesta página, como num caderno..."
-            className="w-full px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+            className="w-full px-2 py-1.5 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
           />
-          <p className="text-[10px] text-gray-400">
+          <p className="text-[10px] text-white/40">
             Dica: coloque <span className="font-mono">*asteriscos*</span> no início e no fim de um trecho pra deixar em <strong>negrito</strong>.
           </p>
           <button
@@ -829,7 +829,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       </Field>
 
       {/* Description block */}
-      <div className="border rounded-lg p-3 space-y-2 bg-gray-50">
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
         <Toggle value={b("showDescription")} onChange={(v) => onChange("showDescription", v)} label="Mostrar bloco de descrição" />
         {b("showDescription") && (
           <Field label="Texto de descrição">
@@ -839,7 +839,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       </div>
 
       {/* Social */}
-      <div className="border rounded-lg p-3 space-y-2 bg-gray-50">
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
         <Toggle value={b("showSocial")} onChange={(v) => onChange("showSocial", v)} label="Mostrar redes sociais" />
         {b("showSocial") && (
           <>
@@ -854,7 +854,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       </div>
 
       {/* Contact */}
-      <div className="border rounded-lg p-3 space-y-2 bg-gray-50">
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
         <Toggle value={b("showContact")} onChange={(v) => onChange("showContact", v)} label="Mostrar bloco de contato" />
         {b("showContact") && (
           <>
@@ -872,7 +872,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       </div>
 
       {/* Menu links */}
-      <div className="border rounded-lg p-3 space-y-2 bg-gray-50">
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
         <Toggle value={b("showMenu")} onChange={(v) => onChange("showMenu", v)} label="Mostrar links do menu" />
         {b("showMenu") && (
           <>
@@ -880,22 +880,22 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
               <TextInput value={(settings.menuTitle as string) || "Informações"} onChange={(v) => onChange("menuTitle", v)} />
             </Field>
             {footerItems.map((item, i) => (
-              <div key={i} className="border rounded-lg p-2 space-y-1 bg-white">
+              <div key={i} className="border border-white/20 rounded-lg p-2 space-y-1 bg-white/10">
                 <div className="flex gap-1 items-center">
-                  <span className="text-xs text-gray-400 font-semibold w-8 flex-shrink-0">Texto</span>
+                  <span className="text-xs text-white/40 font-semibold w-8 flex-shrink-0">Texto</span>
                   <input type="text" value={item.label} placeholder="Ex: Política de Privacidade"
                     onChange={(e) => onFooterItemsChange(footerItems.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))}
-                    className="flex-1 px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+                    className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
                   />
-                  <button onClick={() => onFooterItemsChange(footerItems.filter((_, idx) => idx !== i))} className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0">
+                  <button onClick={() => onFooterItemsChange(footerItems.filter((_, idx) => idx !== i))} className="text-white/30 hover:text-red-500 p-1 flex-shrink-0">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="flex gap-1 items-center">
-                  <span className="text-xs text-gray-400 font-semibold w-8 flex-shrink-0">Link</span>
+                  <span className="text-xs text-white/40 font-semibold w-8 flex-shrink-0">Link</span>
                   <input type="text" value={item.url} placeholder="/url-da-pagina"
                     onChange={(e) => onFooterItemsChange(footerItems.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))}
-                    className="flex-1 px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white font-mono"
+                    className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white font-mono"
                   />
                 </div>
                 {item.url.startsWith("/paginas/") && (
@@ -904,7 +904,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
               </div>
             ))}
             <button onClick={() => onFooterItemsChange([...footerItems, { label: "", url: "", order: footerItems.length }])}
-              className="w-full py-2 border-2 border-dashed rounded-lg text-xs text-gray-500 hover:border-cat-yellow hover:text-cat-black flex items-center justify-center gap-1 bg-white">
+              className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-xs text-white/50 hover:border-cat-yellow hover:text-white flex items-center justify-center gap-1 bg-white/5">
               <Plus className="w-3 h-3" /> Adicionar link
             </button>
           </>
@@ -912,7 +912,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       </div>
 
       {/* Copyright */}
-      <div className="border rounded-lg p-3 space-y-2 bg-gray-50">
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 bg-white/5">
         <Toggle value={b("showCopyright")} onChange={(v) => onChange("showCopyright", v)} label="Mostrar barra de copyright" />
         {b("showCopyright") && (
           <Field label="Texto do copyright">
@@ -936,11 +936,11 @@ function ProductPageEditor({ settings, onChange, onSave, saving }: {
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500 leading-relaxed">
+      <p className="text-xs text-white/50 leading-relaxed">
         Personalize as cores da página do produto. As mudanças aparecem em todos os produtos da loja.
       </p>
-      <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Página</p>
+      <div className="border border-white/10 rounded-lg p-3 space-y-3 bg-white/5">
+        <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Página</p>
         <Field label="Cor de Fundo">
           <ColorInput value={settings.pageBgColor || "#F5F5F5"} onChange={(v) => onChange("pageBgColor", v)} />
         </Field>
@@ -948,8 +948,8 @@ function ProductPageEditor({ settings, onChange, onSave, saving }: {
           <ColorInput value={settings.priceColor || "#000000"} onChange={(v) => onChange("priceColor", v)} />
         </Field>
       </div>
-      <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Badge de Desconto</p>
+      <div className="border border-white/10 rounded-lg p-3 space-y-3 bg-white/5">
+        <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Badge de Desconto</p>
         <Field label="Fundo do Badge">
           <ColorInput value={settings.badgeBg || "#EF4444"} onChange={(v) => onChange("badgeBg", v)} />
         </Field>
@@ -957,8 +957,8 @@ function ProductPageEditor({ settings, onChange, onSave, saving }: {
           <ColorInput value={settings.badgeText || "#FFFFFF"} onChange={(v) => onChange("badgeText", v)} />
         </Field>
       </div>
-      <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Botão Adicionar ao Carrinho</p>
+      <div className="border border-white/10 rounded-lg p-3 space-y-3 bg-white/5">
+        <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Botão Adicionar ao Carrinho</p>
         <Field label="Cor de Fundo">
           <ColorInput value={settings.cartBg || "#FFCD11"} onChange={(v) => onChange("cartBg", v)} />
         </Field>
@@ -966,8 +966,8 @@ function ProductPageEditor({ settings, onChange, onSave, saving }: {
           <ColorInput value={settings.cartText || "#000000"} onChange={(v) => onChange("cartText", v)} />
         </Field>
       </div>
-      <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Botão Comprar Agora</p>
+      <div className="border border-white/10 rounded-lg p-3 space-y-3 bg-white/5">
+        <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Botão Comprar Agora</p>
         <Field label="Cor de Fundo">
           <ColorInput value={settings.buyNowBg || "#000000"} onChange={(v) => onChange("buyNowBg", v)} />
         </Field>
@@ -975,8 +975,8 @@ function ProductPageEditor({ settings, onChange, onSave, saving }: {
           <ColorInput value={settings.buyNowText || "#FFFFFF"} onChange={(v) => onChange("buyNowText", v)} />
         </Field>
       </div>
-      <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Seções</p>
+      <div className="border border-white/10 rounded-lg p-3 space-y-3 bg-white/5">
+        <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Seções</p>
         <Field label="Fundo da Entrega">
           <ColorInput value={settings.shippingBg || "#F0FDF4"} onChange={(v) => onChange("shippingBg", v)} />
         </Field>
@@ -994,11 +994,11 @@ function CartEditor({ settings, onChange, onSave, saving }: {
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500 leading-relaxed">
+      <p className="text-xs text-white/50 leading-relaxed">
         Personalize as cores do pop-up, da página do carrinho e do botão de adicionar rápido.
       </p>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Pop-up do Carrinho</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Pop-up do Carrinho</p>
       <div className="space-y-3">
         <Field label="Fundo do Cabeçalho">
           <ColorInput value={settings.headerBg || "#000000"} onChange={(v) => onChange("headerBg", v)} />
@@ -1017,7 +1017,7 @@ function CartEditor({ settings, onChange, onSave, saving }: {
         </Field>
       </div>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Página do Carrinho</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Página do Carrinho</p>
       <div className="space-y-3">
         <Field label="Botão Finalizar Pedido — Fundo">
           <ColorInput value={settings.cartPageBtnBg || "#FFCD11"} onChange={(v) => onChange("cartPageBtnBg", v)} />
@@ -1027,8 +1027,8 @@ function CartEditor({ settings, onChange, onSave, saving }: {
         </Field>
       </div>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Adicionar Rápido (Global)</p>
-      <p className="text-xs text-gray-400">Padrão para todos os cards. A seção Vitrine pode sobrescrever.</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Botão Adicionar Rápido (Global)</p>
+      <p className="text-xs text-white/40">Padrão para todos os cards. A seção Vitrine pode sobrescrever.</p>
       <div className="space-y-3">
         <Field label="Fundo do Botão">
           <ColorInput value={settings.quickaddBg || "#16c789"} onChange={(v) => onChange("quickaddBg", v)} />
@@ -1051,11 +1051,11 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500 leading-relaxed">
+      <p className="text-xs text-white/50 leading-relaxed">
         Personalize as cores da página de checkout (passos, botões, fundo).
       </p>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Indicador de Passos</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Indicador de Passos</p>
       <div className="space-y-3">
         <Field label="Passo Ativo — Fundo">
           <ColorInput value={settings.stepActiveBg || "#16c789"} onChange={(v) => onChange("stepActiveBg", v)} />
@@ -1068,8 +1068,8 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
         </Field>
       </div>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Continuar</p>
-      <p className="text-xs text-gray-400">Botão preto "Continuar para..."</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Botão Continuar</p>
+      <p className="text-xs text-white/40">Botão preto "Continuar para..."</p>
       <div className="space-y-3">
         <Field label="Fundo">
           <ColorInput value={settings.continueBg || "#16c789"} onChange={(v) => onChange("continueBg", v)} />
@@ -1079,8 +1079,8 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
         </Field>
       </div>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Botão Finalizar Pedido</p>
-      <p className="text-xs text-gray-400">Botão amarelo de pagamento final</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Botão Finalizar Pedido</p>
+      <p className="text-xs text-white/40">Botão amarelo de pagamento final</p>
       <div className="space-y-3">
         <Field label="Fundo">
           <ColorInput value={settings.ctaBg || "#16c789"} onChange={(v) => onChange("ctaBg", v)} />
@@ -1090,7 +1090,7 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
         </Field>
       </div>
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Layout</p>
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Layout</p>
       <div className="space-y-3">
         <Field label="Fundo do Header">
           <ColorInput value={settings.headerBg || "#ffffff"} onChange={(v) => onChange("headerBg", v)} />
@@ -1470,7 +1470,7 @@ export function VisualEditorClient({
 
     // Dynamic page sections
     const section = pageSections.find((s) => s.id === activeSection);
-    if (!section) return <p className="text-xs text-gray-400">Seção não encontrada.</p>;
+    if (!section) return <p className="text-xs text-white/40">Seção não encontrada.</p>;
 
     const updateFn = (k: string, v: unknown) => updatePageSection(activeSection, k, v);
 
@@ -1483,7 +1483,7 @@ export function VisualEditorClient({
     if (section.type === "cta-banner")
       return <CTAEditor settings={section.settings} onChange={updateFn} onSave={savePageSections} saving={savingPages} />;
 
-    return <p className="text-xs text-gray-400">Editor não disponível.</p>;
+    return <p className="text-xs text-white/40">Editor não disponível.</p>;
   };
 
   // ── Active section label ──────────────────────────────────────────────────────
@@ -1505,7 +1505,7 @@ export function VisualEditorClient({
   return (
     <div className="-m-6 flex" style={{ height: "calc(100vh - 57px)", overflow: "hidden" }}>
       {/* ─── SIDEBAR ─── */}
-      <aside className="ve-light-panel w-72 bg-white border-r flex flex-col flex-shrink-0 overflow-hidden">
+      <aside className="w-72 border-r border-white/10 flex flex-col flex-shrink-0 overflow-hidden" style={{ backgroundColor: "#0f0c24", color: "white" }}>
         {/* Header */}
         <div className="px-4 py-3 border-b bg-cat-black text-white flex-shrink-0 flex items-center justify-between">
           {view === "editor" ? (
@@ -1517,24 +1517,24 @@ export function VisualEditorClient({
                 <ChevronLeft className="w-4 h-4" />
                 {getActiveSectionLabel()}
               </button>
-              <a href="/admin/visual" className="text-xs text-gray-400 hover:text-white">Sair</a>
+              <a href="/admin/visual" className="text-xs text-white/40 hover:text-white">Sair</a>
             </>
           ) : (
             <>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-widest">Editor Visual</p>
+                <p className="text-xs text-white/40 uppercase tracking-widest">Editor Visual</p>
                 <p className="text-sm font-bold truncate max-w-[180px]">
                   {currentPath === "/" ? "Página Inicial" : currentPath}
                 </p>
               </div>
-              <a href="/admin/visual" className="text-xs text-gray-400 hover:text-white">← Sair</a>
+              <a href="/admin/visual" className="text-xs text-white/40 hover:text-white">← Sair</a>
             </>
           )}
         </div>
 
         {/* Page navigation */}
-        <div className="px-3 py-2.5 border-b bg-gray-50 flex-shrink-0">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Páginas</p>
+        <div className="px-3 py-2.5 border-b border-white/10 flex-shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Páginas</p>
           <div className="flex flex-wrap gap-1">
             {[...STORE_PAGES, ...initialCategories.slice(0, 3).map((c) => ({
               path: `/produtos?categoria=${c.slug}`, label: c.name, icon: FolderOpen,
@@ -1545,7 +1545,7 @@ export function VisualEditorClient({
                   key={path}
                   onClick={() => navigateTo(path)}
                   className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                    active ? "bg-cat-yellow text-cat-black" : "bg-white border text-gray-600 hover:border-cat-yellow hover:text-cat-black"
+                    active ? "bg-cat-yellow text-cat-black" : "bg-white border text-white/70 hover:border-cat-yellow hover:text-cat-black"
                   }`}
                 >
                   <Icon className="w-3 h-3" />
@@ -1562,7 +1562,7 @@ export function VisualEditorClient({
             <div>
               {/* Fixed top: Announcement */}
               <div className="border-b">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-2 bg-gray-50">Global</p>
+                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-4 py-2" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>Global</p>
                 {(["announcement", "header", "footer", "product_page", "cart", "checkout"] as string[]).map((id) => {
                   const labels: Record<string, string> = { announcement: "Barra de Anúncio", header: "Cabeçalho", footer: "Rodapé", product_page: "Página do Produto", cart: "Carrinho", checkout: "Checkout" };
                   const icons: Record<string, typeof Megaphone> = { announcement: Megaphone, header: LayoutTemplate, footer: Link2, product_page: Shirt, cart: ShoppingBag, checkout: CreditCard };
@@ -1578,13 +1578,13 @@ export function VisualEditorClient({
                         if (id === "checkout" && currentPath !== "/checkout") navigateTo("/checkout");
                         if (id === "cart" && currentPath !== "/carrinho") navigateTo("/carrinho");
                       }}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 border-b hover:bg-yellow-50 transition-colors text-left group ${isH ? "bg-yellow-50 border-l-2 border-l-cat-yellow" : ""}`}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 border-b hover:bg-white/10 transition-colors text-left group ${isH ? "bg-white/10 border-l-2 border-l-cat-yellow" : ""}`}
                     >
-                      <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isH ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500 group-hover:bg-cat-yellow group-hover:text-cat-black"}`}>
+                      <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isH ? "bg-cat-yellow text-cat-black" : "bg-white/10 text-white group-hover:bg-cat-yellow group-hover:text-cat-black"}`}>
                         <Icon className="w-3 h-3" />
                       </div>
-                      <p className="flex-1 text-xs font-semibold text-gray-800">{labels[id]}</p>
-                      <ChevronR className="w-3 h-3 text-gray-400 group-hover:text-cat-black" />
+                      <p className="flex-1 text-xs font-semibold text-white">{labels[id]}</p>
+                      <ChevronR className="w-3 h-3 text-white/40 group-hover:text-cat-black" />
                     </button>
                   );
                 })}
@@ -1592,7 +1592,7 @@ export function VisualEditorClient({
 
               {/* Dynamic page sections */}
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-2 bg-gray-50">Estrutura da Página</p>
+                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider px-4 py-2" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>Estrutura da Página</p>
                 {pageSections.map((section, idx) => {
                   const meta = SECTION_TYPE_META[section.type];
                   const Icon = meta?.icon || ImageIcon;
@@ -1609,11 +1609,11 @@ export function VisualEditorClient({
                       onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                       className={`flex items-center gap-1.5 px-2 py-1.5 border-b transition-colors ${
                         isDragTarget ? "bg-yellow-100 border-l-2 border-l-cat-yellow" :
-                        isH || isActive ? "bg-yellow-50" : "hover:bg-gray-50"
+                        isH || isActive ? "bg-white/10" : "hover:bg-white/5"
                       } ${dragSrc === idx ? "opacity-40" : ""}`}
                     >
                       {/* Drag handle */}
-                      <div className="cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0">
+                      <div className="cursor-grab text-white/30 hover:text-white/50 flex-shrink-0">
                         <GripVertical className="w-3.5 h-3.5" />
                       </div>
                       {/* Section icon + label (click to edit) */}
@@ -1621,20 +1621,20 @@ export function VisualEditorClient({
                         onClick={() => { setActiveSection(section.id); setView("editor"); }}
                         className="flex-1 flex items-center gap-1.5 text-left min-w-0"
                       >
-                        <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isH || isActive ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500"}`}>
+                        <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors ${isH || isActive ? "bg-cat-yellow text-cat-black" : "bg-white/10 text-white"}`}>
                           <Icon className="w-3 h-3" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-gray-800 truncate">{section.label}</p>
+                          <p className="text-xs font-semibold text-white truncate">{section.label}</p>
                           {section.type === "collection" && !!section.settings.categorySlug && (
-                            <p className="text-[10px] text-gray-400 truncate">{section.settings.categorySlug as string}</p>
+                            <p className="text-[10px] text-white/40 truncate">{section.settings.categorySlug as string}</p>
                           )}
                         </div>
                       </button>
                       {/* Toggle visibility */}
                       <button
                         onClick={() => togglePageSection(section.id)}
-                        className={`p-1 flex-shrink-0 ${section.enabled ? "text-gray-400 hover:text-gray-600" : "text-gray-300"}`}
+                        className={`p-1 flex-shrink-0 ${section.enabled ? "text-white/40 hover:text-white/70" : "text-white/30"}`}
                         title={section.enabled ? "Ocultar" : "Mostrar"}
                       >
                         {section.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -1642,7 +1642,7 @@ export function VisualEditorClient({
                       {/* Duplicate */}
                       <button
                         onClick={() => duplicateSection(section.id)}
-                        className="p-1 flex-shrink-0 text-gray-300 hover:text-blue-500"
+                        className="p-1 flex-shrink-0 text-white/30 hover:text-blue-500"
                         title="Duplicar seção"
                       >
                         <Copy className="w-3.5 h-3.5" />
@@ -1650,7 +1650,7 @@ export function VisualEditorClient({
                       {/* Delete */}
                       <button
                         onClick={() => { if (confirm(`Remover "${section.label}"?`)) deletePageSection(section.id); }}
-                        className="p-1 flex-shrink-0 text-gray-300 hover:text-red-500"
+                        className="p-1 flex-shrink-0 text-white/30 hover:text-red-500"
                         title="Remover"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1663,13 +1663,13 @@ export function VisualEditorClient({
                 {!showAddSection ? (
                   <button
                     onClick={() => setShowAddSection(true)}
-                    className="w-full flex items-center justify-center gap-1.5 py-3 text-xs text-gray-500 hover:text-cat-black hover:bg-yellow-50 border-b transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 py-3 text-xs text-white/50 hover:text-white hover:bg-white/10 border-b border-white/10 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" /> Adicionar Seção
                   </button>
                 ) : (
-                  <div className="p-3 border-b bg-yellow-50 space-y-2">
-                    <p className="text-xs font-bold text-gray-700">Escolha o tipo:</p>
+                  <div className="p-3 border-b border-white/10 bg-white/5 space-y-2">
+                    <p className="text-xs font-bold text-white">Escolha o tipo:</p>
                     {(["collection", "cta-banner", "hero", "features-bar"] as PageSectionType[]).map((type) => {
                       const meta = SECTION_TYPE_META[type];
                       const Icon = meta.icon;
@@ -1677,14 +1677,14 @@ export function VisualEditorClient({
                         <button
                           key={type}
                           onClick={() => addSection(type)}
-                          className="w-full flex items-center gap-2 px-3 py-2 bg-white border rounded-lg hover:border-cat-yellow hover:bg-yellow-50 transition-colors text-left"
+                          className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:border-cat-yellow hover:bg-cat-yellow/10 transition-colors text-left"
                         >
-                          <Icon className="w-4 h-4 text-gray-500" />
-                          <span className="text-xs font-semibold text-gray-700">{meta.label}</span>
+                          <Icon className="w-4 h-4 text-white/50" />
+                          <span className="text-xs font-semibold text-white">{meta.label}</span>
                         </button>
                       );
                     })}
-                    <button onClick={() => setShowAddSection(false)} className="w-full text-xs text-gray-400 hover:text-gray-600 py-1">Cancelar</button>
+                    <button onClick={() => setShowAddSection(false)} className="w-full text-xs text-white/40 hover:text-white/70 py-1">Cancelar</button>
                   </div>
                 )}
 
@@ -1707,19 +1707,19 @@ export function VisualEditorClient({
               <div>
                 <button
                   onClick={() => { setActiveSection("footer"); setView("editor"); }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 border-b hover:bg-yellow-50 transition-colors text-left group ${hoveredSection === "footer" ? "bg-yellow-50 border-l-2 border-l-cat-yellow" : ""}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/10 hover:bg-white/10 transition-colors text-left group ${hoveredSection === "footer" ? "bg-white/10 border-l-2 border-l-cat-yellow" : ""}`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${hoveredSection === "footer" ? "bg-cat-yellow text-cat-black" : "bg-gray-100 text-gray-500 group-hover:bg-cat-yellow group-hover:text-cat-black"}`}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${hoveredSection === "footer" ? "bg-cat-yellow text-cat-black" : "bg-white/10 text-white group-hover:bg-cat-yellow group-hover:text-cat-black"}`}>
                     <AlignJustify className="w-3.5 h-3.5" />
                   </div>
-                  <p className="flex-1 text-sm font-semibold text-gray-800">Rodapé</p>
-                  <ChevronR className="w-4 h-4 text-gray-400 group-hover:text-cat-black" />
+                  <p className="flex-1 text-sm font-semibold text-white">Rodapé</p>
+                  <ChevronR className="w-4 h-4 text-white/40 group-hover:text-cat-black" />
                 </button>
               </div>
 
               <div className="p-4">
-                <p className="text-xs text-gray-400 mb-2">Passe o mouse nas seções do preview ou clique em ✏️ para editar diretamente.</p>
-                <a href="/" target="_blank" className="flex items-center gap-1 text-xs text-gray-500 hover:text-cat-black">
+                <p className="text-xs text-white/40 mb-2">Passe o mouse nas seções do preview ou clique em ✏️ para editar diretamente.</p>
+                <a href="/" target="_blank" className="flex items-center gap-1 text-xs text-white/50 hover:text-cat-black">
                   <ExternalLink className="w-3 h-3" /> Ver loja
                 </a>
               </div>
@@ -1745,13 +1745,13 @@ export function VisualEditorClient({
           <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => setViewMode("desktop")}
-              className={`p-1.5 rounded-md transition-colors ${viewMode === "desktop" ? "bg-cat-black text-white shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "desktop" ? "bg-cat-black text-white shadow-sm" : "text-white/50 hover:text-white"}`}
             >
               <Monitor className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode("mobile")}
-              className={`p-1.5 rounded-md transition-colors ${viewMode === "mobile" ? "bg-cat-black text-white shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "mobile" ? "bg-cat-black text-white shadow-sm" : "text-white/50 hover:text-white"}`}
             >
               <Smartphone className="w-4 h-4" />
             </button>
@@ -1762,10 +1762,10 @@ export function VisualEditorClient({
             <span className="text-xs text-gray-700 font-mono font-semibold truncate">{currentPath}</span>
           </div>
 
-          <button onClick={refreshIframe} title="Recarregar" className="p-2 text-gray-500 hover:text-cat-black hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={refreshIframe} title="Recarregar" className="p-2 text-white/50 hover:text-cat-black hover:bg-gray-100 rounded-lg transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
-          <a href={currentPath} target="_blank" title="Abrir em nova aba" className="p-2 text-gray-500 hover:text-cat-black hover:bg-gray-100 rounded-lg transition-colors">
+          <a href={currentPath} target="_blank" title="Abrir em nova aba" className="p-2 text-white/50 hover:text-cat-black hover:bg-gray-100 rounded-lg transition-colors">
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>
