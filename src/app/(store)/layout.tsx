@@ -1,5 +1,6 @@
 import { Header } from "@/components/store/Header";
 import { Footer } from "@/components/store/Footer";
+import { NewsletterBanner } from "@/components/store/NewsletterBanner";
 import { prisma } from "@/lib/prisma";
 import { MetaPageView } from "@/components/store/MetaPageView";
 import { PresenceTracker } from "@/components/store/PresenceTracker";
@@ -73,6 +74,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         announcementTextColor={(va.textColor as string) || undefined}
       />
       <main className="flex-1">{children}</main>
+      <NewsletterBanner />
       <Footer
         menuItems={footerMenu?.items || []}
         storeName={sm.storeName as string}
@@ -91,8 +93,13 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         showContact={bool(vf.showContact)}
         menuTitle={(vf.menuTitle as string) || "Informações"}
         showMenu={bool(vf.showMenu)}
+        legalText={(vf.legalText as string) || undefined}
+        showLegalText={bool(vf.showLegalText, false)}
+        sealAbove={(vf.sealAbove as string) || undefined}
         showCopyright={bool(vf.showCopyright)}
         copyrightText={(vf.copyrightText as string) || undefined}
+        sealBottomLeft={(vf.sealBottomLeft as string) || undefined}
+        sealBottomRight={(vf.sealBottomRight as string) || undefined}
       />
     </div>
   );
