@@ -7,6 +7,7 @@ import {
   Home, Package, Settings, Image as ImageIcon, GripVertical,
   AlignJustify, Zap, Star, FolderOpen, LayoutTemplate, Megaphone,
   ShoppingBag, Link2, Shirt, CreditCard, Copy,
+  FileText, Loader2, Check,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -734,6 +735,75 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: bool
   );
 }
 
+// Inline "notebook page" for writing a footer link's page content, right
+// where you already clicked — no need to jump to a separate admin section.
+function PageContentEditor({ slug, title }: { slug: string; title: string }) {
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function toggle() {
+    if (!open && !loaded) {
+      const res = await fetch(`/api/admin/pages/by-slug/${slug}`).catch(() => null);
+      if (res?.ok) {
+        const data = await res.json() as { page: { content?: string } | null };
+        setContent(data.page?.content || "");
+      }
+      setLoaded(true);
+    }
+    setOpen((v) => !v);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/pages/by-slug/${slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="pt-1">
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1 text-[11px] font-semibold text-cat-black hover:underline"
+      >
+        <FileText className="w-3 h-3" /> {open ? "Fechar texto" : "Escrever texto desta página"}
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1.5">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={6}
+            placeholder="Escreva aqui o texto que vai aparecer nesta página, como num caderno..."
+            className="w-full px-2 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white"
+          />
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded bg-cat-black text-white hover:opacity-80 disabled:opacity-40"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : saved ? <Check className="w-3 h-3" /> : null}
+            {saved ? "Salvo" : "Salvar texto"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItems, onFooterItemsChange, onMenuSave }: {
   settings: Record<string, unknown>; onChange: (k: string, v: unknown) => void; onSave: () => void; saving: boolean;
   onUpload: (f: File) => Promise<string>;
@@ -822,6 +892,9 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
                     className="flex-1 px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white font-mono"
                   />
                 </div>
+                {item.url.startsWith("/paginas/") && (
+                  <PageContentEditor slug={item.url.replace("/paginas/", "")} title={item.label} />
+                )}
               </div>
             ))}
             <button onClick={() => onFooterItemsChange([...footerItems, { label: "", url: "", order: footerItems.length }])}
