@@ -807,6 +807,60 @@ function PageContentEditor({ slug, title }: { slug: string; title: string }) {
   );
 }
 
+function FooterMenuDndList({ items, onChange }: { items: MenuItem[]; onChange: (items: MenuItem[]) => void }) {
+  const dragIdx = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  const handleDragStart = (i: number) => { dragIdx.current = i; };
+  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOver(i); };
+  const handleDrop = (i: number) => {
+    if (dragIdx.current === null || dragIdx.current === i) { setDragOver(null); return; }
+    const next = [...items];
+    const [moved] = next.splice(dragIdx.current, 1);
+    next.splice(i, 0, moved);
+    onChange(next.map((x, idx) => ({ ...x, order: idx })));
+    dragIdx.current = null;
+    setDragOver(null);
+  };
+  const handleDragEnd = () => { dragIdx.current = null; setDragOver(null); };
+
+  return (
+    <>
+      {items.map((item, i) => (
+        <div
+          key={i}
+          draggable
+          onDragStart={() => handleDragStart(i)}
+          onDragOver={(e) => handleDragOver(e, i)}
+          onDrop={() => handleDrop(i)}
+          onDragEnd={handleDragEnd}
+          className={`border rounded-lg p-2 space-y-1 transition-colors ${dragOver === i ? "border-cat-yellow bg-yellow-900/20" : "border-white/20 bg-white/10"}`}
+        >
+          <div className="flex gap-1 items-center">
+            <GripVertical className="w-3.5 h-3.5 text-white/30 cursor-grab flex-shrink-0" />
+            <input type="text" value={item.label} placeholder="Ex: Política de Privacidade"
+              onChange={(e) => onChange(items.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))}
+              className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
+            />
+            <button onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="text-white/30 hover:text-red-500 p-1 flex-shrink-0">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex gap-1 items-center pl-5">
+            <input type="text" value={item.url} placeholder="/url-da-pagina"
+              onChange={(e) => onChange(items.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))}
+              className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white font-mono"
+            />
+          </div>
+          {item.url.startsWith("/paginas/") && (
+            <PageContentEditor slug={item.url.replace("/paginas/", "")} title={item.label} />
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
 function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItems, onFooterItemsChange, onMenuSave }: {
   settings: Record<string, unknown>; onChange: (k: string, v: unknown) => void; onSave: () => void; saving: boolean;
   onUpload: (f: File) => Promise<string>;
@@ -879,30 +933,7 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
             <Field label="Título da seção de links">
               <TextInput value={(settings.menuTitle as string) || "Informações"} onChange={(v) => onChange("menuTitle", v)} />
             </Field>
-            {footerItems.map((item, i) => (
-              <div key={i} className="border border-white/20 rounded-lg p-2 space-y-1 bg-white/10">
-                <div className="flex gap-1 items-center">
-                  <span className="text-xs text-white/40 font-semibold w-8 flex-shrink-0">Texto</span>
-                  <input type="text" value={item.label} placeholder="Ex: Política de Privacidade"
-                    onChange={(e) => onFooterItemsChange(footerItems.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x))}
-                    className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white"
-                  />
-                  <button onClick={() => onFooterItemsChange(footerItems.filter((_, idx) => idx !== i))} className="text-white/30 hover:text-red-500 p-1 flex-shrink-0">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="flex gap-1 items-center">
-                  <span className="text-xs text-white/40 font-semibold w-8 flex-shrink-0">Link</span>
-                  <input type="text" value={item.url} placeholder="/url-da-pagina"
-                    onChange={(e) => onFooterItemsChange(footerItems.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))}
-                    className="flex-1 px-2 py-1 border border-white/20 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cat-yellow bg-white/10 text-white font-mono"
-                  />
-                </div>
-                {item.url.startsWith("/paginas/") && (
-                  <PageContentEditor slug={item.url.replace("/paginas/", "")} title={item.label} />
-                )}
-              </div>
-            ))}
+            <FooterMenuDndList items={footerItems} onChange={onFooterItemsChange} />
             <button onClick={() => onFooterItemsChange([...footerItems, { label: "", url: "", order: footerItems.length }])}
               className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-xs text-white/50 hover:border-cat-yellow hover:text-white flex items-center justify-center gap-1 bg-white/5">
               <Plus className="w-3 h-3" /> Adicionar link
