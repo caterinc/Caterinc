@@ -821,6 +821,9 @@ function FooterEditor({ settings, onChange, onSave, saving, onUpload, footerItem
       {/* Style */}
       <Field label="Cor de Fundo"><ColorInput value={(settings.bgColor as string) || "#000000"} onChange={(v) => onChange("bgColor", v)} /></Field>
       <Field label="Cor do Texto"><ColorInput value={(settings.textColor as string) || "#9CA3AF"} onChange={(v) => onChange("textColor", v)} /></Field>
+      <Field label="Cor dos Títulos (Institucional, Atendimento, Contato...)">
+        <ColorInput value={(settings.headingColor as string) || "#FFFFFF"} onChange={(v) => onChange("headingColor", v)} />
+      </Field>
 
       {/* Description block */}
       <div className="border rounded-lg p-3 space-y-2 bg-gray-50">

@@ -14,6 +14,7 @@ export interface FooterProps {
   storeName?: string;
   bgColor?: string;
   textColor?: string;
+  headingColor?: string;
   // Description / brand block
   logoImage?: string;
   description?: string;
@@ -40,6 +41,7 @@ export function Footer({
   storeName = "CAT Store",
   bgColor = "#000000",
   textColor = "#9CA3AF",
+  headingColor = "#FFFFFF",
   logoImage,
   description,
   showDescription = true,
@@ -118,7 +120,7 @@ export function Footer({
           <div className="space-y-6">
             {menuGroups.map((group, gi) => (
               <div key={gi}>
-                <h4 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">
+                <h4 className="font-semibold mb-4 uppercase tracking-wider text-sm" style={{ color: headingColor }}>
                   {group.header?.label || menuTitle}
                 </h4>
                 <ul className="space-y-2">
@@ -138,7 +140,7 @@ export function Footer({
         {/* Contact */}
         {showContact && hasContact && (
           <div>
-            <h4 className="text-white font-semibold mb-4 uppercase tracking-wider text-sm">Contato</h4>
+            <h4 className="font-semibold mb-4 uppercase tracking-wider text-sm" style={{ color: headingColor }}>Contato</h4>
             <ul className="space-y-3">
               {phone && (
                 <li className="flex items-center gap-2 text-sm">
