@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { UpsellProducts } from "@/components/store/UpsellProducts";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -147,6 +148,8 @@ export default function CarrinhoPage() {
       <Link href="/produtos" className="block w-full h-11 flex items-center justify-center border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-600 hover:border-gray-400 transition-colors">
         Continuar comprando
       </Link>
+
+      <UpsellProducts />
     </div>
   );
 }
