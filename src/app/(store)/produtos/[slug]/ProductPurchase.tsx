@@ -28,6 +28,7 @@ interface ProductPurchaseProps {
   };
   variants: Variant[];
   sizes: string[];
+  pixDiscountPct?: number;
   selectedColorProp?: string;
   colorSwatchMap?: Record<string, string | null>;
   onColorSelect?: (color: string) => void;
@@ -45,7 +46,7 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export function ProductPurchase({ product, variants, sizes, selectedColorProp, colorSwatchMap, onColorSelect }: ProductPurchaseProps) {
+export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, selectedColorProp, colorSwatchMap, onColorSelect }: ProductPurchaseProps) {
   const router = useRouter();
   const { dispatch } = useCart();
   const [selectedSize, setSelectedSize] = useState("");
@@ -85,7 +86,7 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, c
   const price = selectedVariant?.price ? Number(selectedVariant.price) : product.price;
 
   const installmentPrice = price / 12;
-  const pixPrice = price * 0.95;
+  const pixPrice = price * (1 - pixDiscountPct / 100);
 
   const isOutOfStock = (size: string) => {
     const v = variants.find((v) => v.size === size && (!hasColors || v.color === selectedColor));
@@ -146,7 +147,7 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, c
           em até <strong className="text-cat-black">12x de {formatPrice(installmentPrice)}</strong> sem juros
         </p>
         <p className="text-sm text-green-600 font-semibold">
-          ou <strong>{formatPrice(pixPrice)}</strong> no PIX com 5% de desconto
+          ou <strong>{formatPrice(pixPrice)}</strong> no PIX com {pixDiscountPct}% de desconto
         </p>
       </div>
 
@@ -308,7 +309,7 @@ export function ProductPurchase({ product, variants, sizes, selectedColorProp, c
           <div className="px-4 pb-4 border-t text-sm">
             {/* PIX */}
             <div className="mt-3 p-3 bg-green-50 rounded-lg">
-              <p className="font-bold text-green-700">PIX — 5% de desconto</p>
+              <p className="font-bold text-green-700">PIX — {pixDiscountPct}% de desconto</p>
               <p className="text-green-600 font-semibold text-lg">{formatPrice(pixPrice)}</p>
               <p className="text-xs text-green-600">Aprovação imediata</p>
             </div>

@@ -28,12 +28,13 @@ interface Props {
   variants: Variant[];
   sizes: string[];
   discountPct: number;
+  pixDiscountPct: number;
   infoBefore?: ReactNode;
   infoAfter?: ReactNode;
 }
 
 export function ProductPageClient({
-  product, variants, sizes, discountPct, infoBefore, infoAfter,
+  product, variants, sizes, discountPct, pixDiscountPct, infoBefore, infoAfter,
 }: Props) {
   const searchParams = useSearchParams();
   const isMirror = searchParams.get("__mirror") === "1";
@@ -137,6 +138,7 @@ export function ProductPageClient({
           product={product}
           variants={variants}
           sizes={sizes}
+          pixDiscountPct={pixDiscountPct}
           selectedColorProp={selectedColor}
           colorSwatchMap={colorSwatchMap}
           onColorSelect={handleColorSelect}

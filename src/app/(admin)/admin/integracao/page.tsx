@@ -11,6 +11,10 @@ interface GeneralSettings {
   favicon: string;
 }
 
+interface PixSettings {
+  pixDiscountPct: string;
+}
+
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -37,19 +41,41 @@ export default function IntegracaoPage() {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const faviconRef = useRef<HTMLInputElement>(null);
   const [testingUtm, setTestingUtm] = useState(false);
+  const [pix, setPix] = useState<PixSettings>({ pixDiscountPct: "5" });
+  const [savingPix, setSavingPix] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((data: Record<string, string>) => {
+      .then((data: Record<string, unknown>) => {
         setGeneral({
-          siteTitle: data.siteTitle || "",
-          siteDescription: data.siteDescription || "",
-          favicon: data.favicon || "",
+          siteTitle: (data.siteTitle as string) || "",
+          siteDescription: (data.siteDescription as string) || "",
+          favicon: (data.favicon as string) || "",
+        });
+        setPix({
+          pixDiscountPct: data.pixDiscountPct !== undefined ? String(data.pixDiscountPct) : "5",
         });
       })
       .catch(() => {});
   }, []);
+
+  const savePix = async () => {
+    const pct = parseFloat(pix.pixDiscountPct.replace(",", "."));
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+      toast({ title: "Digite um percentual válido (0 a 100)", variant: "destructive" });
+      return;
+    }
+    setSavingPix(true);
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pixDiscountPct: pct }),
+    });
+    setSavingPix(false);
+    if (res.ok) toast({ title: "Desconto do PIX salvo!", variant: "success" as never });
+    else toast({ title: "Erro ao salvar", variant: "destructive" });
+  };
 
   const handleFaviconUpload = async (file: File) => {
     setUploadingFavicon(true);
@@ -169,6 +195,38 @@ export default function IntegracaoPage() {
             className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
             <Save className="w-4 h-4" />
             {savingGeneral ? "Salvando..." : "Salvar Informações"}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Desconto PIX ─── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <ShieldCheck className="w-5 h-5 text-cat-black" />
+          <h2 className="text-lg font-black text-cat-black">Desconto no PIX</h2>
+        </div>
+        <div className="bg-white rounded-2xl border p-5 space-y-4">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Percentual de desconto aplicado quando o cliente escolhe pagar via PIX — aparece na página
+            do produto e é descontado de verdade do valor cobrado no checkout.
+          </p>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Desconto (%)</label>
+            <div className="flex items-center gap-2">
+              <input
+                value={pix.pixDiscountPct}
+                onChange={(e) => setPix({ pixDiscountPct: e.target.value })}
+                placeholder="5"
+                inputMode="decimal"
+                className="w-24 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cat-yellow"
+              />
+              <span className="text-sm text-gray-500">%</span>
+            </div>
+          </div>
+          <button onClick={savePix} disabled={savingPix}
+            className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
+            <Save className="w-4 h-4" />
+            {savingPix ? "Salvando..." : "Salvar Desconto"}
           </button>
         </div>
       </div>

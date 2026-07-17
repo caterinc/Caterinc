@@ -88,7 +88,14 @@ export async function POST(req: NextRequest) {
     const sm = await prisma.shippingMethod.findUnique({ where: { id: shippingMethodId, isActive: true } });
     if (sm) shippingCost = (sm.freeAbove !== null && subtotal >= Number(sm.freeAbove)) ? 0 : Number(sm.price);
   }
-  const total = Math.round((subtotal + shippingCost) * 100) / 100;
+
+  // This endpoint only ever creates PIX transactions today, so the PIX
+  // discount applies to every order created here. Discount is on the
+  // products only, not on shipping (matches what the product page shows).
+  const pixDiscountSetting = await prisma.siteSetting.findUnique({ where: { key: "pixDiscountPct" } });
+  const pixDiscountPct = pixDiscountSetting ? parseFloat(pixDiscountSetting.value) : 5;
+  const discountedSubtotal = Math.round(subtotal * (1 - pixDiscountPct / 100) * 100) / 100;
+  const total = Math.round((discountedSubtotal + shippingCost) * 100) / 100;
 
   const shippingAddress = {
     name, phone,

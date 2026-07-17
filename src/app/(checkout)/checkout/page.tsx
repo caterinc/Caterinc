@@ -191,6 +191,16 @@ export default function CheckoutPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   // consent removed — hardcoded true in payload
   const [payMethod, setPayMethod] = useState<PayMethod>("pix");
+  const [pixDiscountPct, setPixDiscountPct] = useState(5);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d: { pixDiscountPct?: number }) => {
+        if (typeof d.pixDiscountPct === "number") setPixDiscountPct(d.pixDiscountPct);
+      })
+      .catch(() => {});
+  }, []);
 
   const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "" });
   const [address, setAddress] = useState({ zipCode: "", street: "", number: "", complement: "", district: "", city: "", state: "" });
@@ -273,7 +283,10 @@ export default function CheckoutPage() {
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
     : 0;
-  const orderTotal = total + shippingCost;
+  // Mirrors the server's calculation in /api/payments/create: discount is on
+  // the products only, not on shipping.
+  const discountedTotal = payMethod === "pix" ? total * (1 - pixDiscountPct / 100) : total;
+  const orderTotal = discountedTotal + shippingCost;
 
   // Load shipping
   useEffect(() => {
