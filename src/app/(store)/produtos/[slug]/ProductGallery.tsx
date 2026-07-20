@@ -55,6 +55,7 @@ export function ProductGallery({
       {/* Main image — swipeable, white bg */}
       <div
         className="relative aspect-square rounded-2xl overflow-hidden bg-white border select-none"
+        style={{ touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
