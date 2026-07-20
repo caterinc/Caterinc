@@ -146,9 +146,11 @@ export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, 
         <p className="text-sm text-gray-600">
           em até <strong className="text-cat-black">12x de {formatPrice(installmentPrice)}</strong> sem juros
         </p>
-        <p className="text-sm text-green-600 font-semibold">
-          ou <strong>{formatPrice(pixPrice)}</strong> no PIX com {pixDiscountPct}% de desconto
-        </p>
+        {pixDiscountPct > 0 && (
+          <p className="text-sm text-green-600 font-semibold">
+            ou <strong>{formatPrice(pixPrice)}</strong> no PIX com {pixDiscountPct}% de desconto
+          </p>
+        )}
       </div>
 
       {/* Color selector */}
@@ -309,7 +311,7 @@ export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, 
           <div className="px-4 pb-4 border-t text-sm">
             {/* PIX */}
             <div className="mt-3 p-3 bg-green-50 rounded-lg">
-              <p className="font-bold text-green-700">PIX — {pixDiscountPct}% de desconto</p>
+              <p className="font-bold text-green-700">{pixDiscountPct > 0 ? `PIX — ${pixDiscountPct}% de desconto` : "PIX"}</p>
               <p className="text-green-600 font-semibold text-lg">{formatPrice(pixPrice)}</p>
               <p className="text-xs text-green-600">Aprovação imediata</p>
             </div>
