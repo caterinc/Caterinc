@@ -188,7 +188,7 @@ export default function CheckoutPage() {
   const [stage, setStage] = useState<Stage>("dados");
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(true);
   // consent removed — hardcoded true in payload
   const [payMethod, setPayMethod] = useState<PayMethod>("pix");
   const [pixDiscountPct, setPixDiscountPct] = useState(5);
