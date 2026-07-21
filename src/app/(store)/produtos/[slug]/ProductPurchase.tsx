@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Zap, Truck, RotateCcw, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
+import { ShoppingCart, Truck, RotateCcw, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
@@ -268,7 +268,6 @@ export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, 
           className="vep-buynow-btn w-full flex items-center justify-center gap-2 py-4 px-6 font-black text-base rounded-xl active:scale-[0.98] transition-all"
           style={{ backgroundColor: "var(--vep-buynow-bg, #000000)", color: "var(--vep-buynow-text, #FFFFFF)" }}
         >
-          <Zap className="w-5 h-5" />
           Comprar Agora
         </button>
       </div>
