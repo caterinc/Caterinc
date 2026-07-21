@@ -9,18 +9,31 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CartReviews } from "@/components/store/CartReviews";
 
+interface ShippingMethod {
+  id: string; name: string; minDays: number | null; maxDays: number | null; freeAbove: number | null;
+}
+
 export default function CarrinhoPage() {
   const router = useRouter();
   const { state, dispatch, total, itemCount, isHydrated } = useCart();
   const { items } = state;
   const [freeAbove, setFreeAbove] = useState<number | null>(null);
+  const [deliveryEstimate, setDeliveryEstimate] = useState<{ min: number; max: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/shipping")
       .then((r) => r.json())
-      .then((methods: { freeAbove: number | null }[]) => {
+      .then((methods: ShippingMethod[]) => {
         const thresholds = methods.map((m) => m.freeAbove).filter((v): v is number => v !== null);
         if (thresholds.length > 0) setFreeAbove(Math.min(...thresholds));
+
+        const withDays = methods.filter((m) => m.minDays !== null && m.maxDays !== null);
+        if (withDays.length > 0) {
+          setDeliveryEstimate({
+            min: Math.min(...withDays.map((m) => m.minDays!)),
+            max: Math.max(...withDays.map((m) => m.maxDays!)),
+          });
+        }
       })
       .catch(() => {});
   }, []);
@@ -130,6 +143,16 @@ export default function CarrinhoPage() {
               {shipping === 0 ? "Grátis" : formatPrice(shipping)}
             </span>
           </div>
+          {deliveryEstimate && (
+            <div className="flex justify-between text-gray-600">
+              <span>Prazo de entrega</span>
+              <span>
+                {deliveryEstimate.min === deliveryEstimate.max
+                  ? `${deliveryEstimate.min} dias úteis`
+                  : `${deliveryEstimate.min} a ${deliveryEstimate.max} dias úteis`}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between font-black text-base border-t pt-2 mt-2">
             <span>Total</span><span>{formatPrice(total + shipping)}</span>
           </div>
