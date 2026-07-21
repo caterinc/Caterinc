@@ -29,6 +29,7 @@ interface ProductPurchaseProps {
   variants: Variant[];
   sizes: string[];
   pixDiscountPct?: number;
+  skipCart?: boolean;
   selectedColorProp?: string;
   colorSwatchMap?: Record<string, string | null>;
   onColorSelect?: (color: string) => void;
@@ -46,7 +47,7 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, selectedColorProp, colorSwatchMap, onColorSelect }: ProductPurchaseProps) {
+export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, skipCart = false, selectedColorProp, colorSwatchMap, onColorSelect }: ProductPurchaseProps) {
   const router = useRouter();
   const { dispatch } = useCart();
   const [selectedSize, setSelectedSize] = useState("");
@@ -252,14 +253,16 @@ export function ProductPurchase({ product, variants, sizes, pixDiscountPct = 5, 
 
       {/* CTA buttons */}
       <div className="space-y-3">
-        <button
-          onClick={handleAddToCart}
-          className="vep-cart-btn w-full flex items-center justify-center gap-2 py-4 px-6 font-black text-base rounded-xl active:scale-[0.98] transition-all shadow-sm"
-          style={{ backgroundColor: "var(--vep-cart-bg, #FFCD11)", color: "var(--vep-cart-text, #000000)" }}
-        >
-          <ShoppingCart className="w-5 h-5" />
-          Adicionar ao Carrinho
-        </button>
+        {!skipCart && (
+          <button
+            onClick={handleAddToCart}
+            className="vep-cart-btn w-full flex items-center justify-center gap-2 py-4 px-6 font-black text-base rounded-xl active:scale-[0.98] transition-all shadow-sm"
+            style={{ backgroundColor: "var(--vep-cart-bg, #FFCD11)", color: "var(--vep-cart-text, #000000)" }}
+          >
+            <ShoppingCart className="w-5 h-5" />
+            Adicionar ao Carrinho
+          </button>
+        )}
         <button
           onClick={handleBuyNow}
           className="vep-buynow-btn w-full flex items-center justify-center gap-2 py-4 px-6 font-black text-base rounded-xl active:scale-[0.98] transition-all"

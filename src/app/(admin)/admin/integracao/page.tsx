@@ -15,6 +15,10 @@ interface PixSettings {
   pixDiscountPct: string;
 }
 
+interface CheckoutSettings {
+  skipCartEnabled: boolean;
+}
+
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -43,6 +47,8 @@ export default function IntegracaoPage() {
   const [testingUtm, setTestingUtm] = useState(false);
   const [pix, setPix] = useState<PixSettings>({ pixDiscountPct: "5" });
   const [savingPix, setSavingPix] = useState(false);
+  const [checkout, setCheckout] = useState<CheckoutSettings>({ skipCartEnabled: false });
+  const [savingCheckout, setSavingCheckout] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -56,9 +62,29 @@ export default function IntegracaoPage() {
         setPix({
           pixDiscountPct: data.pixDiscountPct !== undefined ? String(data.pixDiscountPct) : "5",
         });
+        setCheckout({
+          skipCartEnabled: data.skipCartEnabled === true,
+        });
       })
       .catch(() => {});
   }, []);
+
+  const toggleSkipCart = async () => {
+    const next = !checkout.skipCartEnabled;
+    setCheckout({ skipCartEnabled: next });
+    setSavingCheckout(true);
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skipCartEnabled: next }),
+    });
+    setSavingCheckout(false);
+    if (res.ok) toast({ title: next ? "Pular carrinho ativado" : "Pular carrinho desativado", variant: "success" as never });
+    else {
+      setCheckout({ skipCartEnabled: !next });
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    }
+  };
 
   const savePix = async () => {
     const pct = parseFloat(pix.pixDiscountPct.replace(",", "."));
@@ -227,6 +253,38 @@ export default function IntegracaoPage() {
             className="flex items-center gap-2 px-4 py-2 bg-cat-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 disabled:opacity-60 transition-colors">
             <Save className="w-4 h-4" />
             {savingPix ? "Salvando..." : "Salvar Desconto"}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Pular carrinho ─── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="w-5 h-5 text-cat-black" />
+          <h2 className="text-lg font-black text-cat-black">Pular carrinho</h2>
+        </div>
+        <div className="bg-white rounded-2xl border p-5 space-y-3">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Quando ativado, some o botão "Adicionar ao Carrinho" da página do produto — fica só
+            "Comprar Agora", que já leva direto pro checkout com o produto e a quantidade certos no resumo.
+          </p>
+          <button
+            onClick={toggleSkipCart}
+            disabled={savingCheckout}
+            className="flex items-center gap-3 disabled:opacity-60"
+          >
+            <span
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              style={{ backgroundColor: checkout.skipCartEnabled ? "#111827" : "#D1D5DB" }}
+            >
+              <span
+                className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                style={{ transform: checkout.skipCartEnabled ? "translateX(22px)" : "translateX(4px)" }}
+              />
+            </span>
+            <span className="text-sm font-semibold text-gray-700">
+              {checkout.skipCartEnabled ? "Ativado" : "Desativado"}
+            </span>
           </button>
         </div>
       </div>
