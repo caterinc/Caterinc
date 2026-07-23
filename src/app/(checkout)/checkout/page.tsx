@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -288,13 +288,18 @@ export default function CheckoutPage() {
   const discountedTotal = payMethod === "pix" ? total * (1 - pixDiscountPct / 100) : total;
   const orderTotal = discountedTotal + shippingCost;
 
-  // Load shipping
+  // Load shipping — only once the CEP is valid, so delivery methods/days
+  // don't show up before the customer has entered an address at all.
+  const shippingFetchedRef = useRef(false);
   useEffect(() => {
+    const cepDigits = address.zipCode.replace(/\D/g, "");
+    if (cepDigits.length !== 8 || shippingFetchedRef.current) return;
+    shippingFetchedRef.current = true;
     fetch("/api/shipping").then((r) => r.json()).then((data: ShippingMethod[]) => {
       setShippingMethods(data);
       if (data.length > 0) setSelectedShipping(data[0]);
-    }).catch(() => {});
-  }, []);
+    }).catch(() => { shippingFetchedRef.current = false; });
+  }, [address.zipCode]);
 
   // PIX countdown
   useEffect(() => {
@@ -717,6 +722,9 @@ export default function CheckoutPage() {
                     onChange={(v) => { const m = maskCEP(v); setAddress((a) => ({ ...a, zipCode: m })); if (m.replace(/\D/g,"").length === 8) lookupCep(m); }}
                     placeholder="00000-000" inputMode="numeric" maxLength={9} />
                   {cepLoading && <div className="absolute right-3 bottom-3"><Loader2 className="w-4 h-4 animate-spin text-gray-400" /></div>}
+                  {!vZip && (
+                    <p className="text-xs text-gray-400 mt-1">Coloque seu CEP para calcular o frete</p>
+                  )}
                 </div>
                 <ValidatedInput label="Rua / Avenida" required valid={vStreet}
                   value={address.street} onChange={(v) => setAddress((a) => ({ ...a, street: v }))}
