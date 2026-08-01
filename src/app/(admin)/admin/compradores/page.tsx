@@ -49,7 +49,7 @@ export default async function CompradoresPage() {
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>E-mail</th>
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Telefone</th>
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Cidade/UF</th>
-                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-right" style={{ color: "#7b7fa3" }}>Última compra</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-right" style={{ color: "#7b7fa3" }}>Total gasto / última compra</th>
                 </tr>
               </thead>
               <tbody>

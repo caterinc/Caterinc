@@ -7,7 +7,7 @@ export interface Buyer {
   city: string;
   state: string;
   zipCode: string;
-  total: number;
+  total: number; // lifetime value — sum of every real order, for value-based audiences
   lastPurchaseAt: Date;
 }
 
@@ -24,9 +24,10 @@ function isTestOrder(email: string, total: number): boolean {
   return TEST_EMAIL_PATTERNS.some((re) => re.test(email));
 }
 
-// Real, paying customers only — deduplicated by email, most recent order wins
-// for name/phone/address. Used both by the admin list and the CSV export, so
-// they never drift apart.
+// Real, paying customers only — deduplicated by email. Name/phone/address come
+// from their most recent order, but `total` sums every real order (lifetime
+// value), since Meta's value-based audiences want LTV, not a single purchase.
+// Used both by the admin list and the CSV export, so they never drift apart.
 export async function getRealBuyers(): Promise<Buyer[]> {
   const orders = await prisma.order.findMany({
     where: { paymentStatus: "PAID" },
@@ -37,8 +38,14 @@ export async function getRealBuyers(): Promise<Buyer[]> {
   const byEmail = new Map<string, Buyer>();
   for (const o of orders) {
     const email = o.email.trim().toLowerCase();
-    if (!email || isTestOrder(email, Number(o.total))) continue;
-    if (byEmail.has(email)) continue; // orders sorted desc, first hit = most recent
+    const orderTotal = Number(o.total);
+    if (!email || isTestOrder(email, orderTotal)) continue;
+
+    const existing = byEmail.get(email);
+    if (existing) {
+      existing.total += orderTotal; // accumulate lifetime value; orders sorted
+      continue;                     // desc, so name/phone/address already = latest
+    }
 
     const addr = (o.shippingAddress as Record<string, string> | null) || {};
     byEmail.set(email, {
@@ -48,7 +55,7 @@ export async function getRealBuyers(): Promise<Buyer[]> {
       city: addr.city || "",
       state: addr.state || "",
       zipCode: addr.zipCode || "",
-      total: Number(o.total),
+      total: orderTotal,
       lastPurchaseAt: o.createdAt,
     });
   }
@@ -64,7 +71,7 @@ function stripAccents(s: string): string {
 // upload, which avoids any risk of us getting SHA256 normalization subtly
 // wrong and silently tanking match quality.
 export function buildMetaAudienceCsv(buyers: Buyer[]): string {
-  const header = "email,phone,fn,ln,ct,st,zip,country";
+  const header = "email,phone,fn,ln,zip,ct,st,country,value";
   const rows = buyers.map((b) => {
     const email = b.email;
     const digits = b.phone.replace(/\D/g, "");
@@ -72,10 +79,11 @@ export function buildMetaAudienceCsv(buyers: Buyer[]): string {
     const nameParts = stripAccents(b.name).toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/);
     const fn = nameParts[0] || "";
     const ln = nameParts.slice(1).join(" ");
+    const zip = b.zipCode.replace(/\D/g, "");
     const ct = stripAccents(b.city).toLowerCase().replace(/[^a-z]/g, "");
     const st = b.state.toLowerCase().slice(0, 2);
-    const zip = b.zipCode.replace(/\D/g, "");
-    return [email, phone, fn, ln, ct, st, zip, "br"]
+    const value = b.total.toFixed(2);
+    return [email, phone, fn, ln, zip, ct, st, "br", value]
       .map((v) => `"${v.replace(/"/g, '""')}"`)
       .join(",");
   });
