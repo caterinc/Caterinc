@@ -17,11 +17,12 @@ export async function POST(req: NextRequest) {
     quantity?: number;
     fbc?: string | null;
     fbp?: string | null;
+    externalId?: string | null;
   };
   try { body = await req.json(); }
   catch { return NextResponse.json({ ok: false }); }
 
-  const { event, productId, productName, value, quantity, fbc, fbp } = body;
+  const { event, productId, productName, value, quantity, fbc, fbp, externalId } = body;
   if (!event) return NextResponse.json({ ok: false });
 
   const eventId = `${event}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     eventId,
     fbc: fbc || null,
     fbp: fbp || null,
+    externalId: externalId || null,
     value,
     currency: "BRL",
     contents,

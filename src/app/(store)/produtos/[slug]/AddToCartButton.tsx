@@ -64,11 +64,12 @@ export function AddToCartButton({ product, sizes, colors }: Props) {
     try {
       const fbc = localStorage.getItem("_fbc");
       const fbp = localStorage.getItem("_fbp");
+      const externalId = localStorage.getItem("_sid");
       fetch("/api/payments/add-to-cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fbc, fbp,
+          fbc, fbp, externalId,
           value: selectedVariant.price ? Number(selectedVariant.price) : Number(product.price),
           currency: "BRL",
           contentId: product.id,

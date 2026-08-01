@@ -25,6 +25,7 @@ interface MetaEventParams {
   orderId?: string;
   fbc?: string | null;
   fbp?: string | null;
+  externalId?: string | null;
   clientIp?: string | null;
   clientUserAgent?: string | null;
 }
@@ -40,6 +41,10 @@ export async function sendMetaEvent(params: MetaEventParams): Promise<void> {
   if (params.lastName) userData.ln = [hash(params.lastName)];
   if (params.fbc) userData.fbc = params.fbc;
   if (params.fbp) userData.fbp = params.fbp;
+  // Stable per-lead ID (reuses the same _sid the admin's Sessions/Live View already
+  // tracks) so Meta can stitch every event for this person into one identity, even
+  // when fbc/fbp match quality is imperfect.
+  if (params.externalId) userData.external_id = [hash(params.externalId)];
   if (params.clientIp) userData.client_ip_address = params.clientIp;
   if (params.clientUserAgent) userData.client_user_agent = params.clientUserAgent;
 

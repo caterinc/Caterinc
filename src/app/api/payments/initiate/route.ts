@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     || null;
   const clientUserAgent = req.headers.get("user-agent") || null;
 
-  let body: { fbc?: string | null; fbp?: string | null; value?: number } = {};
+  let body: { fbc?: string | null; fbp?: string | null; externalId?: string | null; value?: number } = {};
   try { body = await req.json(); } catch {}
 
   sendMetaEvent({
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     eventId: `initiate-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     fbc: body.fbc || null,
     fbp: body.fbp || null,
+    externalId: body.externalId || null,
     value: body.value,
     currency: "BRL",
     clientIp,

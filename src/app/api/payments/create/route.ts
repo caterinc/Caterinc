@@ -36,12 +36,12 @@ export async function POST(req: NextRequest) {
     personal?: PersonalInput; address?: AddressInput; paymentMethod?: string;
     cartItems?: CartItemInput[]; consent?: boolean; shippingMethodId?: string | null;
     utmData?: Record<string, string> | null;
-    fbc?: string | null; fbp?: string | null;
+    fbc?: string | null; fbp?: string | null; externalId?: string | null;
   };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Payload invalido" }, { status: 400 }); }
 
-  const { personal, address, cartItems, consent, shippingMethodId, utmData, fbc, fbp } = body;
+  const { personal, address, cartItems, consent, shippingMethodId, utmData, fbc, fbp, externalId } = body;
 
   if (!consent) return NextResponse.json({ error: "Consentimento LGPD obrigatorio" }, { status: 400 });
   if (!personal || !address || !cartItems || cartItems.length === 0)
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
         mpPaymentId: pixData.id,
         trackingCode,
         subtotal, shipping: shippingCost, total, shippingAddress,
-        utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}) },
+        utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}), ...(externalId ? { externalId } : {}) },
         items: { create: orderItems },
         statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Vezion" }] },
       },
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     email, phone, firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
     value: total, currency: "BRL",
     contents: orderItems.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-    orderId: orderNumber, fbc: fbc || null, fbp: fbp || null,
+    orderId: orderNumber, fbc: fbc || null, fbp: fbp || null, externalId: externalId || null,
   }).catch((e) => console.error("[Meta CAPI] pix pending error:", e));
 
   return NextResponse.json({

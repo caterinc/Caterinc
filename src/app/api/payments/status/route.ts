@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     const utms  = (order as unknown as { utmData: Record<string, string> | null }).utmData;
     const fbc   = utms?.fbc || null;
     const fbp   = utms?.fbp || null;
+    const externalId = utms?.externalId || null;
     const nameParts = (addr?.name || "Cliente").split(" ");
 
     sendUtmifyEvent(
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
       firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
       value: Number(order.total), currency: "BRL",
       contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-      orderId: order.orderNumber, fbc, fbp,
+      orderId: order.orderNumber, fbc, fbp, externalId,
     }).catch((e) => console.error("[Meta CAPI] status purchase error:", e));
 
     return NextResponse.json({ paid: true, orderNumber: order.orderNumber });

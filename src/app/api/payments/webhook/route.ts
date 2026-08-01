@@ -16,6 +16,7 @@ async function firePostPaymentEvents(order: {
   const nameParts = (addr?.name || "Cliente").split(" ");
   const fbc   = utms?.fbc || null;
   const fbp   = utms?.fbp || null;
+  const externalId = utms?.externalId || null;
 
   sendUtmifyEvent(
     order.orderNumber, "paid",
@@ -31,7 +32,7 @@ async function firePostPaymentEvents(order: {
     firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
     value: Number(order.total), currency: "BRL",
     contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-    orderId: order.orderNumber, fbc, fbp,
+    orderId: order.orderNumber, fbc, fbp, externalId,
   }).catch((e) => console.error("[Meta CAPI] webhook error:", e));
 }
 
