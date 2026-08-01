@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, Users,
   BarChart3, FileDown, Palette, Star, Plug, Truck, X, Radio,
-  ExternalLink, MousePointer2, MessageCircleQuestion,
+  ExternalLink, MousePointer2, MessageCircleQuestion, Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -18,6 +18,7 @@ const navItems = [
   { label: "Produtos", href: "/admin/produtos", icon: Package },
   { label: "Coleções", href: "/admin/colecoes", icon: FolderOpen },
   { label: "Clientes", href: "/admin/clientes", icon: Users },
+  { label: "Compradores", href: "/admin/compradores", icon: Target },
   { label: "Estoque", href: "/admin/estoque", icon: BarChart3 },
   { label: "Avaliações", href: "/admin/avaliacoes", icon: Star },
   { label: "SAC", href: "/admin/sac", icon: MessageCircleQuestion },
