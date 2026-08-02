@@ -1152,7 +1152,7 @@ function CartEditor({ settings, onChange, onSave, saving }: {
 }
 
 function CheckoutEditor({ settings, onChange, onSave, saving }: {
-  settings: Record<string, string>; onChange: (k: string, v: string) => void; onSave: () => void; saving: boolean;
+  settings: Record<string, unknown>; onChange: (k: string, v: unknown) => void; onSave: () => void; saving: boolean;
 }) {
   return (
     <div className="space-y-4">
@@ -1163,27 +1163,32 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
       <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Indicador de Passos</p>
       <div className="space-y-3">
         <Field label="Passo Ativo — Fundo">
-          <ColorInput value={settings.stepActiveBg || "#16c789"} onChange={(v) => onChange("stepActiveBg", v)} />
+          <ColorInput value={(settings.stepActiveBg as string) || "#16c789"} onChange={(v) => onChange("stepActiveBg", v)} />
         </Field>
         <Field label="Passo Ativo — Texto">
-          <ColorInput value={settings.stepActiveText || "#000000"} onChange={(v) => onChange("stepActiveText", v)} />
+          <ColorInput value={(settings.stepActiveText as string) || "#000000"} onChange={(v) => onChange("stepActiveText", v)} />
         </Field>
         <Field label="Passo Concluído — Fundo">
-          <ColorInput value={settings.stepDoneBg || "#16c789"} onChange={(v) => onChange("stepDoneBg", v)} />
+          <ColorInput value={(settings.stepDoneBg as string) || "#16c789"} onChange={(v) => onChange("stepDoneBg", v)} />
         </Field>
         <Field label="Passo Concluído — Texto">
-          <ColorInput value={settings.stepDoneText || "#ffffff"} onChange={(v) => onChange("stepDoneText", v)} />
+          <ColorInput value={(settings.stepDoneText as string) || "#ffffff"} onChange={(v) => onChange("stepDoneText", v)} />
         </Field>
       </div>
 
       <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Números das Seções (1, 2, 3...)</p>
       <p className="text-xs text-white/40">A bolinha numerada ao lado de &quot;Identificação&quot;, &quot;Entrega&quot;, etc. — independente do Indicador de Passos</p>
       <div className="space-y-3">
+        <Toggle
+          value={settings.sectionNumberOutline === true}
+          onChange={(v) => onChange("sectionNumberOutline", v)}
+          label="Apenas borda (sem fundo preenchido)"
+        />
         <Field label="Bolinha — Fundo">
-          <ColorInput value={settings.sectionNumberBg || "#FFCD11"} onChange={(v) => onChange("sectionNumberBg", v)} />
+          <ColorInput value={(settings.sectionNumberBg as string) || "#FFCD11"} onChange={(v) => onChange("sectionNumberBg", v)} />
         </Field>
         <Field label="Bolinha — Número">
-          <ColorInput value={settings.sectionNumberText || "#000000"} onChange={(v) => onChange("sectionNumberText", v)} />
+          <ColorInput value={(settings.sectionNumberText as string) || "#000000"} onChange={(v) => onChange("sectionNumberText", v)} />
         </Field>
       </div>
 
@@ -1191,10 +1196,10 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
       <p className="text-xs text-white/40">A bolinha de confirmação que aparece quando o campo é preenchido certo</p>
       <div className="space-y-3">
         <Field label="Bolinha — Fundo">
-          <ColorInput value={settings.checkmarkBg || "#16c789"} onChange={(v) => onChange("checkmarkBg", v)} />
+          <ColorInput value={(settings.checkmarkBg as string) || "#16c789"} onChange={(v) => onChange("checkmarkBg", v)} />
         </Field>
         <Field label="Bolinha — Check">
-          <ColorInput value={settings.checkmarkText || "#ffffff"} onChange={(v) => onChange("checkmarkText", v)} />
+          <ColorInput value={(settings.checkmarkText as string) || "#ffffff"} onChange={(v) => onChange("checkmarkText", v)} />
         </Field>
       </div>
 
@@ -1202,10 +1207,10 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
       <p className="text-xs text-white/40">Botão preto "Continuar para..."</p>
       <div className="space-y-3">
         <Field label="Fundo">
-          <ColorInput value={settings.continueBg || "#16c789"} onChange={(v) => onChange("continueBg", v)} />
+          <ColorInput value={(settings.continueBg as string) || "#16c789"} onChange={(v) => onChange("continueBg", v)} />
         </Field>
         <Field label="Texto">
-          <ColorInput value={settings.continueText || "#ffffff"} onChange={(v) => onChange("continueText", v)} />
+          <ColorInput value={(settings.continueText as string) || "#ffffff"} onChange={(v) => onChange("continueText", v)} />
         </Field>
       </div>
 
@@ -1213,23 +1218,23 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
       <p className="text-xs text-white/40">Botão amarelo de pagamento final</p>
       <div className="space-y-3">
         <Field label="Fundo">
-          <ColorInput value={settings.ctaBg || "#16c789"} onChange={(v) => onChange("ctaBg", v)} />
+          <ColorInput value={(settings.ctaBg as string) || "#16c789"} onChange={(v) => onChange("ctaBg", v)} />
         </Field>
         <Field label="Texto">
-          <ColorInput value={settings.ctaText || "#000000"} onChange={(v) => onChange("ctaText", v)} />
+          <ColorInput value={(settings.ctaText as string) || "#000000"} onChange={(v) => onChange("ctaText", v)} />
         </Field>
       </div>
 
       <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Layout</p>
       <div className="space-y-3">
         <Field label="Logo no cabeçalho do checkout">
-          <ImageUpload value={settings.logoImage || ""} onChange={(v) => onChange("logoImage", v)} />
+          <ImageUpload value={(settings.logoImage as string) || ""} onChange={(v) => onChange("logoImage", v)} />
         </Field>
         <Field label="Fundo do Header">
-          <ColorInput value={settings.headerBg || "#ffffff"} onChange={(v) => onChange("headerBg", v)} />
+          <ColorInput value={(settings.headerBg as string) || "#ffffff"} onChange={(v) => onChange("headerBg", v)} />
         </Field>
         <Field label="Fundo da Página">
-          <ColorInput value={settings.pageBg || "#F5F5F5"} onChange={(v) => onChange("pageBg", v)} />
+          <ColorInput value={(settings.pageBg as string) || "#F5F5F5"} onChange={(v) => onChange("pageBg", v)} />
         </Field>
       </div>
 
@@ -1267,7 +1272,7 @@ export function VisualEditorClient({
     footer:       getS(initialSettings, "ve_footer",       { bgColor: "#000000", textColor: "#9CA3AF", description: "" }),
     product_page: getS(initialSettings, "ve_product_page", { pageBgColor: "#F5F5F5", cartBg: "#FFCD11", cartText: "#000000", buyNowBg: "#000000", buyNowText: "#FFFFFF", priceColor: "#000000", badgeBg: "#EF4444", badgeText: "#FFFFFF", shippingBg: "#F0FDF4", reviewsBg: "#F9FAFB" }),
     cart:         getS(initialSettings, "ve_cart",         { headerBg: "#000000", headerText: "#ffffff", btnBg: "#FFCD11", btnText: "#000000", drawerBg: "#ffffff", quickaddBg: "#16c789", quickaddText: "#ffffff", cartPageBtnBg: "#FFCD11", cartPageBtnText: "#000000" }),
-    checkout:     getS(initialSettings, "ve_checkout",     { stepActiveBg: "#16c789", stepActiveText: "#ffffff", stepDoneBg: "#16c789", stepDoneText: "#ffffff", sectionNumberBg: "#FFCD11", sectionNumberText: "#000000", checkmarkBg: "#16c789", checkmarkText: "#ffffff", continueBg: "#16c789", continueText: "#ffffff", ctaBg: "#16c789", ctaText: "#ffffff", headerBg: "#ffffff", pageBg: "#F5F5F5", logoImage: "" }),
+    checkout:     getS(initialSettings, "ve_checkout",     { stepActiveBg: "#16c789", stepActiveText: "#ffffff", stepDoneBg: "#16c789", stepDoneText: "#ffffff", sectionNumberBg: "#FFCD11", sectionNumberText: "#000000", sectionNumberOutline: false, checkmarkBg: "#16c789", checkmarkText: "#ffffff", continueBg: "#16c789", continueText: "#ffffff", ctaBg: "#16c789", ctaText: "#ffffff", headerBg: "#ffffff", pageBg: "#F5F5F5", logoImage: "" }),
   });
 
   // Dynamic page sections

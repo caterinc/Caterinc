@@ -152,11 +152,17 @@ function ValidatedInput({
   );
 }
 
-function SectionHeader({ num, title }: { num: number; title: string }) {
+function SectionHeader({ num, title, outline = false }: { num: number; title: string; outline?: boolean }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
-        style={{ backgroundColor: SECTION_NUM_BG, color: SECTION_NUM_TEXT }}>
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
+        style={
+          outline
+            ? { backgroundColor: "transparent", border: `2px solid ${SECTION_NUM_BG}`, color: SECTION_NUM_BG }
+            : { backgroundColor: SECTION_NUM_BG, color: SECTION_NUM_TEXT }
+        }
+      >
         {num}
       </div>
       <h2 className="text-lg font-black text-gray-900">{title}</h2>
@@ -202,14 +208,16 @@ export default function CheckoutPage() {
   const [checkoutLogo, setCheckoutLogo] = useState("");
   const [checkoutLogoHeight, setCheckoutLogoHeight] = useState(32);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
+  const [sectionNumberOutline, setSectionNumberOutline] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d: { pixDiscountPct?: number; ve_checkout?: { logoImage?: string }; ve_header?: { logoMobileHeight?: number } }) => {
+      .then((d: { pixDiscountPct?: number; ve_checkout?: { logoImage?: string; sectionNumberOutline?: boolean }; ve_header?: { logoMobileHeight?: number } }) => {
         if (typeof d.pixDiscountPct === "number") setPixDiscountPct(d.pixDiscountPct);
         if (d.ve_checkout?.logoImage) setCheckoutLogo(d.ve_checkout.logoImage);
         if (typeof d.ve_header?.logoMobileHeight === "number") setCheckoutLogoHeight(d.ve_header.logoMobileHeight);
+        if (typeof d.ve_checkout?.sectionNumberOutline === "boolean") setSectionNumberOutline(d.ve_checkout.sectionNumberOutline);
       })
       .catch(() => {});
   }, []);
@@ -737,7 +745,7 @@ export default function CheckoutPage() {
           {stage === "dados" && (
             <div className="bg-white rounded-xl border p-4">
               <div className="flex items-center justify-between mb-1">
-                <SectionHeader num={1} title="Identificação" />
+                <SectionHeader num={1} title="Identificação" outline={sectionNumberOutline} />
                 <Link href="/carrinho" className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors">
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Voltar ao carrinho
@@ -766,7 +774,7 @@ export default function CheckoutPage() {
           {/* ── Step 2: Entrega ────────────────────────────────────────────── */}
           {stage === "endereco" && (
             <div className="bg-white rounded-xl border p-4">
-              <SectionHeader num={2} title="Entrega" />
+              <SectionHeader num={2} title="Entrega" outline={sectionNumberOutline} />
               <div className="space-y-3">
                 <div className="relative">
                   <ValidatedInput label="CEP" required valid={vZip}
@@ -850,7 +858,7 @@ export default function CheckoutPage() {
           {/* ── Step 3: Pagamento ──────────────────────────────────────────── */}
           {stage === "pagamento" && (
             <div className="bg-white rounded-xl border p-4 space-y-4">
-              <SectionHeader num={3} title="Pagamento" />
+              <SectionHeader num={3} title="Pagamento" outline={sectionNumberOutline} />
               <div className="space-y-2">
                 {([
                   { id: "pix",  label: "PIX",               desc: "Aprovação instantânea · Sem taxas", badge: "Recomendado" },
@@ -976,7 +984,7 @@ export default function CheckoutPage() {
             </>
           )}
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
-            <ShieldCheck className="w-3.5 h-3.5" style={{ color: STEP_COLOR }} />
+            <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#16c789" }} />
             Pagamento 100% seguro
           </div>
         </div>
