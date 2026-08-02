@@ -624,7 +624,7 @@ export default function CheckoutPage() {
           {freeShippingReached ? (
             <>
               <p className="font-black text-base text-gray-900">
-                Frete grátis desbloqueado! 🎉
+                Frete grátis desbloqueado!
               </p>
               <p className="text-sm text-gray-600 mt-0.5 flex items-center justify-center gap-2 flex-wrap">
                 Garanta em <CountdownTimer seconds={300} /> antes que expire
