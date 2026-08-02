@@ -128,6 +128,11 @@ function buildPreviewCSS(
   if (c(ck.stepActiveBg))    ckVars.push(`--vep-checkout-step-active-bg:${ck.stepActiveBg}`);
   if (c(ck.stepActiveText))  ckVars.push(`--vep-checkout-step-active-text:${ck.stepActiveText}`);
   if (c(ck.stepDoneBg))      ckVars.push(`--vep-checkout-step-done-bg:${ck.stepDoneBg}`);
+  if (c(ck.stepDoneText))    ckVars.push(`--vep-checkout-step-done-text:${ck.stepDoneText}`);
+  if (c(ck.sectionNumberBg))   ckVars.push(`--vep-checkout-section-num-bg:${ck.sectionNumberBg}`);
+  if (c(ck.sectionNumberText)) ckVars.push(`--vep-checkout-section-num-text:${ck.sectionNumberText}`);
+  if (c(ck.checkmarkBg))     ckVars.push(`--vep-checkout-checkmark-bg:${ck.checkmarkBg}`);
+  if (c(ck.checkmarkText))   ckVars.push(`--vep-checkout-checkmark-text:${ck.checkmarkText}`);
   if (c(ck.continueBg))      ckVars.push(`--vep-checkout-continue-bg:${ck.continueBg}`);
   if (c(ck.continueText))    ckVars.push(`--vep-checkout-continue-text:${ck.continueText}`);
   if (c(ck.ctaBg))           ckVars.push(`--vep-checkout-cta-bg:${ck.ctaBg}`);
@@ -1166,6 +1171,31 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
         <Field label="Passo Concluído — Fundo">
           <ColorInput value={settings.stepDoneBg || "#16c789"} onChange={(v) => onChange("stepDoneBg", v)} />
         </Field>
+        <Field label="Passo Concluído — Texto">
+          <ColorInput value={settings.stepDoneText || "#ffffff"} onChange={(v) => onChange("stepDoneText", v)} />
+        </Field>
+      </div>
+
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Números das Seções (1, 2, 3...)</p>
+      <p className="text-xs text-white/40">A bolinha numerada ao lado de &quot;Identificação&quot;, &quot;Entrega&quot;, etc. — independente do Indicador de Passos</p>
+      <div className="space-y-3">
+        <Field label="Bolinha — Fundo">
+          <ColorInput value={settings.sectionNumberBg || "#FFCD11"} onChange={(v) => onChange("sectionNumberBg", v)} />
+        </Field>
+        <Field label="Bolinha — Número">
+          <ColorInput value={settings.sectionNumberText || "#000000"} onChange={(v) => onChange("sectionNumberText", v)} />
+        </Field>
+      </div>
+
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Checkmark dos Campos</p>
+      <p className="text-xs text-white/40">A bolinha de confirmação que aparece quando o campo é preenchido certo</p>
+      <div className="space-y-3">
+        <Field label="Bolinha — Fundo">
+          <ColorInput value={settings.checkmarkBg || "#16c789"} onChange={(v) => onChange("checkmarkBg", v)} />
+        </Field>
+        <Field label="Bolinha — Check">
+          <ColorInput value={settings.checkmarkText || "#ffffff"} onChange={(v) => onChange("checkmarkText", v)} />
+        </Field>
       </div>
 
       <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Botão Continuar</p>
@@ -1237,7 +1267,7 @@ export function VisualEditorClient({
     footer:       getS(initialSettings, "ve_footer",       { bgColor: "#000000", textColor: "#9CA3AF", description: "" }),
     product_page: getS(initialSettings, "ve_product_page", { pageBgColor: "#F5F5F5", cartBg: "#FFCD11", cartText: "#000000", buyNowBg: "#000000", buyNowText: "#FFFFFF", priceColor: "#000000", badgeBg: "#EF4444", badgeText: "#FFFFFF", shippingBg: "#F0FDF4", reviewsBg: "#F9FAFB" }),
     cart:         getS(initialSettings, "ve_cart",         { headerBg: "#000000", headerText: "#ffffff", btnBg: "#FFCD11", btnText: "#000000", drawerBg: "#ffffff", quickaddBg: "#16c789", quickaddText: "#ffffff", cartPageBtnBg: "#FFCD11", cartPageBtnText: "#000000" }),
-    checkout:     getS(initialSettings, "ve_checkout",     { stepActiveBg: "#16c789", stepActiveText: "#ffffff", stepDoneBg: "#16c789", continueBg: "#16c789", continueText: "#ffffff", ctaBg: "#16c789", ctaText: "#ffffff", headerBg: "#ffffff", pageBg: "#F5F5F5", logoImage: "" }),
+    checkout:     getS(initialSettings, "ve_checkout",     { stepActiveBg: "#16c789", stepActiveText: "#ffffff", stepDoneBg: "#16c789", stepDoneText: "#ffffff", sectionNumberBg: "#FFCD11", sectionNumberText: "#000000", checkmarkBg: "#16c789", checkmarkText: "#ffffff", continueBg: "#16c789", continueText: "#ffffff", ctaBg: "#16c789", ctaText: "#ffffff", headerBg: "#ffffff", pageBg: "#F5F5F5", logoImage: "" }),
   });
 
   // Dynamic page sections

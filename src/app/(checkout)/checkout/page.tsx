@@ -39,6 +39,11 @@ interface PixResult    { orderId: string; orderNumber: string; qrCode: string; q
 const STEP_COLOR = "var(--vep-checkout-step-active-bg, #16c789)";
 const STEP_TEXT  = "var(--vep-checkout-step-active-text, #fff)";
 const DONE_COLOR = "var(--vep-checkout-step-done-bg, #16c789)";
+const DONE_TEXT  = "var(--vep-checkout-step-done-text, #fff)";
+const SECTION_NUM_BG   = "var(--vep-checkout-section-num-bg, #FFCD11)";
+const SECTION_NUM_TEXT = "var(--vep-checkout-section-num-text, #000000)";
+const CHECKMARK_BG   = "var(--vep-checkout-checkmark-bg, #16c789)";
+const CHECKMARK_TEXT = "var(--vep-checkout-checkmark-text, #fff)";
 
 // ─── Countdown Timer ──────────────────────────────────────────────────────────
 
@@ -90,8 +95,10 @@ function StepBar({ step }: { step: 0 | 1 | 2 }) {
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center z-10 border-2 transition-all"
               style={
-                done || active
+                active
                   ? { backgroundColor: STEP_COLOR, borderColor: STEP_COLOR, color: STEP_TEXT }
+                  : done
+                  ? { backgroundColor: DONE_COLOR, borderColor: DONE_COLOR, color: DONE_TEXT }
                   : { backgroundColor: "#fff", borderColor: "#D1D5DB", color: "#9CA3AF" }
               }
             >
@@ -136,8 +143,8 @@ function ValidatedInput({
         />
         {valid && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: STEP_COLOR }}>
-            <Check className="w-3 h-3" style={{ color: STEP_TEXT }} />
+            style={{ backgroundColor: CHECKMARK_BG }}>
+            <Check className="w-3 h-3" style={{ color: CHECKMARK_TEXT }} />
           </div>
         )}
       </div>
@@ -149,7 +156,7 @@ function SectionHeader({ num, title }: { num: number; title: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
       <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
-        style={{ backgroundColor: STEP_COLOR, color: STEP_TEXT }}>
+        style={{ backgroundColor: SECTION_NUM_BG, color: SECTION_NUM_TEXT }}>
         {num}
       </div>
       <h2 className="text-lg font-black text-gray-900">{title}</h2>
@@ -653,7 +660,7 @@ export default function CheckoutPage() {
 
           {/* Security note — at the start of the steps */}
           <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            <ShieldCheck className="w-3 h-3" style={{ color: "var(--vep-checkout-step-done-bg,#16c789)" }} />
+            <ShieldCheck className="w-3 h-3" style={{ color: "#16c789" }} />
             <span>Pagamento 100% seguro</span>
           </div>
 
