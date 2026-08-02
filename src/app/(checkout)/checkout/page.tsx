@@ -310,6 +310,42 @@ export default function CheckoutPage() {
     } catch {}
   }, [isHydrated, items.length]);
 
+  // Restaura o progresso do formulário (passo, dados, endereço) se a página
+  // recarregar no meio do checkout — comum em navegador embutido do
+  // Instagram/Facebook, que pode recarregar a página ao trocar de app.
+  const restoredShippingIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isHydrated || items.length === 0) return;
+    try {
+      const saved = sessionStorage.getItem("_checkout_progress");
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as {
+        stage?: Stage;
+        personal?: { name: string; email: string; cpf: string; phone: string };
+        address?: { zipCode: string; street: string; number: string; complement: string; district: string; city: string; state: string };
+        payMethod?: PayMethod;
+        selectedShippingId?: string | null;
+      };
+      if (parsed.personal) setPersonal(parsed.personal);
+      if (parsed.address) setAddress(parsed.address);
+      if (parsed.payMethod) setPayMethod(parsed.payMethod);
+      if (parsed.stage) setStage(parsed.stage);
+      if (parsed.selectedShippingId) restoredShippingIdRef.current = parsed.selectedShippingId;
+    } catch {}
+    // Only ever restore once, right after hydration — not on every cart change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated]);
+
+  // Keeps that saved progress up to date as the customer fills the form.
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      sessionStorage.setItem("_checkout_progress", JSON.stringify({
+        stage, personal, address, payMethod, selectedShippingId: selectedShipping?.id || null,
+      }));
+    } catch {}
+  }, [isHydrated, stage, personal, address, payMethod, selectedShipping]);
+
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
     : 0;
@@ -329,7 +365,10 @@ export default function CheckoutPage() {
     shippingFetchedRef.current = true;
     fetch("/api/shipping").then((r) => r.json()).then((data: ShippingMethod[]) => {
       setShippingMethods(data);
-      if (data.length > 0) setSelectedShipping(data[0]);
+      const restoredId = restoredShippingIdRef.current;
+      const restored = restoredId ? data.find((m) => m.id === restoredId) : undefined;
+      if (restored) setSelectedShipping(restored);
+      else if (data.length > 0) setSelectedShipping(data[0]);
     }).catch(() => { shippingFetchedRef.current = false; });
   }, [address.zipCode]);
 
@@ -393,16 +432,23 @@ export default function CheckoutPage() {
       });
       const data = (await res.json()) as { error?: string; orderId?: string; orderNumber?: string; total?: number; qrCode?: string; qrCodeBase64?: string; barcode?: string; pdfUrl?: string | null; status?: string; statusDetail?: string; merchantName?: string };
       if (!res.ok) throw new Error(data.error || "Erro ao processar pedido");
-      dispatch({ type: "CLEAR" });
       if (payMethod === "pix") {
+        dispatch({ type: "CLEAR" });
         const pr: PixResult = { orderId: data.orderId!, orderNumber: data.orderNumber!, qrCode: data.qrCode!, qrCodeBase64: data.qrCodeBase64!, total: data.total!, merchantName: data.merchantName };
         setPixResult(pr);
         setStage("pix");
-        try { sessionStorage.setItem("_pix_result", JSON.stringify({ ...pr, savedAt: Date.now(), timerLeft: 600 })); } catch {}
+        try {
+          sessionStorage.setItem("_pix_result", JSON.stringify({ ...pr, savedAt: Date.now(), timerLeft: 600 }));
+          sessionStorage.removeItem("_checkout_progress");
+        } catch {}
       } else {
         if (data.status === "rejected") {
+          // Card declined: keep the cart intact so the customer can fix the
+          // card and retry, instead of getting bounced to "Carrinho vazio".
           toast({ title: "Cartão recusado", description: data.statusDetail || "Verifique os dados.", variant: "destructive" });
         } else {
+          dispatch({ type: "CLEAR" });
+          try { sessionStorage.removeItem("_checkout_progress"); } catch {}
           router.push(`/pedido-confirmado/${data.orderNumber}`);
         }
       }
