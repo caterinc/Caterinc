@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ShoppingCart, User, Search, X, ChevronRight, Truck } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CartDrawer } from "./CartDrawer";
 
 interface MenuItem {
@@ -22,9 +22,50 @@ export interface HeaderProps {
   logoMobileHeight?: number;
   headerBgColor?: string;
   headerLinkColor?: string;
-  announcementText?: string;
+  announcementTexts?: string[];
+  announcementIntervalSeconds?: number;
   announcementBgColor?: string;
   announcementTextColor?: string;
+}
+
+function AnnouncementBar({
+  texts, intervalSeconds, bgColor, textColor,
+}: {
+  texts: string[]; intervalSeconds: number; bgColor: string; textColor: string;
+}) {
+  const [index, setIndex] = useState(0);
+
+  // Reset to the first message whenever the configured text list actually changes content
+  const textsKey = texts.join("");
+  useEffect(() => {
+    setIndex(0);
+  }, [textsKey]);
+
+  useEffect(() => {
+    if (texts.length <= 1) return;
+    const ms = Math.max(1, intervalSeconds) * 1000;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % texts.length);
+    }, ms);
+    return () => clearInterval(id);
+  }, [texts.length, intervalSeconds]);
+
+  const safeIndex = texts.length > 0 ? index % texts.length : 0;
+  const current = texts[safeIndex] || "";
+
+  return (
+    <div
+      data-ve-section="announcement"
+      data-ve-label="Barra de Anúncio"
+      suppressHydrationWarning
+      className="text-xs text-center py-1.5 font-semibold overflow-hidden"
+      style={{ backgroundColor: bgColor, color: textColor }}
+    >
+      <span key={safeIndex} className="block truncate px-6 animate-ann-fade">
+        {current}
+      </span>
+    </div>
+  );
 }
 
 export function Header({
@@ -35,7 +76,8 @@ export function Header({
   logoMobileHeight = 32,
   headerBgColor,
   headerLinkColor,
-  announcementText = "Frete grátis acima de R$ 299 | Entrega em todo o Brasil",
+  announcementTexts = ["Frete grátis acima de R$ 299 | Entrega em todo o Brasil"],
+  announcementIntervalSeconds = 3,
   announcementBgColor = "#FFCD11",
   announcementTextColor = "#000000",
 }: HeaderProps) {
@@ -87,15 +129,15 @@ export function Header({
         style={bgStyle}
       >
         {/* Announcement bar */}
-        <div
-          data-ve-section="announcement"
-          data-ve-label="Barra de Anúncio"
-          suppressHydrationWarning
-          className="text-xs text-center py-1.5 font-semibold"
-          style={{ backgroundColor: announcementBgColor, color: announcementTextColor }}
-        >
-          {announcementText}
-        </div>
+        <AnnouncementBar
+          texts={(() => {
+            const clean = announcementTexts.filter((t) => t.trim().length > 0);
+            return clean.length > 0 ? clean : ["Frete grátis acima de R$ 299 | Entrega em todo o Brasil"];
+          })()}
+          intervalSeconds={announcementIntervalSeconds}
+          bgColor={announcementBgColor}
+          textColor={announcementTextColor}
+        />
 
         {/* Main row: hamburger/search | logo | user/cart */}
         <div className="relative max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">

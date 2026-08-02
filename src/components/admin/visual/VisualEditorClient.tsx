@@ -305,18 +305,56 @@ function SaveBtn({ saving, onClick, label = "Salvar" }: { saving: boolean; onCli
 // ─── Section editors ──────────────────────────────────────────────────────────
 
 function AnnouncementEditor({ settings, onChange, onSave, saving }: {
-  settings: Record<string, string>; onChange: (k: string, v: string) => void; onSave: () => void; saving: boolean;
+  settings: Record<string, unknown>; onChange: (k: string, v: unknown) => void; onSave: () => void; saving: boolean;
 }) {
+  const rawTexts = settings.texts;
+  const texts: string[] = Array.isArray(rawTexts) && rawTexts.length > 0
+    ? (rawTexts as string[])
+    : [(settings.text as string) || "Frete grátis acima de R$ 299 | Entrega em todo o Brasil"];
+  const interval = Number(settings.intervalSeconds) || 3;
+
+  const updateTexts = (next: string[]) => onChange("texts", next);
+
   return (
     <div className="space-y-3">
-      <Field label="Texto">
-        <TextInput value={settings.text || ""} onChange={(v) => onChange("text", v)} placeholder="Frete grátis acima de R$ 299..." />
+      <Field label="Textos (giram automaticamente se houver mais de um)">
+        <div className="space-y-1.5">
+          {texts.map((t, i) => (
+            <div key={i} className="flex gap-1.5 items-center">
+              <TextInput
+                value={t}
+                onChange={(v) => updateTexts(texts.map((x, idx) => (idx === i ? v : x)))}
+                placeholder="Frete grátis acima de R$ 299..."
+              />
+              {texts.length > 1 && (
+                <button
+                  onClick={() => updateTexts(texts.filter((_, idx) => idx !== i))}
+                  className="text-white/40 hover:text-red-500 p-1 flex-shrink-0"
+                  aria-label="Remover texto"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => updateTexts([...texts, ""])}
+          className="mt-1.5 w-full py-1.5 border-2 border-dashed border-white/20 rounded text-xs text-white/50 hover:border-cat-yellow hover:text-white flex items-center justify-center gap-1"
+        >
+          <Plus className="w-3 h-3" /> Adicionar texto
+        </button>
       </Field>
+      {texts.length > 1 && (
+        <Field label={`Trocar de texto a cada: ${interval}s`}>
+          <SliderInput value={interval} onChange={(v) => onChange("intervalSeconds", v)} min={2} max={15} unit="s" />
+        </Field>
+      )}
       <Field label="Cor de Fundo">
-        <ColorInput value={settings.bgColor || "#FFCD11"} onChange={(v) => onChange("bgColor", v)} />
+        <ColorInput value={(settings.bgColor as string) || "#FFCD11"} onChange={(v) => onChange("bgColor", v)} />
       </Field>
       <Field label="Cor do Texto">
-        <ColorInput value={settings.textColor || "#000000"} onChange={(v) => onChange("textColor", v)} />
+        <ColorInput value={(settings.textColor as string) || "#000000"} onChange={(v) => onChange("textColor", v)} />
       </Field>
       <SaveBtn saving={saving} onClick={onSave} />
     </div>
@@ -1154,6 +1192,9 @@ function CheckoutEditor({ settings, onChange, onSave, saving }: {
 
       <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider pt-1">Layout</p>
       <div className="space-y-3">
+        <Field label="Logo no cabeçalho do checkout">
+          <ImageUpload value={settings.logoImage || ""} onChange={(v) => onChange("logoImage", v)} />
+        </Field>
         <Field label="Fundo do Header">
           <ColorInput value={settings.headerBg || "#ffffff"} onChange={(v) => onChange("headerBg", v)} />
         </Field>
@@ -1196,7 +1237,7 @@ export function VisualEditorClient({
     footer:       getS(initialSettings, "ve_footer",       { bgColor: "#000000", textColor: "#9CA3AF", description: "" }),
     product_page: getS(initialSettings, "ve_product_page", { pageBgColor: "#F5F5F5", cartBg: "#FFCD11", cartText: "#000000", buyNowBg: "#000000", buyNowText: "#FFFFFF", priceColor: "#000000", badgeBg: "#EF4444", badgeText: "#FFFFFF", shippingBg: "#F0FDF4", reviewsBg: "#F9FAFB" }),
     cart:         getS(initialSettings, "ve_cart",         { headerBg: "#000000", headerText: "#ffffff", btnBg: "#FFCD11", btnText: "#000000", drawerBg: "#ffffff", quickaddBg: "#16c789", quickaddText: "#ffffff", cartPageBtnBg: "#FFCD11", cartPageBtnText: "#000000" }),
-    checkout:     getS(initialSettings, "ve_checkout",     { stepActiveBg: "#16c789", stepActiveText: "#ffffff", stepDoneBg: "#16c789", continueBg: "#16c789", continueText: "#ffffff", ctaBg: "#16c789", ctaText: "#ffffff", headerBg: "#ffffff", pageBg: "#F5F5F5" }),
+    checkout:     getS(initialSettings, "ve_checkout",     { stepActiveBg: "#16c789", stepActiveText: "#ffffff", stepDoneBg: "#16c789", continueBg: "#16c789", continueText: "#ffffff", ctaBg: "#16c789", ctaText: "#ffffff", headerBg: "#ffffff", pageBg: "#F5F5F5", logoImage: "" }),
   });
 
   // Dynamic page sections

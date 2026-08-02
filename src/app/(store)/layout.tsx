@@ -69,7 +69,16 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         logoMobileHeight={Number(vh.logoMobileHeight) || 32}
         headerBgColor={(vh.bgColor as string) || undefined}
         headerLinkColor={(vh.linkColor as string) || undefined}
-        announcementText={(va.text as string) || (sm.announcementText as string) || undefined}
+        announcementTexts={(() => {
+          const raw = va.texts;
+          const arr = Array.isArray(raw)
+            ? raw.filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+            : [];
+          if (arr.length > 0) return arr;
+          const legacy = (va.text as string) || (sm.announcementText as string) || undefined;
+          return legacy ? [legacy] : undefined;
+        })()}
+        announcementIntervalSeconds={Number(va.intervalSeconds) || undefined}
         announcementBgColor={(va.bgColor as string) || undefined}
         announcementTextColor={(va.textColor as string) || undefined}
       />

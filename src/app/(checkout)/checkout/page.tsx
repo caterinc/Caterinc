@@ -192,12 +192,16 @@ export default function CheckoutPage() {
   // consent removed — hardcoded true in payload
   const [payMethod, setPayMethod] = useState<PayMethod>("pix");
   const [pixDiscountPct, setPixDiscountPct] = useState(5);
+  const [checkoutLogo, setCheckoutLogo] = useState("");
+  const [checkoutLogoHeight, setCheckoutLogoHeight] = useState(32);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d: { pixDiscountPct?: number }) => {
+      .then((d: { pixDiscountPct?: number; ve_checkout?: { logoImage?: string }; ve_header?: { logoMobileHeight?: number } }) => {
         if (typeof d.pixDiscountPct === "number") setPixDiscountPct(d.pixDiscountPct);
+        if (d.ve_checkout?.logoImage) setCheckoutLogo(d.ve_checkout.logoImage);
+        if (typeof d.ve_header?.logoMobileHeight === "number") setCheckoutLogoHeight(d.ve_header.logoMobileHeight);
       })
       .catch(() => {});
   }, []);
@@ -589,11 +593,23 @@ export default function CheckoutPage() {
 
       {/* ── Top header ──────────────────────────────────────────────────────── */}
       <div className="border-b flex-shrink-0" style={{ backgroundColor: "var(--vep-checkout-header-bg,#fff)" }}>
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-end">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          {checkoutLogo ? (
+            <Image
+              src={checkoutLogo}
+              alt="Logo"
+              width={200}
+              height={checkoutLogoHeight}
+              style={{ height: `${checkoutLogoHeight}px`, width: "auto", objectFit: "contain" }}
+            />
+          ) : <span />}
+          <Link
+            href="/paginas/formas-de-pagamento"
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition-colors flex-shrink-0"
+          >
             <ShieldCheck className="w-4 h-4" style={{ color: "var(--vep-checkout-step-done-bg,#16c789)" }} />
             <span className="uppercase tracking-wide text-[10px] leading-tight">PAGAMENTO<br/>100% SEGURO</span>
-          </div>
+          </Link>
         </div>
       </div>
 
