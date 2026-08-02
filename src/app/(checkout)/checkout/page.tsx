@@ -137,7 +137,7 @@ function ValidatedInput({
         {valid && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center"
             style={{ backgroundColor: STEP_COLOR }}>
-            <Check className="w-3 h-3 text-white" />
+            <Check className="w-3 h-3" style={{ color: STEP_TEXT }} />
           </div>
         )}
       </div>
