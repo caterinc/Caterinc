@@ -194,6 +194,7 @@ export default function CheckoutPage() {
   const [pixDiscountPct, setPixDiscountPct] = useState(5);
   const [checkoutLogo, setCheckoutLogo] = useState("");
   const [checkoutLogoHeight, setCheckoutLogoHeight] = useState(32);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -204,6 +205,15 @@ export default function CheckoutPage() {
         if (typeof d.ve_header?.logoMobileHeight === "number") setCheckoutLogoHeight(d.ve_header.logoMobileHeight);
       })
       .catch(() => {});
+  }, []);
+
+  // Fetched independently (not gated behind CEP entry, unlike shippingMethods below)
+  // so the free-shipping progress banner has data from the very first screen.
+  useEffect(() => {
+    fetch("/api/shipping").then((r) => r.json()).then((data: ShippingMethod[]) => {
+      const min = data.reduce((m, x) => (x.freeAbove !== null && x.freeAbove < m ? x.freeAbove : m), Infinity);
+      if (Number.isFinite(min)) setFreeShippingThreshold(min);
+    }).catch(() => {});
   }, []);
 
   const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "" });
@@ -288,6 +298,8 @@ export default function CheckoutPage() {
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
     : 0;
+  const freeShippingReached = freeShippingThreshold !== null && total >= freeShippingThreshold;
+  const missingForFreeShipping = freeShippingThreshold !== null ? Math.max(0, freeShippingThreshold - total) : 0;
   // Mirrors the server's calculation in /api/payments/create: discount is on
   // the products only, not on shipping.
   const discountedTotal = payMethod === "pix" ? total * (1 - pixDiscountPct / 100) : total;
@@ -592,9 +604,9 @@ export default function CheckoutPage() {
     <div className="min-h-[100dvh] flex flex-col" style={{ backgroundColor: "var(--vep-checkout-page-bg,#F5F5F5)" }}>
 
       {/* ── Top header ──────────────────────────────────────────────────────── */}
-      <div className="border-b flex-shrink-0" style={{ backgroundColor: "var(--vep-checkout-header-bg,#fff)" }}>
-        <div className="max-w-lg mx-auto px-4 py-3 flex flex-col items-center gap-1">
-          {checkoutLogo && (
+      {checkoutLogo && (
+        <div className="border-b flex-shrink-0" style={{ backgroundColor: "var(--vep-checkout-header-bg,#fff)" }}>
+          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-center">
             <Image
               src={checkoutLogo}
               alt="Logo"
@@ -602,29 +614,48 @@ export default function CheckoutPage() {
               height={checkoutLogoHeight}
               style={{ height: `${checkoutLogoHeight}px`, width: "auto", objectFit: "contain" }}
             />
-          )}
-          <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-            <ShieldCheck className="w-3 h-3" style={{ color: "var(--vep-checkout-step-done-bg,#16c789)" }} />
-            <span>Pagamento 100% seguro</span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── Urgency banner ──────────────────────────────────────────────────── */}
       <div className="bg-white border-b flex-shrink-0">
         <div className="max-w-lg mx-auto px-4 py-3 text-center">
-          <p className="font-black text-base text-gray-900">
-            Desconto e Frete grátis apenas hoje!
-          </p>
-          <p className="text-sm text-gray-600 mt-0.5 flex items-center justify-center gap-2 flex-wrap">
-            Você tem <CountdownTimer seconds={300} /> para finalizar seu pedido
-          </p>
+          {freeShippingReached ? (
+            <>
+              <p className="font-black text-base text-gray-900">
+                Frete grátis desbloqueado! 🎉
+              </p>
+              <p className="text-sm text-gray-600 mt-0.5 flex items-center justify-center gap-2 flex-wrap">
+                Garanta em <CountdownTimer seconds={300} /> antes que expire
+              </p>
+            </>
+          ) : freeShippingThreshold !== null ? (
+            <p className="font-black text-base text-gray-900">
+              Faltam {formatPrice(missingForFreeShipping)} para o frete grátis!
+            </p>
+          ) : (
+            <>
+              <p className="font-black text-base text-gray-900">
+                Desconto e Frete grátis apenas hoje!
+              </p>
+              <p className="text-sm text-gray-600 mt-0.5 flex items-center justify-center gap-2 flex-wrap">
+                Você tem <CountdownTimer seconds={300} /> para finalizar seu pedido
+              </p>
+            </>
+          )}
         </div>
       </div>
 
       {/* ── Scrollable content ──────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 pt-5 pb-6">
+
+          {/* Security note — at the start of the steps */}
+          <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            <ShieldCheck className="w-3 h-3" style={{ color: "var(--vep-checkout-step-done-bg,#16c789)" }} />
+            <span>Pagamento 100% seguro</span>
+          </div>
 
           {/* Step bar */}
           <StepBar step={stepIdx as 0 | 1 | 2} />
