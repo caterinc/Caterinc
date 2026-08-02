@@ -58,10 +58,10 @@ function AnnouncementBar({
       data-ve-section="announcement"
       data-ve-label="Barra de Anúncio"
       suppressHydrationWarning
-      className="text-xs text-center py-1.5 font-semibold overflow-hidden"
+      className="text-sm text-center py-1.5 font-bold tracking-wide overflow-hidden"
       style={{ backgroundColor: bgColor, color: textColor }}
     >
-      <span key={safeIndex} className="block truncate px-6 animate-ann-fade">
+      <span key={safeIndex} className="block truncate px-4 animate-ann-fade">
         {current}
       </span>
     </div>

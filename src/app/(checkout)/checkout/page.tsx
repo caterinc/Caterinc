@@ -593,8 +593,8 @@ export default function CheckoutPage() {
 
       {/* ── Top header ──────────────────────────────────────────────────────── */}
       <div className="border-b flex-shrink-0" style={{ backgroundColor: "var(--vep-checkout-header-bg,#fff)" }}>
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          {checkoutLogo ? (
+        <div className="max-w-lg mx-auto px-4 py-3 flex flex-col items-center gap-1">
+          {checkoutLogo && (
             <Image
               src={checkoutLogo}
               alt="Logo"
@@ -602,14 +602,11 @@ export default function CheckoutPage() {
               height={checkoutLogoHeight}
               style={{ height: `${checkoutLogoHeight}px`, width: "auto", objectFit: "contain" }}
             />
-          ) : <span />}
-          <Link
-            href="/paginas/formas-de-pagamento"
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition-colors flex-shrink-0"
-          >
-            <ShieldCheck className="w-4 h-4" style={{ color: "var(--vep-checkout-step-done-bg,#16c789)" }} />
-            <span className="uppercase tracking-wide text-[10px] leading-tight">PAGAMENTO<br/>100% SEGURO</span>
-          </Link>
+          )}
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+            <ShieldCheck className="w-3 h-3" style={{ color: "var(--vep-checkout-step-done-bg,#16c789)" }} />
+            <span>Pagamento 100% seguro</span>
+          </div>
         </div>
       </div>
 
