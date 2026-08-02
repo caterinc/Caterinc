@@ -5,6 +5,8 @@ import Image from "next/image";
 import { formatPrice, formatDateTime, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { OrderActions } from "./OrderActions";
+import { eventIcon, formatEventLabel } from "@/lib/session-format";
+import { Compass } from "lucide-react";
 
 export default async function AdminOrderDetailPage({ params }: { params: { id: string } }) {
   const order = await prisma.order.findFirst({
@@ -19,6 +21,14 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
   if (!order) notFound();
 
   const addr = order.shippingAddress as Record<string, string>;
+  const sessionId = (order.utmData as Record<string, string> | null)?.externalId || null;
+  const navigation = sessionId
+    ? await prisma.sessionEvent.findMany({
+        where: { sessionId },
+        orderBy: { createdAt: "asc" },
+        select: { type: true, page: true, label: true, scrollPct: true, createdAt: true },
+      })
+    : [];
 
   return (
     <div className="max-w-4xl">
@@ -83,6 +93,41 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
                 </li>
               ))}
             </ol>
+          </div>
+
+          {/* Navigation history */}
+          <div className="bg-white rounded-xl border p-6">
+            <h2 className="font-bold mb-4 flex items-center gap-2">
+              <Compass className="w-4 h-4 text-gray-400" />
+              Navegação do Cliente
+            </h2>
+            {navigation.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                {sessionId
+                  ? "Nenhum evento de navegação encontrado pra essa sessão."
+                  : "Pedido anterior ao rastreamento de navegação — não disponível."}
+              </p>
+            ) : (
+              <ol className="relative border-l-2 border-gray-200 ml-3 space-y-4 max-h-[480px] overflow-y-auto pr-2">
+                {navigation.map((ev, i) => {
+                  const { Icon, color, bg } = eventIcon(ev.type, ev.label);
+                  return (
+                    <li key={i} className="ml-5">
+                      <span
+                        className="absolute -left-[15px] w-7 h-7 rounded-full ring-2 ring-white flex items-center justify-center"
+                        style={{ background: bg }}
+                      >
+                        <Icon className="w-3.5 h-3.5" style={{ color }} />
+                      </span>
+                      <p className="font-medium text-sm">{formatEventLabel(ev)}</p>
+                      <p className="text-xs text-gray-400">
+                        {ev.createdAt.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </div>
         </div>
 

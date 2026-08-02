@@ -20,11 +20,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false });
     }
 
-    // Cleanup events older than 2 hours (10% chance per request to avoid overhead)
+    // Cleanup events older than 2 hours (10% chance per request to avoid overhead).
+    // Events whose sessionId is linked to an Order (utmData.externalId) are kept
+    // forever so the admin's per-order navigation history stays available.
     if (Math.random() < 0.1) {
-      await prisma.sessionEvent.deleteMany({
-        where: { createdAt: { lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } },
-      });
+      await prisma.$executeRaw`
+        DELETE FROM "SessionEvent"
+        WHERE "createdAt" < ${new Date(Date.now() - 2 * 60 * 60 * 1000)}
+        AND "sessionId" NOT IN (
+          SELECT "utmData"->>'externalId' FROM "Order" WHERE "utmData"->>'externalId' IS NOT NULL
+        )
+      `;
     }
 
     await prisma.sessionEvent.createMany({
