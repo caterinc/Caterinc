@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
-import { sendMetaEvent } from "@/lib/meta-capi";
+import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
 import { vezionGetTransaction } from "@/lib/vezion";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
       const fbc = utms?.fbc || null;
       const fbp = utms?.fbp || null;
       const externalId = utms?.externalId || null;
+      const pixelSource = (utms?.pixelSource as PixelSource | undefined) || null;
 
       sendUtmifyEvent(
         order.orderNumber, "paid",
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
         firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
         value: Number(order.total), currency: "BRL",
         contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-        orderId: order.orderNumber, fbc, fbp, externalId,
+        orderId: order.orderNumber, fbc, fbp, externalId, pixelSource,
       }).catch((e) => console.error("[Cron/Meta]", e));
 
       confirmed++;

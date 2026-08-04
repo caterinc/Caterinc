@@ -46,6 +46,7 @@ export function ProductPageClient({
       const fbc = localStorage.getItem("_fbc") || undefined;
       const fbp = localStorage.getItem("_fbp") || undefined;
       const externalId = localStorage.getItem("_sid") || undefined;
+      const pixelSource = localStorage.getItem("_pxsrc") || undefined;
       fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,7 +55,7 @@ export function ProductPageClient({
           productId: product.id,
           productName: product.name,
           value: product.price,
-          fbc, fbp, externalId,
+          fbc, fbp, externalId, pixelSource,
         }),
       }).catch(() => {});
     } catch {}

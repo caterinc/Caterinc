@@ -1,7 +1,15 @@
 import crypto from "crypto";
 
-const PIXEL_ID = "1416227430378100";
-const VSL_URL = "https://forces-one.com";
+// Two ad accounts, two pixels. "base" = second ad account, whose ads point to
+// forces-one.com/base instead of the root — that path is the identifier that
+// travels with the lead (localStorage `_pxsrc`) all the way to Purchase, so we
+// know which pixel/token pair to report each event to.
+const PIXELS = {
+  default: { id: "1416227430378100", token: "META_CAPI_TOKEN", url: "https://forces-one.com" },
+  base: { id: "2279972799414051", token: "META_CAPI_TOKEN_2", url: "https://forces-one.com/base" },
+} as const;
+
+export type PixelSource = keyof typeof PIXELS;
 
 function hash(value: string): string {
   return crypto.createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
@@ -28,10 +36,12 @@ interface MetaEventParams {
   externalId?: string | null;
   clientIp?: string | null;
   clientUserAgent?: string | null;
+  pixelSource?: PixelSource | null;
 }
 
 export async function sendMetaEvent(params: MetaEventParams): Promise<void> {
-  const token = process.env.META_CAPI_TOKEN;
+  const pixel = PIXELS[params.pixelSource === "base" ? "base" : "default"];
+  const token = process.env[pixel.token];
   if (!token) return;
 
   const userData: Record<string, unknown> = {};
@@ -62,14 +72,14 @@ export async function sendMetaEvent(params: MetaEventParams): Promise<void> {
       event_time: Math.floor(Date.now() / 1000),
       event_id: params.eventId,
       action_source: "website",
-      event_source_url: VSL_URL,
+      event_source_url: pixel.url,
       user_data: userData,
       custom_data: Object.keys(customData).length > 0 ? customData : undefined,
     }],
   };
 
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/${PIXEL_ID}/events?access_token=${token}`,
+    `https://graph.facebook.com/v18.0/${pixel.id}/events?access_token=${token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

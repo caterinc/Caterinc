@@ -32,7 +32,7 @@ export default async function CheckoutLayout({ children }: { children: React.Rea
   return (
     <>
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `:root{${css}}` }} />
-      <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var fbclid=p.get('fbclid');if(fbclid)localStorage.setItem('_fbc','fb.1.'+Date.now()+'.'+fbclid);var fbp=p.get('fbp');if(fbp)localStorage.setItem('_fbp',fbp);if(!localStorage.getItem('_sid')){localStorage.setItem('_sid',Math.random().toString(36).slice(2)+Date.now().toString(36));}}catch(e){}})();` }} />
+      <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var fbclid=p.get('fbclid');if(fbclid)localStorage.setItem('_fbc','fb.1.'+Date.now()+'.'+fbclid);var fbp=p.get('fbp');if(fbp)localStorage.setItem('_fbp',fbp);var px=p.get('px');if(px)localStorage.setItem('_pxsrc',px);if(!localStorage.getItem('_sid')){localStorage.setItem('_sid',Math.random().toString(36).slice(2)+Date.now().toString(36));}}catch(e){}})();` }} />
       <PresenceTracker />
       <SessionRecorder />
       {children}

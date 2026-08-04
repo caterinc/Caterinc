@@ -274,11 +274,12 @@ export default function CheckoutPage() {
       const fbc = fbclid ? `fb.1.${Date.now()}.${fbclid}` : localStorage.getItem("_fbc");
       const fbp = fbpParam || localStorage.getItem("_fbp");
       const externalId = localStorage.getItem("_sid") || undefined;
+      const pixelSource = localStorage.getItem("_pxsrc") || undefined;
 
       fetch("/api/payments/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fbc, fbp, externalId }),
+        body: JSON.stringify({ fbc, fbp, externalId, pixelSource }),
       }).catch(() => {});
 
     } catch {}
@@ -413,8 +414,8 @@ export default function CheckoutPage() {
       const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];
       const utmData: Record<string, string> = {};
       try { utmKeys.forEach((k) => { const v = localStorage.getItem('_utm_' + k); if (v) utmData[k] = v; }); } catch {}
-      let fbc: string | null = null; let fbp: string | null = null; let externalId: string | null = null;
-      try { fbc = localStorage.getItem("_fbc"); fbp = localStorage.getItem("_fbp"); externalId = localStorage.getItem("_sid"); } catch {}
+      let fbc: string | null = null; let fbp: string | null = null; let externalId: string | null = null; let pixelSource: string | null = null;
+      try { fbc = localStorage.getItem("_fbc"); fbp = localStorage.getItem("_fbp"); externalId = localStorage.getItem("_sid"); pixelSource = localStorage.getItem("_pxsrc"); } catch {}
 
       const res = await fetch("/api/payments/create", {
         method: "POST",
@@ -423,7 +424,7 @@ export default function CheckoutPage() {
           personal, address, paymentMethod: payMethod, cardFormData: cardFormData || null,
           consent: true, shippingMethodId: selectedShipping?.id || null,
           utmData: Object.keys(utmData).length > 0 ? utmData : null,
-          fbc, fbp, externalId,
+          fbc, fbp, externalId, pixelSource,
           cartItems: items.map((i) => ({
             productId: i.productId, variantId: i.variantId || null, name: i.name,
             price: i.price, quantity: i.quantity, size: i.size || null, color: i.color || null, image: i.image || null,

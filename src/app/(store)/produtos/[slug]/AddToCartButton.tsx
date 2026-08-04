@@ -65,11 +65,12 @@ export function AddToCartButton({ product, sizes, colors }: Props) {
       const fbc = localStorage.getItem("_fbc");
       const fbp = localStorage.getItem("_fbp");
       const externalId = localStorage.getItem("_sid");
+      const pixelSource = localStorage.getItem("_pxsrc");
       fetch("/api/payments/add-to-cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fbc, fbp, externalId,
+          fbc, fbp, externalId, pixelSource,
           value: selectedVariant.price ? Number(selectedVariant.price) : Number(product.price),
           currency: "BRL",
           contentId: product.id,

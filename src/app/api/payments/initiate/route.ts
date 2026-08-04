@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendMetaEvent } from "@/lib/meta-capi";
+import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     || null;
   const clientUserAgent = req.headers.get("user-agent") || null;
 
-  let body: { fbc?: string | null; fbp?: string | null; externalId?: string | null; value?: number } = {};
+  let body: { fbc?: string | null; fbp?: string | null; externalId?: string | null; pixelSource?: PixelSource | null; value?: number } = {};
   try { body = await req.json(); } catch {}
 
   sendMetaEvent({
@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     fbc: body.fbc || null,
     fbp: body.fbp || null,
     externalId: body.externalId || null,
+    pixelSource: body.pixelSource || null,
     value: body.value,
     currency: "BRL",
     clientIp,

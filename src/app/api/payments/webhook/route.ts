@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
-import { sendMetaEvent } from "@/lib/meta-capi";
+import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ async function firePostPaymentEvents(order: {
   const fbc   = utms?.fbc || null;
   const fbp   = utms?.fbp || null;
   const externalId = utms?.externalId || null;
+  const pixelSource = (utms?.pixelSource as PixelSource | undefined) || null;
 
   sendUtmifyEvent(
     order.orderNumber, "paid",
@@ -32,7 +33,7 @@ async function firePostPaymentEvents(order: {
     firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
     value: Number(order.total), currency: "BRL",
     contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-    orderId: order.orderNumber, fbc, fbp, externalId,
+    orderId: order.orderNumber, fbc, fbp, externalId, pixelSource,
   }).catch((e) => console.error("[Meta CAPI] webhook error:", e));
 }
 
