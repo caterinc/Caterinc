@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const PIXEL_ID = "4175072332792545";
+const PIXEL_ID = "1416227430378100";
 const VSL_URL = "https://forces-one.com";
 
 function hash(value: string): string {
