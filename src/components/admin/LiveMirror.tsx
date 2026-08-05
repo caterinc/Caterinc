@@ -28,15 +28,18 @@ const GLASS: React.CSSProperties = {
 const LIVE_POLL_MS = 1000;
 
 export function LiveMirror({ sessionId, active }: { sessionId: string; active: boolean }) {
+  const VSL_ORIGIN = "https://forces-one.com";
+
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const [typing, setTyping] = useState<TypingData | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const loadedPathRef = useRef<string | null>(null);
+  const loadedKeyRef = useRef<string | null>(null);
+  const targetOriginRef = useRef<string>("");
   const lastPhotoRef = useRef<number | null>(null);
   const lastScrollRef = useRef<number | null>(null);
 
   useEffect(() => {
-    loadedPathRef.current = null;
+    loadedKeyRef.current = null;
     lastPhotoRef.current = null;
     lastScrollRef.current = null;
     setIframeSrc(null);
@@ -50,15 +53,19 @@ export function LiveMirror({ sessionId, active }: { sessionId: string; active: b
       try {
         const res = await fetch(`/api/admin/sessions/mirror?sessionId=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
         if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { ok: boolean } & Partial<MirrorState>;
+        const data = (await res.json()) as { ok: boolean } & Partial<MirrorState & { page: string | null }>;
         if (!data.ok) return;
 
-        // Reload the iframe only when the customer actually navigated
-        if (data.path && data.path !== loadedPathRef.current) {
-          loadedPathRef.current = data.path;
+        // Reload the iframe only when the customer actually navigated (page or path changed)
+        const key = `${data.page ?? ""}|${data.path ?? ""}`;
+        if (data.path && key !== loadedKeyRef.current) {
+          loadedKeyRef.current = key;
           lastPhotoRef.current = null;
           lastScrollRef.current = null;
-          setIframeSrc(`${data.path}${data.path.includes("?") ? "&" : "?"}__mirror=1`);
+          const isVsl = data.page === "vsl";
+          targetOriginRef.current = isVsl ? VSL_ORIGIN : window.location.origin;
+          const base = isVsl ? `${VSL_ORIGIN}${data.path}` : data.path;
+          setIframeSrc(`${base}${data.path.includes("?") ? "&" : "?"}__mirror=1`);
           return;
         }
 
@@ -67,12 +74,12 @@ export function LiveMirror({ sessionId, active }: { sessionId: string; active: b
 
         if (typeof data.photoIndex === "number" && data.photoIndex !== lastPhotoRef.current) {
           lastPhotoRef.current = data.photoIndex;
-          win.postMessage({ type: "cs-mirror-set-index", index: data.photoIndex }, window.location.origin);
+          win.postMessage({ type: "cs-mirror-set-index", index: data.photoIndex }, targetOriginRef.current);
         }
 
         if (typeof data.scrollPct === "number" && data.scrollPct !== lastScrollRef.current) {
           lastScrollRef.current = data.scrollPct;
-          win.postMessage({ type: "cs-mirror-scroll", pct: data.scrollPct }, window.location.origin);
+          win.postMessage({ type: "cs-mirror-scroll", pct: data.scrollPct }, targetOriginRef.current);
         }
 
         setTyping(data.typing ?? null);
