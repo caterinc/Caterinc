@@ -28,12 +28,19 @@ export function ProductGallery({
   const next = () => { slideDir.current = "left";  onIndexChange((activeIndex + 1) % total); };
   const goTo = (i: number) => { slideDir.current = i >= activeIndex ? "left" : "right"; onIndexChange(i); };
 
-  // Scroll active thumbnail into view
+  // Scroll active thumbnail into view — scoped to this container's own
+  // scrollLeft only. scrollIntoView({inline:"center"}) was used before, but
+  // near the last thumbnails there isn't enough room after them to actually
+  // center — the browser then walks up and adjusts ancestor scroll
+  // containers (including the whole page) to compensate, which is exactly
+  // what was kicking the page off-screen specifically on the last photos.
   useEffect(() => {
     const container = thumbsRef.current;
     if (!container) return;
     const el = container.children[activeIndex] as HTMLElement;
-    if (el) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (!el) return;
+    const target = el.offsetLeft - (container.clientWidth - el.clientWidth) / 2;
+    container.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
   }, [activeIndex]);
 
   const onTouchStart = (e: React.TouchEvent) => {
