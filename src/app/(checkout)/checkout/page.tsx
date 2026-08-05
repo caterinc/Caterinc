@@ -330,7 +330,12 @@ export default function CheckoutPage() {
       if (parsed.personal) setPersonal(parsed.personal);
       if (parsed.address) setAddress(parsed.address);
       if (parsed.payMethod) setPayMethod(parsed.payMethod);
-      if (parsed.stage) setStage(parsed.stage);
+      // "pix" is intentionally excluded here — that stage only renders with a
+      // matching pixResult, which is restored (or discarded) by the dedicated
+      // effect above. Restoring "pix" alone leaves the page with no pixResult
+      // and no stage matching dados/endereco/pagamento — a blank gap where
+      // the form should be.
+      if (parsed.stage && parsed.stage !== "pix") setStage(parsed.stage);
       if (parsed.selectedShippingId) restoredShippingIdRef.current = parsed.selectedShippingId;
     } catch {}
     // Only ever restore once, right after hydration — not on every cart change.
