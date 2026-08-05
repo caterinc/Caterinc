@@ -19,6 +19,10 @@ export function ProductGallery({
   const total = allImages.length;
   const thumbsRef = useRef<HTMLDivElement>(null);
   const slideDir = useRef<"left" | "right">("left");
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const isHorizontalSwipe = useRef(false);
 
   const prev = () => { slideDir.current = "right"; onIndexChange((activeIndex - 1 + total) % total); };
   const next = () => { slideDir.current = "left";  onIndexChange((activeIndex + 1) % total); };
@@ -32,14 +36,42 @@ export function ProductGallery({
     if (el) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [activeIndex]);
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEnd.current = null;
+    isHorizontalSwipe.current = false;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+    if (touchStart.current === null || touchStartY.current === null) return;
+    const dx = touchStart.current - e.targetTouches[0].clientX;
+    const dy = touchStartY.current - e.targetTouches[0].clientY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) isHorizontalSwipe.current = true;
+    if (isHorizontalSwipe.current && e.cancelable) e.preventDefault();
+  };
+  const onTouchEnd = () => {
+    if (touchStart.current === null || touchEnd.current === null) return;
+    const delta = touchStart.current - touchEnd.current;
+    if (Math.abs(delta) > 40) delta > 0 ? next() : prev();
+    touchStart.current = null;
+    touchEnd.current = null;
+    touchStartY.current = null;
+    isHorizontalSwipe.current = false;
+  };
+
   const src = allImages[activeIndex] || "/placeholder-product.jpg";
 
   return (
     <div className="space-y-3 lg:sticky lg:top-24 min-w-0 overflow-hidden w-full" style={{ contain: "layout" }}>
-      {/* Main image — tap the arrows to change photo (no drag gesture: that
-          conflicted with Android's own swipe/overscroll navigation and was
-          visually kicking the whole page off-screen) */}
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-white border select-none">
+      {/* Main image — drag to swipe, or tap the small arrows */}
+      <div
+        className="relative aspect-square rounded-2xl overflow-hidden bg-white border select-none"
+        style={{ touchAction: "pan-y" }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <Image
           key={src}
           src={src}
@@ -63,17 +95,17 @@ export function ProductGallery({
               type="button"
               onClick={prev}
               aria-label="Foto anterior"
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border shadow-sm flex items-center justify-center text-gray-700 hover:bg-white z-10"
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/90 border shadow-sm flex items-center justify-center text-gray-600 hover:bg-white z-10"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-3 h-3" />
             </button>
             <button
               type="button"
               onClick={next}
               aria-label="Próxima foto"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border shadow-sm flex items-center justify-center text-gray-700 hover:bg-white z-10"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/90 border shadow-sm flex items-center justify-center text-gray-600 hover:bg-white z-10"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-3 h-3" />
             </button>
             <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full pointer-events-none">
               {activeIndex + 1}/{total}

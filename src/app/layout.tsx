@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
@@ -10,6 +10,16 @@ import { prisma } from "@/lib/prisma";
 import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+// Pinch-zoom disabled site-wide: an accidental pinch mid-swipe (e.g. on the
+// product photo gallery) left the page visibly "shrunk" with empty space on
+// one side, which looked identical to the page bug reports.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
