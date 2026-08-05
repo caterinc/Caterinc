@@ -4,7 +4,27 @@ import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
+// The VSL (forces-one.com) is a separate static site that reports into this
+// same admin Live View / Sessões, so it needs cross-origin access here.
+const ALLOWED_ORIGIN = "https://forces-one.com";
+
+function corsHeaders(origin: string | null): HeadersInit {
+  return origin === ALLOWED_ORIGIN ? { "Access-Control-Allow-Origin": ALLOWED_ORIGIN } : {};
+}
+
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      ...corsHeaders(req.headers.get("origin")),
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
+  const headers = corsHeaders(req.headers.get("origin"));
   try {
     const body = await req.json();
     const { sessionId, page, path, scrollPct, photoIndex, typing, source, returning: ret } = body as {
@@ -17,7 +37,7 @@ export async function POST(req: NextRequest) {
       source?: string;
       returning?: boolean;
     };
-    if (!sessionId || !page) return NextResponse.json({ ok: false });
+    if (!sessionId || !page) return NextResponse.json({ ok: false }, { headers });
 
     const typingJson = typing as Prisma.InputJsonValue | undefined;
 
@@ -44,8 +64,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers });
   } catch {
-    return NextResponse.json({ ok: false });
+    return NextResponse.json({ ok: false }, { headers });
   }
 }

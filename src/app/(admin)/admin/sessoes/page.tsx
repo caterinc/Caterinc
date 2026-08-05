@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   MousePointer2, ShoppingCart, CreditCard, Home, Package,
   Truck, User, Navigation, MousePointerClick, ChevronsDown,
-  Coffee, Eye, Star, RefreshCw, X, ArrowLeft, Clock, Images,
+  Coffee, Eye, Star, RefreshCw, X, ArrowLeft, Clock, Images, Video,
 } from "lucide-react";
 import { LiveMirror } from "@/components/admin/LiveMirror";
 
@@ -33,19 +33,19 @@ interface Session {
 
 const PAGE_ICONS: Record<string, React.ElementType> = {
   home: Home, product: Package, cart: ShoppingCart,
-  checkout: CreditCard, tracking: Truck, account: User,
+  checkout: CreditCard, tracking: Truck, account: User, vsl: Video,
 };
 
 const PAGE_LABELS: Record<string, string> = {
   home: "Página inicial", product: "Produto", products: "Lista de produtos",
   cart: "Carrinho", checkout: "Checkout", tracking: "Rastreio",
-  account: "Conta", other: "Outra página",
+  account: "Conta", other: "Outra página", vsl: "VSL (forces-one.com)",
 };
 
 const PAGE_DOT: Record<string, string> = {
   home: "#60a5fa", product: "#a78bfa", products: "#a78bfa",
   cart: "#34d399", checkout: "#22d3a0", tracking: "#f97316",
-  account: "#c084fc", other: "#7b7fa3",
+  account: "#c084fc", other: "#7b7fa3", vsl: "#fbbf24",
 };
 
 // ── Event formatting helpers ──────────────────────────────────────────────────
@@ -88,6 +88,7 @@ function formatLabel(event: SessionEvent): string {
       tracking: "Acessou rastreamento do pedido",
       account: "Entrou na conta",
       products: "Navegando em produtos",
+      vsl: "Assistindo a VSL",
     };
     return map[page] || label || `Visitou: ${page}`;
   }

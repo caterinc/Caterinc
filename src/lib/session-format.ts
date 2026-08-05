@@ -26,6 +26,7 @@ const PAGE_LABELS: Record<string, string> = {
   home: "Entrou na página inicial", cart: "Abriu o carrinho",
   checkout: "Iniciou o checkout", tracking: "Acessou rastreamento do pedido",
   account: "Entrou na conta", products: "Navegando em produtos",
+  vsl: "Assistindo a VSL",
 };
 
 export function formatEventLabel(event: FormattableEvent): string {
