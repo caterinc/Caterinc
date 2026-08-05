@@ -6,12 +6,17 @@
 html {
   overflow-x: hidden;
   width: 100%;
+  /* Stops Android Chrome from treating a horizontal swipe (e.g. on the
+     product photo gallery) as a page-level overscroll/back-navigation
+     gesture, which visually "kicks" the whole page off-screen. */
+  overscroll-behavior-x: none;
 }
 body {
   overflow-x: hidden;
   width: 100%;
   max-width: 100%;
   position: relative; /* required for iOS Safari overflow-x: hidden to clip children */
+  overscroll-behavior-x: none;
 }
 
 /* Hide scrollbar utility */
