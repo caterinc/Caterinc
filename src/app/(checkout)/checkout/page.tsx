@@ -343,8 +343,13 @@ export default function CheckoutPage() {
   }, [isHydrated]);
 
   // Keeps that saved progress up to date as the customer fills the form.
+  // Skipped once stage is "pix" — submit() deliberately clears this key right
+  // when it saves _pix_result, and this effect re-running (it depends on
+  // `stage`, which just changed) would otherwise immediately recreate it with
+  // stage:"pix" but none of the guarantees _pix_result's dedicated restore
+  // logic has (expiry check, etc).
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated || stage === "pix") return;
     try {
       sessionStorage.setItem("_checkout_progress", JSON.stringify({
         stage, personal, address, payMethod, selectedShippingId: selectedShipping?.id || null,
