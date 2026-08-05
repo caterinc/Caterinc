@@ -311,51 +311,6 @@ export default function CheckoutPage() {
     } catch {}
   }, [isHydrated, items.length]);
 
-  // Restaura o progresso do formulário (passo, dados, endereço) se a página
-  // recarregar no meio do checkout — comum em navegador embutido do
-  // Instagram/Facebook, que pode recarregar a página ao trocar de app.
-  const restoredShippingIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!isHydrated || items.length === 0) return;
-    try {
-      const saved = sessionStorage.getItem("_checkout_progress");
-      if (!saved) return;
-      const parsed = JSON.parse(saved) as {
-        stage?: Stage;
-        personal?: { name: string; email: string; cpf: string; phone: string };
-        address?: { zipCode: string; street: string; number: string; complement: string; district: string; city: string; state: string };
-        payMethod?: PayMethod;
-        selectedShippingId?: string | null;
-      };
-      if (parsed.personal) setPersonal(parsed.personal);
-      if (parsed.address) setAddress(parsed.address);
-      if (parsed.payMethod) setPayMethod(parsed.payMethod);
-      // "pix" is intentionally excluded here — that stage only renders with a
-      // matching pixResult, which is restored (or discarded) by the dedicated
-      // effect above. Restoring "pix" alone leaves the page with no pixResult
-      // and no stage matching dados/endereco/pagamento — a blank gap where
-      // the form should be.
-      if (parsed.stage && parsed.stage !== "pix") setStage(parsed.stage);
-      if (parsed.selectedShippingId) restoredShippingIdRef.current = parsed.selectedShippingId;
-    } catch {}
-    // Only ever restore once, right after hydration — not on every cart change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHydrated]);
-
-  // Keeps that saved progress up to date as the customer fills the form.
-  // Skipped once stage is "pix" — submit() deliberately clears this key right
-  // when it saves _pix_result, and this effect re-running (it depends on
-  // `stage`, which just changed) would otherwise immediately recreate it with
-  // stage:"pix" but none of the guarantees _pix_result's dedicated restore
-  // logic has (expiry check, etc).
-  useEffect(() => {
-    if (!isHydrated || stage === "pix") return;
-    try {
-      sessionStorage.setItem("_checkout_progress", JSON.stringify({
-        stage, personal, address, payMethod, selectedShippingId: selectedShipping?.id || null,
-      }));
-    } catch {}
-  }, [isHydrated, stage, personal, address, payMethod, selectedShipping]);
 
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
@@ -376,10 +331,7 @@ export default function CheckoutPage() {
     shippingFetchedRef.current = true;
     fetch("/api/shipping").then((r) => r.json()).then((data: ShippingMethod[]) => {
       setShippingMethods(data);
-      const restoredId = restoredShippingIdRef.current;
-      const restored = restoredId ? data.find((m) => m.id === restoredId) : undefined;
-      if (restored) setSelectedShipping(restored);
-      else if (data.length > 0) setSelectedShipping(data[0]);
+      if (data.length > 0) setSelectedShipping(data[0]);
     }).catch(() => { shippingFetchedRef.current = false; });
   }, [address.zipCode]);
 
@@ -450,7 +402,6 @@ export default function CheckoutPage() {
         setStage("pix");
         try {
           sessionStorage.setItem("_pix_result", JSON.stringify({ ...pr, savedAt: Date.now(), timerLeft: 600 }));
-          sessionStorage.removeItem("_checkout_progress");
         } catch {}
       } else {
         if (data.status === "rejected") {
@@ -459,7 +410,6 @@ export default function CheckoutPage() {
           toast({ title: "Cartão recusado", description: data.statusDetail || "Verifique os dados.", variant: "destructive" });
         } else {
           dispatch({ type: "CLEAR" });
-          try { sessionStorage.removeItem("_checkout_progress"); } catch {}
           router.push(`/pedido-confirmado/${data.orderNumber}`);
         }
       }
