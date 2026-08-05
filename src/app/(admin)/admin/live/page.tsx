@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Eye, Home, Package, Truck } from "lucide-react";
+import { Users, ShoppingCart, CreditCard, TrendingUp, ShoppingBag, Eye, Home, Package, Truck, Video } from "lucide-react";
 
 interface LiveStats {
   visitorsNow: number;
   fromMeta: number;
   returningNow: number;
+  onVsl: number;
   onHome: number;
   onProduct: number;
   onCart: number;
@@ -157,6 +158,7 @@ export default function LivePage() {
             </div>
             <div className="flex flex-col gap-1.5 mt-3">
               {[
+                { label: "na VSL", value: stats?.onVsl ?? 0, color: "#fbbf24" },
                 { label: "na home", value: stats?.onHome ?? 0, color: "#60a5fa" },
                 { label: "em produto", value: stats?.onProduct ?? 0, color: "#a78bfa" },
                 { label: "no carrinho", value: stats?.onCart ?? 0, color: "#38bdf8" },
@@ -180,6 +182,7 @@ export default function LivePage() {
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#7b7fa3" }}>Jornada do cliente</p>
             <div className="space-y-3">
               {[
+                { label: "Assistindo VSL", value: stats?.onVsl ?? 0, bar: "linear-gradient(90deg, #d97706, #fbbf24)", Icon: Video, iconBg: "rgba(251,191,36,0.15)", iconColor: "#fbbf24" },
                 { label: "Página inicial", value: stats?.onHome ?? 0, bar: "linear-gradient(90deg, #4c37e8, #60a5fa)", Icon: Home, iconBg: "rgba(96,165,250,0.15)", iconColor: "#60a5fa" },
                 { label: "Produto", value: stats?.onProduct ?? 0, bar: "linear-gradient(90deg, #6c52ff, #a78bfa)", Icon: Package, iconBg: "rgba(167,139,250,0.15)", iconColor: "#a78bfa" },
                 { label: "Carrinho", value: stats?.onCart ?? 0, bar: "linear-gradient(90deg, #0ea5e9, #38bdf8)", Icon: ShoppingCart, iconBg: "rgba(56,189,248,0.15)", iconColor: "#38bdf8" },

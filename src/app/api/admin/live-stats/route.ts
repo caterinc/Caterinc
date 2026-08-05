@@ -68,6 +68,7 @@ export async function GET() {
       visitorsNow,
       fromMeta,
       returningNow,
+      onVsl: presences.filter((p) => p.page === "vsl").length,
       onHome: presences.filter((p) => p.page === "home").length,
       onProduct: presences.filter((p) => p.page === "product").length,
       onCart: presences.filter((p) => p.page === "cart").length,
