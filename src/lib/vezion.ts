@@ -112,7 +112,9 @@ export async function vezionGetTransaction(id: string): Promise<string | null> {
   const res = await fetch(`${BASE_URL}/v1/transactions/${id}`, {
     headers: { "api-secret": apiSecret() },
   });
+  const rawText = await res.text();
+  console.log(`[Vezion/GetTx] id=${id} httpStatus=${res.status} body=${rawText.slice(0, 300)}`);
   if (!res.ok) return null;
-  const json = await res.json() as { status?: string };
+  const json = JSON.parse(rawText) as { status?: string };
   return json.status ? json.status.toUpperCase() : null;
 }
