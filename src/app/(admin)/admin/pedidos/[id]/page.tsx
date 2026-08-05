@@ -135,6 +135,31 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           {/* Actions */}
           <OrderActions order={{ id: order.id, status: order.status, trackingCode: order.trackingCode }} />
 
+          {/* Payment */}
+          <div className="bg-white rounded-xl border p-5">
+            <h3 className="font-bold mb-3">Pagamento</h3>
+            <div className="text-sm space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Método</span>
+                <span className="font-medium">{order.paymentMethod === "pix" ? "Pix" : order.paymentMethod || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Status</span>
+                <span className={cn("font-medium", order.paymentStatus === "PAID" ? "text-green-600" : "text-amber-600")}>
+                  {order.paymentStatus === "PAID" ? "Pago" : "Pendente"}
+                </span>
+              </div>
+              {order.mpPaymentId && (
+                <div>
+                  <span className="text-gray-500 block mb-1">ID da transação (Vezion)</span>
+                  <code className="block text-xs bg-gray-50 border rounded px-2 py-1.5 break-all select-all">
+                    {order.mpPaymentId}
+                  </code>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Customer */}
           {order.user && (
             <div className="bg-white rounded-xl border p-5">
