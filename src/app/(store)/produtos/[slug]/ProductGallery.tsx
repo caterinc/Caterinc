@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductGalleryProps {
   images: string[];
@@ -17,10 +18,6 @@ export function ProductGallery({
   const allImages = images.length > 0 ? images : ["/placeholder-product.jpg"];
   const total = allImages.length;
   const thumbsRef = useRef<HTMLDivElement>(null);
-  const touchStart = useRef<number | null>(null);
-  const touchEnd = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const isHorizontalSwipe = useRef(false);
   const slideDir = useRef<"left" | "right">("left");
 
   const prev = () => { slideDir.current = "right"; onIndexChange((activeIndex - 1 + total) % total); };
@@ -35,47 +32,14 @@ export function ProductGallery({
     if (el) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [activeIndex]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = e.targetTouches[0].clientX;
-    touchStartY.current = e.targetTouches[0].clientY;
-    touchEnd.current = null;
-    isHorizontalSwipe.current = false;
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    touchEnd.current = e.targetTouches[0].clientX;
-    if (touchStart.current === null || touchStartY.current === null) return;
-    const dx = touchStart.current - e.targetTouches[0].clientX;
-    const dy = touchStartY.current - e.targetTouches[0].clientY;
-    // Once a clearly horizontal drag is underway, tell the browser explicitly
-    // not to also treat it as overscroll/back-navigation (Android in-app
-    // browsers in particular can do this even with touch-action set).
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-      isHorizontalSwipe.current = true;
-    }
-    if (isHorizontalSwipe.current && e.cancelable) e.preventDefault();
-  };
-  const onTouchEnd = () => {
-    if (touchStart.current === null || touchEnd.current === null) return;
-    const delta = touchStart.current - touchEnd.current;
-    if (Math.abs(delta) > 40) delta > 0 ? next() : prev();
-    touchStart.current = null;
-    touchEnd.current = null;
-    touchStartY.current = null;
-    isHorizontalSwipe.current = false;
-  };
-
   const src = allImages[activeIndex] || "/placeholder-product.jpg";
 
   return (
     <div className="space-y-3 lg:sticky lg:top-24 min-w-0 overflow-hidden w-full" style={{ contain: "layout" }}>
-      {/* Main image — swipeable, white bg */}
-      <div
-        className="relative aspect-square rounded-2xl overflow-hidden bg-white border select-none"
-        style={{ touchAction: "pan-y" }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+      {/* Main image — tap the arrows to change photo (no drag gesture: that
+          conflicted with Android's own swipe/overscroll navigation and was
+          visually kicking the whole page off-screen) */}
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-white border select-none">
         <Image
           key={src}
           src={src}
@@ -94,9 +58,27 @@ export function ProductGallery({
           </div>
         )}
         {total > 1 && (
-          <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full pointer-events-none">
-            {activeIndex + 1}/{total}
-          </div>
+          <>
+            <button
+              type="button"
+              onClick={prev}
+              aria-label="Foto anterior"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border shadow-sm flex items-center justify-center text-gray-700 hover:bg-white z-10"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              aria-label="Próxima foto"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border shadow-sm flex items-center justify-center text-gray-700 hover:bg-white z-10"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full pointer-events-none">
+              {activeIndex + 1}/{total}
+            </div>
+          </>
         )}
       </div>
 
