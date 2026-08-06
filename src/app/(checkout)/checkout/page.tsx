@@ -121,6 +121,85 @@ function StepBar({ step }: { step: 0 | 1 | 2 }) {
 
 const inp = "w-full h-12 px-4 pr-10 border rounded-lg text-[16px] focus:outline-none transition-colors bg-white";
 
+// ─── Phone: country code + local number ────────────────────────────────────────
+// Kept separate so people don't type the country code into the DDD slot by
+// habit (e.g. "55 92 99917-368") — that silently ate a digit and corrupted
+// the DDD, because the old single field just grabbed the first 2 digits.
+
+const COUNTRY_CODES = [
+  { code: "55",  name: "Brasil",        flag: "🇧🇷" },
+  { code: "1",   name: "EUA/Canadá",    flag: "🇺🇸" },
+  { code: "351", name: "Portugal",      flag: "🇵🇹" },
+  { code: "54",  name: "Argentina",     flag: "🇦🇷" },
+  { code: "598", name: "Uruguai",       flag: "🇺🇾" },
+  { code: "595", name: "Paraguai",      flag: "🇵🇾" },
+  { code: "56",  name: "Chile",         flag: "🇨🇱" },
+  { code: "57",  name: "Colômbia",      flag: "🇨🇴" },
+  { code: "51",  name: "Peru",          flag: "🇵🇪" },
+  { code: "58",  name: "Venezuela",     flag: "🇻🇪" },
+  { code: "52",  name: "México",        flag: "🇲🇽" },
+  { code: "34",  name: "Espanha",       flag: "🇪🇸" },
+  { code: "39",  name: "Itália",        flag: "🇮🇹" },
+  { code: "44",  name: "Reino Unido",   flag: "🇬🇧" },
+  { code: "49",  name: "Alemanha",      flag: "🇩🇪" },
+  { code: "33",  name: "França",        flag: "🇫🇷" },
+  { code: "81",  name: "Japão",         flag: "🇯🇵" },
+  { code: "86",  name: "China",         flag: "🇨🇳" },
+  { code: "91",  name: "Índia",         flag: "🇮🇳" },
+  { code: "61",  name: "Austrália",     flag: "🇦🇺" },
+] as const;
+
+function maskLocalPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+
+function CountryCodeSelect({ value, onChange }: { value: string; onChange: (code: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = COUNTRY_CODES.find((c) => c.code === value) || COUNTRY_CODES[0];
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  return (
+    <div className="relative flex-shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="h-12 px-2.5 border-2 border-gray-200 rounded-lg bg-white flex items-center gap-1 text-[15px] font-medium hover:border-gray-300 transition-colors"
+      >
+        <span>{current.flag}</span>
+        <span>+{current.code}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+      </button>
+      {open && (
+        <div className="absolute z-20 top-[calc(100%+4px)] left-0 w-56 max-h-64 overflow-y-auto bg-white border rounded-lg shadow-lg py-1">
+          {COUNTRY_CODES.map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => { onChange(c.code); setOpen(false); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 ${c.code === value ? "bg-gray-50 font-semibold" : ""}`}
+            >
+              <span>{c.flag}</span>
+              <span className="flex-1">{c.name}</span>
+              <span className="text-gray-400">+{c.code}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ValidatedInput({
   label, required = false, valid = false, type = "text", value, onChange, placeholder, inputMode, maxLength, autoComplete,
 }: {
@@ -179,12 +258,6 @@ function maskCPF(v: string) {
   if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
   return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
 }
-function maskPhone(v: string) {
-  const d = v.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 2) return d;
-  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-}
 function maskCEP(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 8);
   if (d.length <= 5) return d;
@@ -231,7 +304,7 @@ export default function CheckoutPage() {
     }).catch(() => {});
   }, []);
 
-  const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "" });
+  const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "", phoneCountry: "55" });
   const [address, setAddress] = useState({ zipCode: "", street: "", number: "", complement: "", district: "", city: "", state: "" });
 
   // Broadcast what the customer is typing (name/email/phone/address only —
@@ -379,11 +452,19 @@ export default function CheckoutPage() {
       let fbc: string | null = null; let fbp: string | null = null; let externalId: string | null = null; let pixelSource: string | null = null;
       try { fbc = localStorage.getItem("_fbc"); fbp = localStorage.getItem("_fbp"); externalId = localStorage.getItem("_sid"); pixelSource = localStorage.getItem("_pxsrc"); } catch {}
 
+      // Brazil (default) keeps the exact format used everywhere downstream
+      // (Vezion, admin WhatsApp links) unchanged; only a non-BR country
+      // prepends its code, since that's genuinely a different number shape.
+      const personalToSend = {
+        name: personal.name, email: personal.email, cpf: personal.cpf,
+        phone: personal.phoneCountry !== "55" ? `+${personal.phoneCountry} ${personal.phone}` : personal.phone,
+      };
+
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          personal, address, paymentMethod: payMethod, cardFormData: cardFormData || null,
+          personal: personalToSend, address, paymentMethod: payMethod, cardFormData: cardFormData || null,
           consent: true, shippingMethodId: selectedShipping?.id || null,
           utmData: Object.keys(utmData).length > 0 ? utmData : null,
           fbc, fbp, externalId, pixelSource,
@@ -771,9 +852,31 @@ export default function CheckoutPage() {
                 <ValidatedInput label="CPF" required valid={vCpf}
                   value={personal.cpf} onChange={(v) => setPersonal((p) => ({ ...p, cpf: maskCPF(v) }))}
                   placeholder="000.000.000-00" inputMode="numeric" />
-                <ValidatedInput label="Celular / WhatsApp" required valid={vPhone} type="tel"
-                  value={personal.phone} onChange={(v) => setPersonal((p) => ({ ...p, phone: maskPhone(v) }))}
-                  placeholder="(11) 99999-9999" inputMode="tel" autoComplete="tel" />
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Celular / WhatsApp<span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <CountryCodeSelect
+                      value={personal.phoneCountry}
+                      onChange={(code) => setPersonal((p) => ({ ...p, phoneCountry: code }))}
+                    />
+                    <div className="relative flex-1">
+                      <input
+                        type="tel" value={personal.phone}
+                        onChange={(e) => setPersonal((p) => ({ ...p, phone: maskLocalPhone(e.target.value) }))}
+                        placeholder="(11) 99999-9999" inputMode="tel" autoComplete="tel"
+                        className={`${inp} border-2 border-gray-200 focus:border-gray-400`}
+                      />
+                      {vPhone && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: CHECKMARK_BG }}>
+                          <Check className="w-3 h-3" style={{ color: CHECKMARK_TEXT }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
