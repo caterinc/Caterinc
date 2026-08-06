@@ -21,22 +21,32 @@ export async function POST(req: NextRequest) {
 
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order) return NextResponse.json({ error: "not found" }, { status: 404 });
-  if (order.paymentStatus === "PAID") return NextResponse.json({ ok: true, already: true });
 
+  const alreadyPaid = order.paymentStatus === "PAID";
   const utms = (order.utmData as Record<string, string> | null) || {};
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: { paymentStatus: "PAID", status: "CONFIRMED" },
-  });
-  await prisma.orderStatusHistory.create({
-    data: {
-      orderId: order.id, status: "CONFIRMED",
-      note: sendToBoth
-        ? "PIX aprovado — confirmado manualmente via suporte Vezion. Origem do lead (base/default) inconclusiva — Purchase enviado pros dois pixels."
-        : "PIX aprovado — confirmado manualmente via suporte Vezion (status ainda não refletido na API deles)",
-    },
-  });
+  if (!alreadyPaid) {
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: "PAID", status: "CONFIRMED" },
+    });
+    await prisma.orderStatusHistory.create({
+      data: {
+        orderId: order.id, status: "CONFIRMED",
+        note: sendToBoth
+          ? "PIX aprovado — confirmado manualmente via suporte Vezion. Origem do lead (base/default) inconclusiva — Purchase enviado pros dois pixels."
+          : "PIX aprovado — confirmado manualmente via suporte Vezion (status ainda não refletido na API deles)",
+      },
+    });
+
+    await sendUtmifyEvent(
+      order.orderNumber, "paid",
+      { name: (order.shippingAddress as Record<string, string> | null)?.name || "Cliente", email: order.email, phone: (order.shippingAddress as Record<string, string> | null)?.phone },
+      order.items.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
+      Math.round(Number(order.total) * 100),
+      order.createdAt, utms, order.paymentMethod || "pix"
+    ).catch((e) => console.error("[ManualConfirm/UTMify]", e));
+  }
 
   const addr = order.shippingAddress as Record<string, string> | null;
   const nameParts = (addr?.name || "Cliente").split(" ");
@@ -44,26 +54,24 @@ export async function POST(req: NextRequest) {
   const fbp = utms.fbp || null;
   const externalId = utms.externalId || null;
 
-  await sendUtmifyEvent(
-    order.orderNumber, "paid",
-    { name: addr?.name || "Cliente", email: order.email, phone: addr?.phone },
-    order.items.map((i) => ({ id: i.productId || "item", name: i.name, quantity: i.quantity, priceInCents: Math.round(Number(i.price) * 100) })),
-    Math.round(Number(order.total) * 100),
-    order.createdAt, utms, order.paymentMethod || "pix"
-  ).catch((e) => console.error("[ManualConfirm/UTMify]", e));
-
   const pixelSources: (PixelSource | null)[] = sendToBoth ? ["default", "base"] : [(utms.pixelSource as PixelSource) || null];
+  const results: Record<string, string> = {};
 
   for (const pixelSource of pixelSources) {
-    await sendMetaEvent({
-      eventName: "Purchase", eventId: `${order.orderNumber}-purchase-${pixelSource || "default"}`,
-      email: order.email, phone: addr?.phone || null,
-      firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
-      value: Number(order.total), currency: "BRL",
-      contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-      orderId: order.orderNumber, fbc, fbp, externalId, pixelSource,
-    }).catch((e) => console.error(`[ManualConfirm/Meta:${pixelSource}]`, e));
+    try {
+      await sendMetaEvent({
+        eventName: "Purchase", eventId: `${order.orderNumber}-purchase-${pixelSource || "default"}-retry${Date.now()}`,
+        email: order.email, phone: addr?.phone || null,
+        firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
+        value: Number(order.total), currency: "BRL",
+        contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+        orderId: order.orderNumber, fbc, fbp, externalId, pixelSource,
+      });
+      results[pixelSource || "default"] = "ok";
+    } catch (e) {
+      results[pixelSource || "default"] = e instanceof Error ? e.message : "erro desconhecido";
+    }
   }
 
-  return NextResponse.json({ ok: true, orderNumber: order.orderNumber, sentTo: pixelSources });
+  return NextResponse.json({ ok: true, orderNumber: order.orderNumber, alreadyPaid, results });
 }
