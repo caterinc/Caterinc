@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
   const auth = req.headers.get("x-manual-secret");
   if (auth !== ONE_OFF_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { orderId, correctPixelSource } = (await req.json()) as {
+  const { orderId, sendToBoth } = (await req.json()) as {
     orderId: string;
-    correctPixelSource?: PixelSource | null;
+    sendToBoth?: boolean;
   };
 
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
@@ -24,15 +24,18 @@ export async function POST(req: NextRequest) {
   if (order.paymentStatus === "PAID") return NextResponse.json({ ok: true, already: true });
 
   const utms = (order.utmData as Record<string, string> | null) || {};
-  const fixedUtms = { ...utms, pixelSource: correctPixelSource || undefined };
-  if (!fixedUtms.pixelSource) delete fixedUtms.pixelSource;
 
   await prisma.order.update({
     where: { id: order.id },
-    data: { paymentStatus: "PAID", status: "CONFIRMED", utmData: fixedUtms },
+    data: { paymentStatus: "PAID", status: "CONFIRMED" },
   });
   await prisma.orderStatusHistory.create({
-    data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — confirmado manualmente via suporte Vezion (status ainda não refletido na API deles)" },
+    data: {
+      orderId: order.id, status: "CONFIRMED",
+      note: sendToBoth
+        ? "PIX aprovado — confirmado manualmente via suporte Vezion. Origem do lead (base/default) inconclusiva — Purchase enviado pros dois pixels."
+        : "PIX aprovado — confirmado manualmente via suporte Vezion (status ainda não refletido na API deles)",
+    },
   });
 
   const addr = order.shippingAddress as Record<string, string> | null;
@@ -40,7 +43,6 @@ export async function POST(req: NextRequest) {
   const fbc = utms.fbc || null;
   const fbp = utms.fbp || null;
   const externalId = utms.externalId || null;
-  const pixelSource = correctPixelSource || null;
 
   await sendUtmifyEvent(
     order.orderNumber, "paid",
@@ -50,14 +52,18 @@ export async function POST(req: NextRequest) {
     order.createdAt, utms, order.paymentMethod || "pix"
   ).catch((e) => console.error("[ManualConfirm/UTMify]", e));
 
-  await sendMetaEvent({
-    eventName: "Purchase", eventId: `${order.orderNumber}-purchase`,
-    email: order.email, phone: addr?.phone || null,
-    firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
-    value: Number(order.total), currency: "BRL",
-    contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
-    orderId: order.orderNumber, fbc, fbp, externalId, pixelSource,
-  }).catch((e) => console.error("[ManualConfirm/Meta]", e));
+  const pixelSources: (PixelSource | null)[] = sendToBoth ? ["default", "base"] : [(utms.pixelSource as PixelSource) || null];
 
-  return NextResponse.json({ ok: true, orderNumber: order.orderNumber, pixelSource });
+  for (const pixelSource of pixelSources) {
+    await sendMetaEvent({
+      eventName: "Purchase", eventId: `${order.orderNumber}-purchase-${pixelSource || "default"}`,
+      email: order.email, phone: addr?.phone || null,
+      firstName: nameParts[0] || null, lastName: nameParts.slice(1).join(" ") || null,
+      value: Number(order.total), currency: "BRL",
+      contents: order.items.map((i) => ({ id: i.productId || "item", quantity: i.quantity })),
+      orderId: order.orderNumber, fbc, fbp, externalId, pixelSource,
+    }).catch((e) => console.error(`[ManualConfirm/Meta:${pixelSource}]`, e));
+  }
+
+  return NextResponse.json({ ok: true, orderNumber: order.orderNumber, sentTo: pixelSources });
 }
