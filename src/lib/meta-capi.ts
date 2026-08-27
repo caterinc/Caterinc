@@ -1,11 +1,10 @@
 import crypto from "crypto";
 
-// Two ad accounts, two pixels. "base" = second ad account, whose ads point to
-// forces-one.com/base instead of the root — that path is the identifier that
-// travels with the lead (localStorage `_pxsrc`) all the way to Purchase, so we
-// know which pixel/token pair to report each event to.
+// Pixel unificado com a operação Kit Destrava Leitura (mesmo pixel nas duas).
+// "default"/"base" seguem existindo só pelo event_source_url (root vs /base do
+// VSL) — ambos reportam pro mesmo pixel/token hoje.
 const PIXELS = {
-  default: { id: "1416227430378100", token: "META_CAPI_TOKEN", url: "https://forces-one.com" },
+  default: { id: "2279972799414051", token: "META_CAPI_TOKEN_2", url: "https://forces-one.com" },
   base: { id: "2279972799414051", token: "META_CAPI_TOKEN_2", url: "https://forces-one.com/base" },
 } as const;
 
