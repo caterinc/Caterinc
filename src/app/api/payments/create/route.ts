@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
-import { vezionConfigured, vezionCreatePix } from "@/lib/vezion";
+import { flevopayConfigured, flevopayCreatePix } from "@/lib/flevopay";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !phone) return NextResponse.json({ error: "Dados pessoais invalidos" }, { status: 400 });
   if (cpf.length !== 11) return NextResponse.json({ error: "CPF inválido. Confira se você digitou todos os 11 números corretamente." }, { status: 400 });
 
-  if (!vezionConfigured())
+  if (!flevopayConfigured())
     return NextResponse.json({ error: "Pagamento nao configurado." }, { status: 503 });
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
@@ -118,21 +118,16 @@ export async function POST(req: NextRequest) {
   const trackingCode = generateTrackingCode();
   const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
-  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || req.headers.get("x-real-ip")
-    || null;
-
-  let pixData: Awaited<ReturnType<typeof vezionCreatePix>>;
+  let pixData: Awaited<ReturnType<typeof flevopayCreatePix>>;
   try {
-    pixData = await vezionCreatePix({
+    pixData = await flevopayCreatePix({
       amount: total, orderNumber, name, email, cpf, phone,
       itemName: itemName || "Pedido",
-      ip: clientIp,
-      utmData: utmData || null, fbc: fbc || null,
+      utmData: utmData || null,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    console.error("[Vezion] PIX create error:", msg);
+    console.error("[FlevoPay] PIX create error:", msg);
     return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
@@ -154,7 +149,7 @@ export async function POST(req: NextRequest) {
         subtotal, shipping: shippingCost, total, shippingAddress,
         utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}), ...(externalId ? { externalId } : {}), ...(pixelSource ? { pixelSource } : {}) },
         items: { create: orderItems },
-        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Vezion" }] },
+        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via FlevoPay" }] },
       },
     });
     for (const item of orderItems) {

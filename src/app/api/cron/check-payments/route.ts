@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
-import { vezionGetTransaction } from "@/lib/vezion";
+import { flevopayGetTransaction } from "@/lib/flevopay";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -35,15 +35,15 @@ export async function GET(req: NextRequest) {
 
   for (const order of pendingOrders) {
     try {
-      const status = await vezionGetTransaction(order.mpPaymentId!);
-      if (status !== "AUTHORIZED") continue;
+      const status = await flevopayGetTransaction(order.mpPaymentId!);
+      if (status !== "APPROVED") continue;
 
       await prisma.order.update({
         where: { id: order.id },
         data: { paymentStatus: "PAID", status: "CONFIRMED" },
       });
       await prisma.orderStatusHistory.create({
-        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron (Vezion)" },
+        data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via cron (FlevoPay)" },
       });
 
       const addr = order.shippingAddress as Record<string, string> | null;
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       }).catch((e) => console.error("[Cron/Meta]", e));
 
       confirmed++;
-      console.log(`[Cron] ${order.orderNumber} → PAID (R$${order.total})`);
+      console.log(`[Cron/FlevoPay] ${order.orderNumber} → PAID (R$${order.total})`);
     } catch (e) {
       console.error(`[Cron] erro ao checar ${order.orderNumber}:`, e);
     }

@@ -48,27 +48,27 @@ export async function POST(req: NextRequest) {
 
   const log = async (paymentId: string, action: string, result: string) => {
     try {
-      await prisma.webhookLog.create({ data: { source: "vezion", paymentId, action, mpStatus: action, result } });
+      await prisma.webhookLog.create({ data: { source: "flevopay", paymentId, action, mpStatus: action, result } });
     } catch { /* não bloqueia */ }
   };
 
-  // Vezion webhook: { id: UUID, external_id: orderNumber, status: "AUTHORIZED"|"PENDING"|... }
-  const vezionId     = (body.id as string) || "";
-  const vezionStatus = ((body.status as string) || "").toUpperCase();
+  // FlevoPay webhook: { transaction_id, external_id: orderNumber, status: "approved"|"pending"|"failed"|..., ... }
+  const flevopayId     = String(body.transaction_id ?? "");
+  const flevopayStatus = ((body.status as string) || "").toUpperCase();
 
-  console.log("[Webhook/Vezion] id:", vezionId, "| status:", vezionStatus);
-  await log(vezionId, vezionStatus, "received");
+  console.log("[Webhook/FlevoPay] id:", flevopayId, "| status:", flevopayStatus);
+  await log(flevopayId, flevopayStatus, "received");
 
-  if (vezionStatus !== "AUTHORIZED") {
-    await log(vezionId, vezionStatus, `ignorado: status=${vezionStatus}`);
-    return NextResponse.json({ received: true, status: vezionStatus });
+  if (flevopayStatus !== "APPROVED") {
+    await log(flevopayId, flevopayStatus, `ignorado: status=${flevopayStatus}`);
+    return NextResponse.json({ received: true, status: flevopayStatus });
   }
 
   try {
     const order = await prisma.order.findFirst({
       where: {
         OR: [
-          { mpPaymentId: vezionId },
+          { mpPaymentId: flevopayId },
           { orderNumber: (body.external_id as string) || "__none__" },
         ],
       },
@@ -76,12 +76,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      await log(vezionId, vezionStatus, "pedido não encontrado");
+      await log(flevopayId, flevopayStatus, "pedido não encontrado");
       return NextResponse.json({ received: true, notFound: true });
     }
 
     if (order.paymentStatus === "PAID") {
-      await log(vezionId, vezionStatus, `já estava PAID: ${order.orderNumber}`);
+      await log(flevopayId, flevopayStatus, `já estava PAID: ${order.orderNumber}`);
       return NextResponse.json({ received: true, alreadyPaid: true });
     }
 
@@ -90,21 +90,21 @@ export async function POST(req: NextRequest) {
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook Vezion (${vezionId})` },
+      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook FlevoPay (${flevopayId})` },
     });
 
-    await log(vezionId, vezionStatus, `confirmado: ${order.orderNumber} R$${order.total}`);
+    await log(flevopayId, flevopayStatus, `confirmado: ${order.orderNumber} R$${order.total}`);
     await firePostPaymentEvents(order);
-    console.log("[Webhook/Vezion] confirmado:", order.orderNumber);
+    console.log("[Webhook/FlevoPay] confirmado:", order.orderNumber);
     return NextResponse.json({ received: true, confirmed: order.orderNumber });
 
   } catch (err) {
-    await log(vezionId, vezionStatus, `exceção: ${String(err)}`).catch(() => {});
-    console.error("[Webhook/Vezion] Erro:", err);
+    await log(flevopayId, flevopayStatus, `exceção: ${String(err)}`).catch(() => {});
+    console.error("[Webhook/FlevoPay] Erro:", err);
     return NextResponse.json({ received: true });
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ status: "ok", webhook: "vezion" });
+  return NextResponse.json({ status: "ok", webhook: "flevopay" });
 }

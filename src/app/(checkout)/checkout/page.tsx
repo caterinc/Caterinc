@@ -453,7 +453,7 @@ export default function CheckoutPage() {
       try { fbc = localStorage.getItem("_fbc"); fbp = localStorage.getItem("_fbp"); externalId = localStorage.getItem("_sid"); pixelSource = localStorage.getItem("_pxsrc"); } catch {}
 
       // Brazil (default) keeps the exact format used everywhere downstream
-      // (Vezion, admin WhatsApp links) unchanged; only a non-BR country
+      // (FlevoPay, admin WhatsApp links) unchanged; only a non-BR country
       // prepends its code, since that's genuinely a different number shape.
       const personalToSend = {
         name: personal.name, email: personal.email, cpf: personal.cpf,

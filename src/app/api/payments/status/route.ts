@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
-import { vezionGetTransaction } from "@/lib/vezion";
+import { flevopayGetTransaction } from "@/lib/flevopay";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +21,15 @@ export async function GET(req: NextRequest) {
   try {
     if (!order.mpPaymentId) return NextResponse.json({ paid: false });
 
-    const status = await vezionGetTransaction(order.mpPaymentId);
-    if (!status || status !== "AUTHORIZED") return NextResponse.json({ paid: false });
+    const status = await flevopayGetTransaction(order.mpPaymentId);
+    if (!status || status !== "APPROVED") return NextResponse.json({ paid: false });
 
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via polling (Vezion)" },
+      data: { orderId: order.id, status: "CONFIRMED", note: "PIX aprovado — detectado via polling (FlevoPay)" },
     });
 
     const addr  = order.shippingAddress as Record<string, string> | null;
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ paid: true, orderNumber: order.orderNumber });
 
   } catch (e) {
-    console.error("[Status] Vezion check error:", e);
+    console.error("[Status] FlevoPay check error:", e);
   }
 
   return NextResponse.json({ paid: false });

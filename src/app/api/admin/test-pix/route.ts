@@ -3,36 +3,31 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
-import { vezionConfigured, vezionCreatePix } from "@/lib/vezion";
+import { flevopayConfigured, flevopayCreatePix } from "@/lib/flevopay";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role?: string }).role !== "ADMIN") {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  if (!vezionConfigured()) {
-    return NextResponse.json({ error: "VEZION_API_SECRET não configurado" }, { status: 503 });
+  if (!flevopayConfigured()) {
+    return NextResponse.json({ error: "FLEVOPAY_SECRET_KEY não configurado" }, { status: 503 });
   }
-
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || req.headers.get("x-real-ip")
-    || "177.54.146.0";
 
   const orderNumber = `TESTE-${Date.now()}`;
 
   try {
-    const v = await vezionCreatePix({
+    const v = await flevopayCreatePix({
       amount: 5.50,
       orderNumber,
       name: "Admin Teste",
       email: "admin@teste.com",
       cpf: "52998224725",
       phone: "11999999999",
-      itemName: "Teste Vezion PIX",
-      ip,
+      itemName: "Teste FlevoPay PIX",
     });
 
     // Create a real order in the DB so the webhook can find and confirm it
@@ -93,7 +88,7 @@ export async function POST(req: NextRequest) {
       orderId: created?.id || null,
       orderNumber,
       amount: 5.50,
-      gateway: "Vezion",
+      gateway: "FlevoPay",
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
