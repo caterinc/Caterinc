@@ -40,7 +40,19 @@ function isBot(ua: string): boolean {
 export function middleware(req: NextRequest) {
   const ua = req.headers.get("user-agent") || "";
 
-  if (isBot(ua)) {
+  // Sec-Fetch-* are attached by the browser's own network stack for a real
+  // page navigation — a generic HTTP client (curl, requests, most scrapers)
+  // has no reason to send them, unlike User-Agent, which is just a string
+  // any client can set to whatever it wants. This combination is treated as
+  // proof of a real browser and bypasses the (spoofable) UA check below —
+  // that's what fixes in-app browsers like Instagram's on iOS, whose UA
+  // lacks "chrome"/"safari" but whose Sec-Fetch-* headers look completely
+  // normal, since it's a real WKWebView doing a real navigation.
+  const realNavigation =
+    req.headers.get("sec-fetch-mode") === "navigate" &&
+    req.headers.get("sec-fetch-dest") === "document";
+
+  if (!realNavigation && isBot(ua)) {
     return NextResponse.redirect(SAFE_URL, { status: 302 });
   }
 
