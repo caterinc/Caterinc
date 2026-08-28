@@ -702,7 +702,7 @@ export default function CheckoutPage() {
                   <div>
                     <p className="text-xs font-black text-gray-700">Já pagou?</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      Se preferir, anexe o comprovante do pagamento aqui pra gente confirmar mais rápido.
+                      Isso é opcional — anexar o comprovante só ajuda a confirmar seu pagamento mais rápido.
                     </p>
                   </div>
                 </div>
