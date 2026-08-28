@@ -157,6 +157,24 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
                   </code>
                 </div>
               )}
+              {order.paymentProofUrl && (
+                <div>
+                  <span className="text-gray-500 block mb-1">
+                    Comprovante anexado pelo cliente
+                    {order.paymentProofAt && (
+                      <> — {new Date(order.paymentProofAt).toLocaleString("pt-BR")}</>
+                    )}
+                  </span>
+                  <a
+                    href={order.paymentProofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5 hover:bg-blue-100"
+                  >
+                    Ver comprovante →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 

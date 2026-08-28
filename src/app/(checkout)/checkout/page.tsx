@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Loader2, Copy, Check, ChevronDown, ChevronUp,
   ShoppingBag, Truck, CreditCard, Smartphone, User,
-  Minus, Plus, ArrowLeft,
+  Minus, Plus, ArrowLeft, Paperclip,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice, copyToClipboard } from "@/lib/utils";
@@ -334,6 +334,29 @@ export default function CheckoutPage() {
   const [copied, setCopied] = useState(false);
   const [pixTimer, setPixTimer] = useState(600);
   const [pixPaid,  setPixPaid]  = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofSending, setProofSending] = useState(false);
+  const [proofSent, setProofSent] = useState(false);
+  const [proofError, setProofError] = useState("");
+
+  const sendProof = useCallback(async () => {
+    if (!proofFile || !pixResult) return;
+    setProofSending(true);
+    setProofError("");
+    try {
+      const fd = new FormData();
+      fd.append("orderId", pixResult.orderId);
+      fd.append("file", proofFile);
+      const res = await fetch("/api/payments/proof", { method: "POST", body: fd });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Erro ao enviar comprovante");
+      setProofSent(true);
+    } catch (err) {
+      setProofError(err instanceof Error ? err.message : "Erro ao enviar comprovante");
+    } finally {
+      setProofSending(false);
+    }
+  }, [proofFile, pixResult]);
 
   // Captura fbclid/fbp da URL (vindos da VSL) e dispara InitiateCheckout via CAPI
   useEffect(() => {
@@ -670,6 +693,45 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400 mt-0.5">Os pagamentos são processados exclusivamente em nome deste CNPJ. Verifique no app do seu banco antes de confirmar.</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Anexar comprovante */}
+              <div className="bg-white rounded-2xl shadow-sm px-5 py-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <Paperclip className="w-5 h-5 flex-shrink-0 mt-0.5 text-gray-400" />
+                  <div>
+                    <p className="text-xs font-black text-gray-700">Já pagou?</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Se preferir, anexe o comprovante do pagamento aqui pra gente confirmar mais rápido.
+                    </p>
+                  </div>
+                </div>
+                {proofSent ? (
+                  <div className="flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                    <Check className="w-4 h-4 flex-shrink-0" /> Comprovante enviado, obrigado!
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="flex items-center justify-center gap-2 w-full h-11 border-2 border-dashed border-gray-200 rounded-xl text-sm font-semibold text-gray-500 cursor-pointer hover:border-gray-300 transition-colors">
+                      {proofFile ? proofFile.name : "Escolher arquivo (imagem ou PDF)"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,application/pdf"
+                        className="hidden"
+                        onChange={(e) => { setProofFile(e.target.files?.[0] || null); setProofError(""); }}
+                      />
+                    </label>
+                    {proofError && <p className="text-xs text-red-500">{proofError}</p>}
+                    <button
+                      onClick={sendProof}
+                      disabled={!proofFile || proofSending}
+                      className="w-full h-11 flex items-center justify-center gap-2 font-black text-sm rounded-xl transition-all active:scale-[0.98] disabled:opacity-40"
+                      style={{ backgroundColor: "#111", color: "#fff" }}
+                    >
+                      {proofSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</> : "Enviar comprovante"}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Rodapé de segurança */}
