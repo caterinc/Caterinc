@@ -50,7 +50,7 @@ export function AddToCartButton({ product, sizes, colors }: Props) {
         price: selectedVariant.price
           ? Number(selectedVariant.price)
           : Number(product.price),
-        image: product.images[0] || "",
+        image: selectedVariant.images[0] || product.images[0] || "",
         size: selectedVariant.size,
         color: selectedVariant.color || "",
         quantity: 1,
