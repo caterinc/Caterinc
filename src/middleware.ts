@@ -26,14 +26,15 @@ const BOT_SIGNATURES = [
   "axios", "node-fetch", "got/", "undici", "okhttp",
 ];
 
-const REAL_BROWSER_MARKERS = ["chrome", "safari", "firefox", "edg/", "opr/", "opera"];
-
+// Não exige mais "parecer" com um navegador conhecido (chrome/safari/etc) —
+// isso pegava navegadores internos de app (Instagram, WhatsApp, TikTok...)
+// como se fossem bot. Só bloqueia quem bate com uma assinatura de bot
+// conhecida. Prioriza nunca perder lead real, mesmo aceitando que algum
+// bot não listado passe.
 function isBot(ua: string): boolean {
   if (!ua || ua.length < 10) return true;
   const lower = ua.toLowerCase();
   if (BOT_SIGNATURES.some((sig) => lower.includes(sig))) return true;
-  if (!lower.includes("mozilla")) return true;
-  if (!REAL_BROWSER_MARKERS.some((m) => lower.includes(m))) return true;
   return false;
 }
 
