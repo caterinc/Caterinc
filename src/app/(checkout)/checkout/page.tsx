@@ -901,8 +901,11 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-xl border p-4">
               <div className="flex items-center justify-between mb-1">
                 <SectionHeader num={1} title="Identificação" outline={sectionNumberOutline} />
-                <Link href="/carrinho" className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors">
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                <Link
+                  href="/carrinho"
+                  className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
                   Voltar ao carrinho
                 </Link>
               </div>
