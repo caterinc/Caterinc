@@ -382,15 +382,15 @@ export default function CheckoutPage() {
   }, []);
 
   // Restaura PIX do sessionStorage se o cliente recarregar a página
-  // Só restaura se o carrinho estiver vazio (pedido já foi gerado)
+  // Prioriza restaurar um PIX salvo em andamento, mesmo que o carrinho ainda
+  // não tenha terminado de ser gravado como vazio no localStorage — se essa
+  // checagem viesse antes (dependendo só de items.length === 0), uma corrida
+  // entre o CLEAR do carrinho e o reload da página (comum quando o app fica
+  // em segundo plano enquanto o cliente paga no banco e o navegador recarrega
+  // do zero ao voltar) fazia perder o PIX e reiniciar o checkout do zero.
   useEffect(() => {
     if (!isHydrated) return;
     try {
-      if (items.length > 0) {
-        // Novo checkout — descarta qualquer PIX salvo anteriormente
-        sessionStorage.removeItem("_pix_result");
-        return;
-      }
       const saved = sessionStorage.getItem("_pix_result");
       if (saved) {
         const parsed = JSON.parse(saved) as PixResult & { savedAt: number; timerLeft: number };
@@ -400,9 +400,14 @@ export default function CheckoutPage() {
           setPixResult(parsed);
           setStage("pix");
           setPixTimer(remaining);
-        } else {
-          sessionStorage.removeItem("_pix_result");
+          return;
         }
+        sessionStorage.removeItem("_pix_result");
+      }
+      if (items.length > 0) {
+        // Sem PIX salvo (ou expirado) e carrinho com item novo — é um
+        // checkout novo, não sobra resquício de tentativa anterior.
+        sessionStorage.removeItem("_pix_result");
       }
     } catch {}
   }, [isHydrated, items.length]);
