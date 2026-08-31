@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatPrice, formatDate, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { Paperclip, Loader2 } from "lucide-react";
 
 interface Order {
   id: string;
@@ -14,6 +15,8 @@ interface Order {
   createdAt: Date;
   total: number | string;
   status: string;
+  paymentStatus: string;
+  paymentProofUrl: string | null;
   user: { name: string | null } | null;
   items: { id: string }[];
 }
@@ -32,6 +35,27 @@ export function BulkOrders({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("CONFIRMED");
   const [isPending, startTransition] = useTransition();
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+
+  const checkGateway = async (id: string) => {
+    setCheckingId(id);
+    try {
+      const res = await fetch(`/api/admin/pedidos/${id}/verificar-gateway`, { method: "POST" });
+      const data = await res.json() as { status?: string; confirmed?: boolean; error?: string };
+      if (!res.ok) {
+        toast({ title: data.error || "Erro ao consultar o gateway", variant: "destructive" });
+      } else if (data.confirmed) {
+        toast({ title: "Pagamento confirmado no gateway! Pedido atualizado." });
+        router.refresh();
+      } else {
+        toast({ title: `Status no gateway: ${data.status}` });
+      }
+    } catch {
+      toast({ title: "Erro ao consultar o gateway", variant: "destructive" });
+    } finally {
+      setCheckingId(null);
+    }
+  };
 
   const allSelected = orders.length > 0 && selected.size === orders.length;
 
@@ -107,6 +131,7 @@ export function BulkOrders({ orders }: { orders: Order[] }) {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Itens</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Comprovante</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -128,6 +153,32 @@ export function BulkOrders({ orders }: { orders: Order[] }) {
                     <span className={cn("text-xs px-2 py-1 rounded-full font-medium", ORDER_STATUS_COLORS[order.status])}>
                       {ORDER_STATUS_LABELS[order.status]}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {order.paymentProofUrl ? (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={order.paymentProofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1 hover:bg-blue-100"
+                        >
+                          <Paperclip className="w-3 h-3" /> Ver
+                        </a>
+                        {order.paymentStatus !== "PAID" && (
+                          <button
+                            onClick={() => checkGateway(order.id)}
+                            disabled={checkingId === order.id}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 hover:bg-amber-100 disabled:opacity-50"
+                            title="Consultar status real no gateway"
+                          >
+                            {checkingId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "🔍"} Verificar
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
