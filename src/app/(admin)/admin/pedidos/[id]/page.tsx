@@ -151,7 +151,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
               </div>
               {order.mpPaymentId && (
                 <div>
-                  <span className="text-gray-500 block mb-1">ID da transação (FlevoPay)</span>
+                  <span className="text-gray-500 block mb-1">ID da transação (Xeque)</span>
                   <code className="block text-xs bg-gray-50 border rounded px-2 py-1.5 break-all select-all">
                     {order.mpPaymentId}
                   </code>

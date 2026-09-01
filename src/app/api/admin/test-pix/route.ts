@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
-import { flevopayConfigured, flevopayCreatePix } from "@/lib/flevopay";
+import { xequeConfigured, xequeCreatePix } from "@/lib/xeque";
 
 export const dynamic = "force-dynamic";
 
@@ -13,21 +13,21 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  if (!flevopayConfigured()) {
-    return NextResponse.json({ error: "FLEVOPAY_SECRET_KEY não configurado" }, { status: 503 });
+  if (!xequeConfigured()) {
+    return NextResponse.json({ error: "XEQUE_SECRET_KEY não configurado" }, { status: 503 });
   }
 
   const orderNumber = `TESTE-${Date.now()}`;
 
   try {
-    const v = await flevopayCreatePix({
+    const v = await xequeCreatePix({
       amount: 5.50,
       orderNumber,
       name: "Admin Teste",
       email: "admin@teste.com",
       cpf: "52998224725",
       phone: "11999999999",
-      itemName: "Teste FlevoPay PIX",
+      itemName: "Teste Xeque PIX",
     });
 
     // Create a real order in the DB so the webhook can find and confirm it
@@ -88,7 +88,7 @@ export async function POST(_req: NextRequest) {
       orderId: created?.id || null,
       orderNumber,
       amount: 5.50,
-      gateway: "FlevoPay",
+      gateway: "Xeque",
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";

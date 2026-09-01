@@ -1,12 +1,12 @@
-const BASE_URL = "https://app.flevopay.com.br/api/v1";
+const BASE_URL = "https://app.xequepag.com/api/v1";
 const WEBHOOK_URL = "https://loja-caterpillar.com/api/payments/webhook";
 
 function apiKey(): string {
-  return process.env.FLEVOPAY_SECRET_KEY || "";
+  return process.env.XEQUE_SECRET_KEY || "";
 }
 
-export function flevopayConfigured(): boolean {
-  return !!process.env.FLEVOPAY_SECRET_KEY;
+export function xequeConfigured(): boolean {
+  return !!process.env.XEQUE_SECRET_KEY;
 }
 
 function extractPixMerchantName(emv: string): string {
@@ -21,14 +21,14 @@ function extractPixMerchantName(emv: string): string {
   return "";
 }
 
-export interface FlevopayPixData {
+export interface XequePixData {
   id: string;
   status: string;
   pixPayload: string;
   merchantName: string;
 }
 
-export async function flevopayCreatePix(params: {
+export async function xequeCreatePix(params: {
   amount: number; // em reais (ex: 123.45) — convertido pra centavos abaixo
   orderNumber: string;
   name: string;
@@ -37,7 +37,7 @@ export async function flevopayCreatePix(params: {
   phone: string;
   itemName: string;
   utmData?: Record<string, string> | null;
-}): Promise<FlevopayPixData> {
+}): Promise<XequePixData> {
   const utm = params.utmData || {};
   const tracking: Record<string, string> = {};
   if (utm.utm_source || utm.source) tracking.utm_source = utm.utm_source || utm.source;
@@ -47,10 +47,10 @@ export async function flevopayCreatePix(params: {
   if (utm.utm_term || utm.term) tracking.utm_term = utm.utm_term || utm.term;
 
   const body: Record<string, unknown> = {
-    amount: Math.round(params.amount * 100), // FlevoPay espera centavos, não reais
+    amount: Math.round(params.amount * 100), // Xeque espera centavos, não reais
     description: params.itemName,
     reference: params.orderNumber,
-    source: "api_externa", // produtos não são cadastrados no painel FlevoPay
+    source: "api_externa",
     postback_url: WEBHOOK_URL,
     customer: {
       name: params.name,
@@ -69,7 +69,7 @@ export async function flevopayCreatePix(params: {
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`FlevoPay ${res.status}: ${err}`);
+    throw new Error(`Xeque ${res.status}: ${err}`);
   }
 
   const json = await res.json() as {
@@ -77,9 +77,9 @@ export async function flevopayCreatePix(params: {
     qr_code?: string; qr_code_base64?: string;
   };
 
-  if (json.status !== "success") throw new Error(`FlevoPay: resposta sem status=success (${JSON.stringify(json)})`);
-  if (!json.transaction_id) throw new Error("FlevoPay: sem transaction_id na resposta");
-  if (!json.qr_code) throw new Error("FlevoPay: sem qr_code na resposta");
+  if (json.status !== "success") throw new Error(`Xeque: resposta sem status=success (${JSON.stringify(json)})`);
+  if (!json.transaction_id) throw new Error("Xeque: sem transaction_id na resposta");
+  if (!json.qr_code) throw new Error("Xeque: sem qr_code na resposta");
 
   return {
     id: String(json.transaction_id),
@@ -89,7 +89,7 @@ export async function flevopayCreatePix(params: {
   };
 }
 
-export async function flevopayGetTransaction(id: string): Promise<string | null> {
+export async function xequeGetTransaction(id: string): Promise<string | null> {
   const res = await fetch(`${BASE_URL}/query?action=get_transaction&id=${encodeURIComponent(id)}`, {
     headers: { "X-API-Key": apiKey() },
   });

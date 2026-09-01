@@ -48,27 +48,27 @@ export async function POST(req: NextRequest) {
 
   const log = async (paymentId: string, action: string, result: string) => {
     try {
-      await prisma.webhookLog.create({ data: { source: "flevopay", paymentId, action, mpStatus: action, result } });
+      await prisma.webhookLog.create({ data: { source: "xeque", paymentId, action, mpStatus: action, result } });
     } catch { /* não bloqueia */ }
   };
 
-  // FlevoPay webhook: { transaction_id, external_id: orderNumber, status: "approved"|"pending"|"failed"|..., ... }
-  const flevopayId     = String(body.transaction_id ?? "");
-  const flevopayStatus = ((body.status as string) || "").toUpperCase();
+  // Xeque webhook: { transaction_id, external_id: orderNumber, status: "approved"|"pending"|"failed"|..., ... }
+  const xequeId     = String(body.transaction_id ?? "");
+  const xequeStatus = ((body.status as string) || "").toUpperCase();
 
-  console.log("[Webhook/FlevoPay] id:", flevopayId, "| status:", flevopayStatus);
-  await log(flevopayId, flevopayStatus, "received");
+  console.log("[Webhook/Xeque] id:", xequeId, "| status:", xequeStatus);
+  await log(xequeId, xequeStatus, "received");
 
-  if (flevopayStatus !== "APPROVED") {
-    await log(flevopayId, flevopayStatus, `ignorado: status=${flevopayStatus}`);
-    return NextResponse.json({ received: true, status: flevopayStatus });
+  if (xequeStatus !== "APPROVED") {
+    await log(xequeId, xequeStatus, `ignorado: status=${xequeStatus}`);
+    return NextResponse.json({ received: true, status: xequeStatus });
   }
 
   try {
     const order = await prisma.order.findFirst({
       where: {
         OR: [
-          { mpPaymentId: flevopayId },
+          { mpPaymentId: xequeId },
           { orderNumber: (body.external_id as string) || "__none__" },
         ],
       },
@@ -76,12 +76,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      await log(flevopayId, flevopayStatus, "pedido não encontrado");
+      await log(xequeId, xequeStatus, "pedido não encontrado");
       return NextResponse.json({ received: true, notFound: true });
     }
 
     if (order.paymentStatus === "PAID") {
-      await log(flevopayId, flevopayStatus, `já estava PAID: ${order.orderNumber}`);
+      await log(xequeId, xequeStatus, `já estava PAID: ${order.orderNumber}`);
       return NextResponse.json({ received: true, alreadyPaid: true });
     }
 
@@ -90,21 +90,21 @@ export async function POST(req: NextRequest) {
       data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook FlevoPay (${flevopayId})` },
+      data: { orderId: order.id, status: "CONFIRMED", note: `PIX aprovado via webhook Xeque (${xequeId})` },
     });
 
-    await log(flevopayId, flevopayStatus, `confirmado: ${order.orderNumber} R$${order.total}`);
+    await log(xequeId, xequeStatus, `confirmado: ${order.orderNumber} R$${order.total}`);
     await firePostPaymentEvents(order);
-    console.log("[Webhook/FlevoPay] confirmado:", order.orderNumber);
+    console.log("[Webhook/Xeque] confirmado:", order.orderNumber);
     return NextResponse.json({ received: true, confirmed: order.orderNumber });
 
   } catch (err) {
-    await log(flevopayId, flevopayStatus, `exceção: ${String(err)}`).catch(() => {});
-    console.error("[Webhook/FlevoPay] Erro:", err);
+    await log(xequeId, xequeStatus, `exceção: ${String(err)}`).catch(() => {});
+    console.error("[Webhook/Xeque] Erro:", err);
     return NextResponse.json({ received: true });
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ status: "ok", webhook: "flevopay" });
+  return NextResponse.json({ status: "ok", webhook: "xeque" });
 }

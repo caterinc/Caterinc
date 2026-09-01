@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
-import { flevopayConfigured, flevopayCreatePix } from "@/lib/flevopay";
+import { xequeConfigured, xequeCreatePix } from "@/lib/xeque";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !phone) return NextResponse.json({ error: "Dados pessoais invalidos" }, { status: 400 });
   if (cpf.length !== 11) return NextResponse.json({ error: "CPF inválido. Confira se você digitou todos os 11 números corretamente." }, { status: 400 });
 
-  if (!flevopayConfigured())
+  if (!xequeConfigured())
     return NextResponse.json({ error: "Pagamento nao configurado." }, { status: 503 });
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
@@ -118,16 +118,16 @@ export async function POST(req: NextRequest) {
   const trackingCode = generateTrackingCode();
   const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
-  let pixData: Awaited<ReturnType<typeof flevopayCreatePix>>;
+  let pixData: Awaited<ReturnType<typeof xequeCreatePix>>;
   try {
-    pixData = await flevopayCreatePix({
+    pixData = await xequeCreatePix({
       amount: total, orderNumber, name, email, cpf, phone,
       itemName: itemName || "Pedido",
       utmData: utmData || null,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    console.error("[FlevoPay] PIX create error:", msg);
+    console.error("[Xeque] PIX create error:", msg);
     return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         subtotal, shipping: shippingCost, total, shippingAddress,
         utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}), ...(externalId ? { externalId } : {}), ...(pixelSource ? { pixelSource } : {}) },
         items: { create: orderItems },
-        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via FlevoPay" }] },
+        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Xeque" }] },
       },
     });
     for (const item of orderItems) {
