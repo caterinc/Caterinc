@@ -116,13 +116,14 @@ export async function POST(req: NextRequest) {
   const nameParts  = name.split(" ");
   const orderNumber  = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
   const trackingCode = generateTrackingCode();
-  const itemName     = orderItems.map((i) => i.name.replace(/caterpillar\s*/gi, "").trim()).join(", ").slice(0, 100);
 
   let pixData: Awaited<ReturnType<typeof xequeCreatePix>>;
   try {
     pixData = await xequeCreatePix({
       amount: total, orderNumber, name, email, cpf, phone,
-      itemName: itemName || "Pedido",
+      // Nome genérico de propósito — o gateway não precisa saber qual produto
+      // foi vendido, só o admin (que já tem o detalhe real de cada pedido).
+      itemName: "Pacote Premium",
       utmData: utmData || null,
     });
   } catch (err) {
