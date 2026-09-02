@@ -481,7 +481,7 @@ export default function CheckoutPage() {
       try { fbc = localStorage.getItem("_fbc"); fbp = localStorage.getItem("_fbp"); externalId = localStorage.getItem("_sid"); pixelSource = localStorage.getItem("_pxsrc"); } catch {}
 
       // Brazil (default) keeps the exact format used everywhere downstream
-      // (Xeque, admin WhatsApp links) unchanged; only a non-BR country
+      // (FlevoPay, admin WhatsApp links) unchanged; only a non-BR country
       // prepends its code, since that's genuinely a different number shape.
       const personalToSend = {
         name: personal.name, email: personal.email, cpf: personal.cpf,
@@ -694,7 +694,7 @@ export default function CheckoutPage() {
                   <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#16c789" }} />
                   <div>
                     <p className="text-xs font-black text-gray-700">Beneficiário do pagamento</p>
-                    <p className="text-sm font-bold text-gray-900 mt-0.5">{pixResult.merchantName || "LYNX INTERMEDIO LTDA"}</p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">{pixResult.merchantName || "PAGO COMERCIO DIGITAL E R"}</p>
                     <p className="text-xs text-gray-400 mt-0.5">Os pagamentos são processados exclusivamente em nome deste CNPJ. Verifique no app do seu banco antes de confirmar.</p>
                   </div>
                 </div>

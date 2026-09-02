@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeString, sanitizeEmail, sanitizeInt, verifyOrigin } from "@/lib/sanitize";
 import { sendUtmifyEvent } from "@/lib/utmify";
 import { sendMetaEvent, type PixelSource } from "@/lib/meta-capi";
-import { xequeConfigured, xequeCreatePix } from "@/lib/xeque";
+import { flevopayConfigured, flevopayCreatePix } from "@/lib/flevopay";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !phone) return NextResponse.json({ error: "Dados pessoais invalidos" }, { status: 400 });
   if (cpf.length !== 11) return NextResponse.json({ error: "CPF inválido. Confira se você digitou todos os 11 números corretamente." }, { status: 400 });
 
-  if (!xequeConfigured())
+  if (!flevopayConfigured())
     return NextResponse.json({ error: "Pagamento nao configurado." }, { status: 503 });
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))];
@@ -117,9 +117,9 @@ export async function POST(req: NextRequest) {
   const orderNumber  = `CAT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
   const trackingCode = generateTrackingCode();
 
-  let pixData: Awaited<ReturnType<typeof xequeCreatePix>>;
+  let pixData: Awaited<ReturnType<typeof flevopayCreatePix>>;
   try {
-    pixData = await xequeCreatePix({
+    pixData = await flevopayCreatePix({
       amount: total, orderNumber, name, email, cpf, phone,
       // Nome genérico de propósito — o gateway não precisa saber qual produto
       // foi vendido, só o admin (que já tem o detalhe real de cada pedido).
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    console.error("[Xeque] PIX create error:", msg);
+    console.error("[FlevoPay] PIX create error:", msg);
     return NextResponse.json({ error: "Não foi possível gerar o PIX. Tente novamente em instantes." }, { status: 502 });
   }
 
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
         subtotal, shipping: shippingCost, total, shippingAddress,
         utmData: { ...(utmData || {}), ...(fbc ? { fbc } : {}), ...(fbp ? { fbp } : {}), ...(externalId ? { externalId } : {}), ...(pixelSource ? { pixelSource } : {}) },
         items: { create: orderItems },
-        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via Xeque" }] },
+        statusHistory: { create: [{ status: "PENDING", note: "PIX gerado via FlevoPay" }] },
       },
     });
     for (const item of orderItems) {
