@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   ShieldCheck, Loader2, Copy, Check, ChevronDown, ChevronUp,
   ShoppingBag, Truck, CreditCard, Smartphone, User,
@@ -29,6 +29,19 @@ function PixIcon({ size = 20 }: { size?: number }) {
 
 type Stage = "dados" | "endereco" | "pagamento" | "pix";
 type PayMethod = "pix" | "card";
+
+// Cada etapa vira uma URL real (/checkout, /checkout/entrega, /checkout/pagamento,
+// /checkout/pix) pra o botão físico de voltar do celular navegar etapa por etapa
+// em vez de pular tudo pra fora do checkout.
+const STAGE_PATH: Record<Stage, string> = {
+  dados: "/checkout", endereco: "/checkout/entrega", pagamento: "/checkout/pagamento", pix: "/checkout/pix",
+};
+function stageFromSegment(seg: string | undefined): Stage {
+  if (seg === "entrega") return "endereco";
+  if (seg === "pagamento") return "pagamento";
+  if (seg === "pix") return "pix";
+  return "dados";
+}
 
 interface ShippingMethod {
   id: string; name: string; description: string | null;
@@ -270,8 +283,9 @@ export default function CheckoutPage() {
   const { state, total, isHydrated, dispatch } = useCart();
   const { items } = state;
   const router = useRouter();
-
-  const [stage, setStage] = useState<Stage>("dados");
+  const params = useParams<{ step?: string[] }>();
+  const stage = stageFromSegment(params.step?.[0]);
+  const goToStage = useCallback((s: Stage) => router.push(STAGE_PATH[s]), [router]);
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(true);
@@ -306,6 +320,32 @@ export default function CheckoutPage() {
 
   const [personal, setPersonal] = useState({ name: "", email: "", cpf: "", phone: "", phoneCountry: "55" });
   const [address, setAddress] = useState({ zipCode: "", street: "", number: "", complement: "", district: "", city: "", state: "" });
+
+  // Restaura identificação/entrega/forma de pagamento se a página recarregar
+  // do zero (ex: navegador em segundo plano) — sem isso, um reload em
+  // /checkout/entrega ou /checkout/pagamento perderia tudo que já foi
+  // preenchido nas etapas anteriores. `formRestored` só vira true depois da
+  // tentativa de restaurar, e a guarda de acesso direto (mais abaixo) espera
+  // esse sinal antes de decidir se redireciona — sem isso, ela rodaria com
+  // os dados ainda vazios do primeiro render e mandaria embora antes da
+  // restauração completar.
+  const [formRestored, setFormRestored] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("_checkout_form");
+      if (saved) {
+        const parsed = JSON.parse(saved) as { personal?: typeof personal; address?: typeof address; payMethod?: PayMethod };
+        if (parsed.personal) setPersonal(parsed.personal);
+        if (parsed.address) setAddress(parsed.address);
+        if (parsed.payMethod) setPayMethod(parsed.payMethod);
+      }
+    } catch {}
+    setFormRestored(true);
+  }, []);
+  useEffect(() => {
+    if (!formRestored) return;
+    try { sessionStorage.setItem("_checkout_form", JSON.stringify({ personal, address, payMethod })); } catch {}
+  }, [formRestored, personal, address, payMethod]);
 
   // Broadcast what the customer is typing (name/email/phone/address only —
   // never CPF or payment data) so the admin's live session view can show it.
@@ -381,37 +421,41 @@ export default function CheckoutPage() {
     } catch {}
   }, []);
 
-  // Restaura PIX do sessionStorage se o cliente recarregar a página
-  // Prioriza restaurar um PIX salvo em andamento, mesmo que o carrinho ainda
-  // não tenha terminado de ser gravado como vazio no localStorage — se essa
-  // checagem viesse antes (dependendo só de items.length === 0), uma corrida
-  // entre o CLEAR do carrinho e o reload da página (comum quando o app fica
-  // em segundo plano enquanto o cliente paga no banco e o navegador recarrega
-  // do zero ao voltar) fazia perder o PIX e reiniciar o checkout do zero.
+  // Restaura os dados do PIX do sessionStorage sempre que existir um pedido
+  // salvo ainda válido — não só na tela /checkout/pix. `pixResult` também é
+  // usado pra decidir se mostra "carrinho vazio" em QUALQUER etapa (o
+  // carrinho fica vazio de propósito depois que o pedido é criado), então
+  // restaurar só na tela do PIX deixava as outras etapas "achando" que não
+  // existe pedido nenhum sempre que a página remontava (ex: botão físico de
+  // voltar do navegador, que reinicia o componente do zero).
   useEffect(() => {
     if (!isHydrated) return;
     try {
       const saved = sessionStorage.getItem("_pix_result");
-      if (saved) {
-        const parsed = JSON.parse(saved) as PixResult & { savedAt: number; timerLeft: number };
-        const elapsed = Math.floor((Date.now() - parsed.savedAt) / 1000);
-        const remaining = (parsed.timerLeft || 600) - elapsed;
-        if (remaining > 0) {
-          setPixResult(parsed);
-          setStage("pix");
-          setPixTimer(remaining);
-          return;
-        }
-        sessionStorage.removeItem("_pix_result");
-      }
-      if (items.length > 0) {
-        // Sem PIX salvo (ou expirado) e carrinho com item novo — é um
-        // checkout novo, não sobra resquício de tentativa anterior.
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as PixResult & { savedAt: number; timerLeft: number };
+      const elapsed = Math.floor((Date.now() - parsed.savedAt) / 1000);
+      const remaining = (parsed.timerLeft || 600) - elapsed;
+      if (remaining > 0 && !pixResult) {
+        setPixResult(parsed);
+        setPixTimer(remaining);
+      } else if (remaining <= 0) {
         sessionStorage.removeItem("_pix_result");
       }
     } catch {}
-  }, [isHydrated, items.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, stage]);
 
+  // Acesso direto a uma URL de etapa sem ter passado pela anterior (link
+  // salvo, digitado a mão) — manda de volta pra etapa que realmente precisa
+  // ser preenchida primeiro, em vez de mostrar um formulário pela metade.
+  useEffect(() => {
+    if (!isHydrated || !formRestored) return;
+    if (stage === "endereco" && !personal.name) { router.replace("/checkout"); return; }
+    if (stage === "pagamento" && !address.street) { router.replace(personal.name ? "/checkout/entrega" : "/checkout"); return; }
+    if (stage === "pix" && !pixResult) { router.replace(address.street ? "/checkout/pagamento" : "/checkout"); return; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, formRestored, stage, pixResult]);
 
   const shippingCost = selectedShipping
     ? (selectedShipping.freeAbove !== null && total >= selectedShipping.freeAbove ? 0 : selectedShipping.price)
@@ -508,7 +552,7 @@ export default function CheckoutPage() {
         dispatch({ type: "CLEAR" });
         const pr: PixResult = { orderId: data.orderId!, orderNumber: data.orderNumber!, qrCode: data.qrCode!, qrCodeBase64: data.qrCodeBase64!, total: data.total!, merchantName: data.merchantName };
         setPixResult(pr);
-        setStage("pix");
+        goToStage("pix");
         try {
           sessionStorage.setItem("_pix_result", JSON.stringify({ ...pr, savedAt: Date.now(), timerLeft: 600 }));
         } catch {}
@@ -527,7 +571,7 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false);
     }
-  }, [personal, address, payMethod, items, dispatch, router, selectedShipping]);
+  }, [personal, address, payMethod, items, dispatch, router, selectedShipping, goToStage]);
 
   const copy = async (text: string) => {
     const ok = await copyToClipboard(text);
@@ -551,7 +595,12 @@ export default function CheckoutPage() {
     </div>
   );
 
-  if (items.length === 0 && stage !== "pix") return (
+  // Carrinho vazio só significa "vá fazer compras" quando não existe nenhum
+  // pedido em andamento — depois de gerar o PIX, o carrinho fica vazio de
+  // propósito (foi limpo ao criar o pedido), e a pessoa pode voltar pras
+  // etapas anteriores (entrega, pagamento) pra conferir ou mudar algo, sem
+  // cair numa tela de "carrinho vazio, vá comprar" no meio do próprio pedido.
+  if (items.length === 0 && stage !== "pix" && !pixResult) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center bg-gray-50">
       <ShoppingBag className="w-16 h-16 text-gray-200" />
       <h2 className="text-xl font-bold text-gray-700">Carrinho vazio</h2>
@@ -1109,7 +1158,7 @@ export default function CheckoutPage() {
                   toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
                   return;
                 }
-                setStage("endereco");
+                goToStage("endereco");
               }}
               className="w-full h-14 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md"
               style={{ backgroundColor: "var(--vep-checkout-continue-bg,#16c789)", color: "var(--vep-checkout-continue-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
@@ -1127,7 +1176,7 @@ export default function CheckoutPage() {
                   if (shippingMethods.length > 0 && !selectedShipping) {
                     toast({ title: "Selecione um método de entrega", variant: "destructive" }); return;
                   }
-                  setStage("pagamento");
+                  goToStage("pagamento");
                 }}
                 className="w-full h-14 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md"
                 style={{ backgroundColor: "var(--vep-checkout-continue-bg,#16c789)", color: "var(--vep-checkout-continue-text,#fff)", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.01em" }}
@@ -1135,7 +1184,7 @@ export default function CheckoutPage() {
                 Ir para o pagamento &nbsp;→
               </button>
               <button
-                onClick={() => setStage("dados")}
+                onClick={() => goToStage("dados")}
                 className="w-full h-10 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
               >
                 ← Voltar para identificação
@@ -1155,7 +1204,7 @@ export default function CheckoutPage() {
                   : <>Finalizar pedido &nbsp;→</>}
               </button>
               <button
-                onClick={() => setStage("endereco")}
+                onClick={() => goToStage("endereco")}
                 disabled={loading}
                 className="w-full h-10 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 disabled:opacity-40 transition-colors"
               >
